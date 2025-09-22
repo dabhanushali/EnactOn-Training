@@ -17,4 +17,8 @@
 
     DELETE FROM auth.users WHERE id = user_id;
   END;
+<<<<<<< HEAD
   $$;
+=======
+  $$;
+>>>>>>> 854fa912adef75471f6d8fb5af489dfa3991cdff
