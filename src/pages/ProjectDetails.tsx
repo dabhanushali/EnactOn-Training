@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/auth-utils';
 import { AssignProjectDialog } from '@/components/projects/AssignProjectDialog';
 
 // Interfaces for the new data structure
@@ -30,6 +31,7 @@ interface Assignment {
 
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>();
+  const { profile } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,6 +75,11 @@ export default function ProjectDetails() {
   useEffect(() => {
     fetchDetails();
   }, [fetchDetails]);
+
+  const userRole = profile?.role?.role_name;
+  const visibleAssignments = userRole === 'Team Lead'
+    ? assignments.filter(assignment => assignment.profiles)
+    : assignments;
 
   if (loading) {
     return <div className="p-8">Loading project details...</div>;
@@ -128,7 +135,7 @@ export default function ProjectDetails() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {assignments.length > 0 ? assignments.map((assignment) => (
+                {visibleAssignments.length > 0 ? visibleAssignments.map((assignment) => (
                   <TableRow key={assignment.id}>
                     <TableCell>{assignment.profiles?.first_name} {assignment.profiles?.last_name || 'N/A'}</TableCell>
                     <TableCell><Badge variant="secondary">{assignment.status}</Badge></TableCell>
