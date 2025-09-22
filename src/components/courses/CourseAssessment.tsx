@@ -24,6 +24,7 @@ interface CourseAssessmentProps {
   onRetakeAssessment?: (assessmentId: string) => void;
   onViewCertificate?: (certificateUrl: string) => void;
   onMarkAsComplete?: (assessmentId: string) => void;
+  instructions?: string;
 }
 
 export const CourseAssessment = ({
@@ -44,6 +45,7 @@ export const CourseAssessment = ({
   onRetakeAssessment,
   onViewCertificate,
   onMarkAsComplete,
+  instructions,
 }: CourseAssessmentProps) => {
   const isPassed = percentage >= passingScore;
   const isCompleted = status === 'Completed';
@@ -96,10 +98,21 @@ export const CourseAssessment = ({
           {description && (
             <p className="text-sm text-muted-foreground mt-1">{description}</p>
           )}
+           {instructions && (
+            <div className="mt-4">
+              <h4 className="text-sm font-semibold mb-2">Instructions:</h4>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{instructions}</p>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded-r-lg mb-4">
+            <p className="text-sm text-blue-800">
+              This project is for practice purposes and will not be formally evaluated.
+            </p>
+          </div>
           {status === 'Completed' && (
-            <div className="flex items-center text-sm text-success mt-4">
+            <div className="flex items-center text-sm text-success">
               <CheckCircle className="w-4 h-4 mr-2" />
               <span>Completed</span>
             </div>

@@ -404,6 +404,7 @@ export default function CourseDetails() {
                           completionDate={userAssessment?.completion_date}
                           title={template.title}
                           description={template.description}
+                          instructions={template.instructions}
                           timeLimit={template.time_limit_minutes}
                           onRetakeAssessment={handleTakeAssessment}
                           onMarkAsComplete={handleMarkAsComplete}

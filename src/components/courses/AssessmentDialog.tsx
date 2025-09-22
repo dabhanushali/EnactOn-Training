@@ -186,7 +186,6 @@ export function AssessmentDialog({ courseId, assessment, onClose }: AssessmentDi
                 <SelectContent>
                   <SelectItem value="quiz">Quiz</SelectItem>
                   <SelectItem value="project">Project</SelectItem>
-                  <SelectItem value="practical">Practical</SelectItem>
                 </SelectContent>
               </Select>
             </div>
