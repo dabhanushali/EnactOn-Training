@@ -10,7 +10,7 @@ import { Dashboard } from "./pages/Dashboard";
 import Index from "./pages/Index";
 import AuthPage from "./pages/Auth";
 import Employees from "./pages/Employees";
-import EmployeeDetail from "./pages/EmployeeDetail";
+import EmployeeDetailEnhanced from "./pages/EmployeeDetailEnhanced";
 import Courses from "./pages/Courses";
 import CourseDetails from "./pages/CourseDetails";
 import ModuleViewer from "./pages/ModuleViewer";
@@ -61,7 +61,7 @@ const AuthenticatedApp = () => {
       <Route path="/" element={<Dashboard />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/employees" element={<Employees />} />
-      <Route path="/employees/:employeeId" element={<EmployeeDetail />} />
+      <Route path="/employees/:employeeId" element={<EmployeeDetailEnhanced />} />
       <Route path="/courses" element={<Courses />} />
       <Route path="/courses/create" element={<CreateCourse />} />
       <Route path="/courses/:courseId" element={<CourseDetails />} />

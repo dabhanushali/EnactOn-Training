@@ -63,6 +63,7 @@ export default function Employees() {
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const canManageEmployees = ['Management', 'HR'].includes(profile?.role?.role_name || '');
 
@@ -134,6 +135,39 @@ export default function Employees() {
   }, [employees, searchTerm, statusFilter, roleFilter, departmentFilter]);
 
   const departments = [...new Set(employees.map(emp => emp.department).filter(Boolean))];
+
+  const generateCSV = () => {
+    const headers = ['Name', 'Employee Code', 'Email', 'Role', 'Department', 'Designation', 'Status', 'Phone', 'Date of Joining'];
+    const csvData = employees.map(emp => [
+      `${emp.first_name || ''} ${emp.last_name || ''}`.trim(),
+      emp.employee_code || '',
+      '', // Email not available in current data structure
+      emp.role?.role_name || '',
+      emp.department || '',
+      emp.designation || '',
+      emp.current_status || '',
+      emp.phone || '',
+      emp.date_of_joining ? new Date(emp.date_of_joining).toLocaleDateString() : ''
+    ]);
+    
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+    
+    return csvContent;
+  };
+
+  const downloadCSV = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleDeleteEmployee = async () => {
     if (!employeeToDelete) return;
@@ -210,11 +244,23 @@ export default function Employees() {
                 Manage your organization's workforce with ease
               </p>
             </div>
-            <AddEmployeeDialog 
-              open={false} 
-              onOpenChange={() => {}} 
-              onSuccess={fetchEmployees} 
-            />
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  const csvContent = generateCSV();
+                  downloadCSV(csvContent, 'employees.csv');
+                }}
+                className="bg-white/80 hover:bg-white"
+              >
+                Export CSV
+              </Button>
+              <AddEmployeeDialog 
+                open={isAddDialogOpen} 
+                onOpenChange={setIsAddDialogOpen} 
+                onSuccess={fetchEmployees} 
+              />
+            </div>
           </div>
 
           {/* Stats Cards */}

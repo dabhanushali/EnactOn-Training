@@ -141,11 +141,20 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Add New Employee</DialogTitle>
-        </DialogHeader>
+    <>
+      <Button 
+        onClick={() => onOpenChange(true)} 
+        className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+      >
+        <UserPlus className="h-4 w-4 mr-2" />
+        Add Employee
+      </Button>
+      
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add New Employee</DialogTitle>
+          </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -268,7 +277,8 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -396,6 +396,7 @@ export default function AssignmentDetails() {
 
         <SubmitWorkDialog
           assignmentId={assignmentId || ''}
+          assignmentStatus={assignment.status}
           onSubmited={() => {
             fetchDetails();
           }}

@@ -51,14 +51,18 @@ export function AssignProjectDialog({ projectId, open, onOpenChange, onProjectAs
 
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, first_name, last_name')
+          .select('id, first_name, last_name, role:roles(role_name)')
           .eq('role_id', roleData.id);
 
         if (error) {
           console.error("Error fetching trainees:", error);
           toast.error("Could not fetch list of trainees.");
         } else {
-          setTrainees(data as Profile[]);
+          // Filter out admin users and only show trainees
+          const filteredTrainees = (data as any[])?.filter(trainee => 
+            trainee.role?.role_name === 'Trainee'
+          ) || [];
+          setTrainees(filteredTrainees);
         }
       };
 

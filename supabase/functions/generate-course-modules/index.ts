@@ -41,40 +41,75 @@ serve(async (req) => {
 
     // Build enhanced prompt with context
     const enhancedPrompt = `
-You are an expert instructional designer creating course modules for a learning management system.
+You are an expert instructional designer and curriculum developer creating comprehensive course modules for a professional learning management system.
 
-Context:
-- Course Type: ${courseType || 'General'}
-- Target Role: ${targetRole || 'General'}
+CONTEXT:
+- Course Type: ${courseType || 'General Professional Development'}
+- Target Role: ${targetRole || 'General Professional'}
 - Difficulty Level: ${difficultyLevel || 'Beginner'}
+- Industry Focus: Corporate Training & Development
 
-User Request: ${prompt}
+USER REQUEST: ${prompt}
 
-Please generate a structured list of 4-8 course modules based on the request. For each module, provide:
-1. Module Name (clear and concise)
-2. Module Description (2-3 sentences explaining what learners will achieve)
-3. Content Type (text, video, pdf, external_link, or mixed_content)
-4. Estimated Duration (in minutes, realistic for the content)
-5. Learning Objectives (2-3 specific, measurable outcomes)
+TASK: Generate a well-structured curriculum of 4-8 progressive course modules that will effectively teach the requested subject matter.
 
-Format your response as a JSON array with this structure:
+FOR EACH MODULE, PROVIDE:
+
+1. MODULE NAME: Create a clear, professional title that indicates the specific learning focus
+2. MODULE DESCRIPTION: Write 3-4 detailed sentences that explain:
+   - What specific concepts/skills will be covered
+   - How this module builds on previous learning
+   - What practical applications students will gain
+   - The real-world relevance and value
+3. CONTENT TYPE: Choose the most appropriate delivery method:
+   - "video" for demonstrations, explanations, or visual learning
+   - "text" for detailed guides, documentation, or reference material
+   - "pdf" for downloadable resources, worksheets, or comprehensive guides
+   - "external_link" for industry tools, websites, or third-party resources
+   - "mixed_content" for modules requiring multiple content types
+4. ESTIMATED DURATION: Provide realistic time estimates (15-180 minutes) based on:
+   - Content complexity and depth
+   - Target audience experience level
+   - Practical exercises and application time
+5. LEARNING OBJECTIVES: Create 3-4 specific, measurable outcomes using action verbs:
+   - Use Bloom's taxonomy (analyze, evaluate, create, apply, etc.)
+   - Focus on practical, job-relevant skills
+   - Ensure objectives build progressively in complexity
+6. SUGGESTED ACTIVITIES: Include 2-3 practical activities such as:
+   - Hands-on exercises or simulations
+   - Case studies or real-world scenarios
+   - Assessment methods or knowledge checks
+   - Collaborative or individual projects
+
+STRUCTURE YOUR RESPONSE AS A JSON ARRAY:
 [
   {
-    "module_name": "Module Title",
-    "module_description": "Detailed description of what this module covers and what students will learn.",
+    "module_name": "Comprehensive Module Title",
+    "module_description": "Detailed 3-4 sentence description covering concepts, applications, progression, and value proposition for learners in their professional development journey.",
     "content_type": "video",
     "estimated_duration_minutes": 90,
-    "learning_objectives": ["Objective 1", "Objective 2", "Objective 3"],
-    "suggested_activities": ["Activity or assessment idea"]
+    "learning_objectives": [
+      "Apply specific methodology to solve real-world problems",
+      "Analyze complex scenarios using industry best practices", 
+      "Create actionable plans based on learned frameworks",
+      "Evaluate solutions using established criteria"
+    ],
+    "suggested_activities": [
+      "Interactive case study analysis with peer discussion",
+      "Hands-on project applying module concepts to workplace scenario",
+      "Knowledge assessment quiz with immediate feedback"
+    ]
   }
 ]
 
-Guidelines:
-- Ensure logical progression from basic to advanced concepts
-- Include practical, hands-on activities where appropriate
-- Make descriptions engaging and outcome-focused
-- Consider the target role and difficulty level in your suggestions
-- Ensure content types are appropriate for the material
+QUALITY STANDARDS:
+- Ensure logical pedagogical progression from foundational to advanced concepts
+- Include practical application opportunities in every module
+- Make content descriptions specific and professionally relevant
+- Align content types with learning objectives for optimal engagement
+- Consider cognitive load and provide appropriate pacing
+- Include assessment and reinforcement opportunities
+- Focus on transferable skills that add immediate workplace value
 `;
 
     console.log('Generating modules with Gemini API...');

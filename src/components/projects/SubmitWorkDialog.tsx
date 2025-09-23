@@ -18,9 +18,10 @@ import { toast } from 'sonner';
 interface SubmitWorkDialogProps {
   assignmentId: string;
   onSubmited: () => void;
+  assignmentStatus?: string;
 }
 
-export function SubmitWorkDialog({ assignmentId, onSubmited }: SubmitWorkDialogProps) {
+export function SubmitWorkDialog({ assignmentId, onSubmited, assignmentStatus }: SubmitWorkDialogProps) {
   const { user } = useAuth();
   const [submissionLink, setSubmissionLink] = useState("");
   const [comments, setComments] = useState("");
@@ -59,10 +60,14 @@ export function SubmitWorkDialog({ assignmentId, onSubmited }: SubmitWorkDialogP
     setSubmitting(false);
   };
 
+  const isSubmitted = assignmentStatus === 'Submitted';
+
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button>Submit Work</Button>
+        <Button disabled={isSubmitted}>
+          {isSubmitted ? 'Already Submitted' : 'Submit Work'}
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
