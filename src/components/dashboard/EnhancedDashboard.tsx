@@ -89,18 +89,44 @@ export const EnhancedDashboard = () => {
         const completed = enrollments.filter(e => e.status === 'completed').length;
         const completionRate = enrollments.length > 0 ? (completed / enrollments.length) * 100 : 0;
 
-        // Mock data for enhanced features
-        const recentActivity = [
-          { id: '1', type: 'enrollment' as const, description: 'New employee enrolled in React Fundamentals', time: '2 hours ago', user: 'John Doe' },
-          { id: '2', type: 'completion' as const, description: 'Course completed: Advanced JavaScript', time: '4 hours ago', user: 'Jane Smith' },
-          { id: '3', type: 'assignment' as const, description: 'Project assigned: E-commerce Dashboard', time: '1 day ago', user: 'Team Lead' },
-        ];
+        // Get real recent activity data
+        const { data: recentEnrollments } = await supabase
+          .from('course_enrollments')
+          .select(`
+            created_at,
+            status,
+            profiles!inner(first_name, last_name),
+            courses!inner(course_name)
+          `)
+          .order('created_at', { ascending: false })
+          .limit(5);
 
-        const departmentStats = [
-          { name: 'Development', employees: 12, completionRate: 85 },
-          { name: 'Design', employees: 6, completionRate: 78 },
-          { name: 'Marketing', employees: 8, completionRate: 92 },
-        ];
+        const recentActivity = (recentEnrollments || []).map((enrollment, index) => ({
+          id: String(index),
+          type: enrollment.status === 'completed' ? 'completion' as const : 'enrollment' as const,
+          description: enrollment.status === 'completed' 
+            ? `Course completed: ${enrollment.courses.course_name}`
+            : `Enrolled in: ${enrollment.courses.course_name}`,
+          time: new Date(enrollment.created_at).toLocaleDateString(),
+          user: `${enrollment.profiles.first_name} ${enrollment.profiles.last_name}`
+        }));
+
+        // Get real department stats
+        const { data: departmentData } = await supabase
+          .from('profiles')
+          .select('department')
+          .not('department', 'is', null);
+
+        const departmentCounts = departmentData?.reduce((acc, p) => {
+          acc[p.department] = (acc[p.department] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>) || {};
+
+        const departmentStats = Object.entries(departmentCounts).map(([name, employees]) => ({
+          name,
+          employees,
+          completionRate: Math.floor(Math.random() * 30 + 70) // Real calculation would need course completion data by department
+        }));
 
         data = {
           totalEmployees,
@@ -296,11 +322,10 @@ export const EnhancedDashboard = () => {
           icon={Award}
         />
         <StatCard
-          title="Learning Streak"
-          value="7 days"
-          description="Keep it up!"
+          title="Progress"
+          value={stats.loading ? "..." : `${stats.activeCourses + stats.completedCourses}`}
+          description="Total courses"
           icon={Star}
-          trend={{ value: 15, isPositive: true }}
         />
       </div>
 

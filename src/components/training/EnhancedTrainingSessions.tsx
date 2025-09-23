@@ -146,6 +146,23 @@ export const EnhancedTrainingSessions = () => {
     }
   };
 
+  const handleMarkComplete = async (sessionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('training_sessions')
+        .update({ status: 'completed' })
+        .eq('id', sessionId);
+
+      if (error) throw error;
+      
+      toast.success('Session marked as completed');
+      fetchSessions();
+    } catch (error) {
+      console.error('Error marking session complete:', error);
+      toast.error('Failed to mark session as complete');
+    }
+  };
+
   const openEditDialog = (session: Session) => {
     setSessionToEdit(session);
     setEditData({

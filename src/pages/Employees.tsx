@@ -210,7 +210,11 @@ export default function Employees() {
                 Manage your organization's workforce with ease
               </p>
             </div>
-            <AddEmployeeDialog onEmployeeCreated={fetchEmployees} />
+            <AddEmployeeDialog 
+              open={false} 
+              onOpenChange={() => {}} 
+              onSuccess={fetchEmployees} 
+            />
           </div>
 
           {/* Stats Cards */}

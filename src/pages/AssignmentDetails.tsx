@@ -10,7 +10,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth-utils';
 import { SubmitWorkDialog } from '@/components/projects/SubmitWorkDialog';
-import { ArrowLeft, CheckCircle, Clock, PlayCircle, FileText, Upload } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Clock, PlayCircle, FileText, Upload, Star } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Project {
@@ -100,6 +100,23 @@ export default function AssignmentDetails() {
 
     setLoading(false);
   }, [assignmentId]);
+
+  const [evaluations, setEvaluations] = useState([]);
+
+  const fetchEvaluations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('project_evaluations')
+        .select('*')
+        .eq('project_id', assignmentId)
+        .eq('employee_id', profile?.id);
+
+      if (error) throw error;
+      setEvaluations(data || []);
+    } catch (error) {
+      console.error('Error fetching evaluations:', error);
+    }
+  };
 
   useEffect(() => {
     fetchDetails();
@@ -309,6 +326,47 @@ export default function AssignmentDetails() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Project Evaluations */}
+        {evaluations.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="h-5 w-5" />
+                Project Evaluations ({evaluations.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {evaluations.map((evaluation, index) => (
+                  <div key={evaluation.id} className="border rounded-lg p-4 bg-muted/5">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold">Evaluation #{index + 1}</h4>
+                      <Badge variant="secondary">
+                        Score: {evaluation.overall_score}/10
+                      </Badge>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <h5 className="font-medium text-success mb-1">Strengths:</h5>
+                        <p className="text-muted-foreground">{evaluation.strengths || 'No strengths noted'}</p>
+                      </div>
+                      <div>
+                        <h5 className="font-medium text-warning mb-1">Areas for Improvement:</h5>
+                        <p className="text-muted-foreground">{evaluation.areas_for_improvement || 'No areas noted'}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        Evaluation Date: {new Date(evaluation.evaluation_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Submitted Works */}
         <Card className="mt-8">

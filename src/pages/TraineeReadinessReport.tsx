@@ -559,7 +559,7 @@ export default function TraineeReadinessReport() {
                                                 <h4 className="font-semibold text-lg mb-2">{project.project_name}</h4>
                                                 <Badge variant="outline" className="mb-3">{project.status}</Badge>
                                                 
-                                                {project.evaluation.map((evaluation, index) => (
+                                                {project.evaluation?.map((evaluation, index) => (
                                                     <div key={index} className="bg-muted/30 p-3 rounded mt-3">
                                                         <div className="flex justify-between items-center mb-2">
                                                             <span className="font-medium">Evaluated by: {evaluation.evaluator}</span>
