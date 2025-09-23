@@ -119,14 +119,16 @@ export default function ModuleViewer() {
     return (
       <div className="space-y-6">
         {primaryUrl ? (
-          <div className="aspect-video bg-muted rounded-lg overflow-hidden border">
-            <iframe
-              src={embedUrl}
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              title="Module Content"
-            />
+          <div className="rounded-lg border p-4 bg-muted/30">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <LinkIcon className="w-4 h-4 text-primary" />
+                <span className="font-medium">Primary Content</span>
+              </div>
+              <Button asChild>
+                <a href={primaryUrl} target="_blank" rel="noopener noreferrer">Open Link</a>
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="text-center py-12 bg-muted/50 rounded-lg">

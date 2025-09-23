@@ -23,14 +23,14 @@ interface BulkModuleCreatorProps {
   onModulesCreated: () => void;
 }
 
-const CONTENT_TYPES = ['text', 'video', 'pdf', 'external_link', 'mixed_content'];
+const CONTENT_TYPES = ['mixed', 'link', 'video', 'pdf', 'text'];
 
 export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCreatorProps) => {
   const [modules, setModules] = useState<ModuleData[]>([
     {
       module_name: '',
       module_description: '',
-      content_type: 'text',
+      content_type: 'mixed',
       content_url: '',
       estimated_duration_minutes: 60,
       module_order: 1
@@ -43,7 +43,7 @@ export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCrea
     setModules(prev => [...prev, {
       module_name: '',
       module_description: '',
-      content_type: 'text',
+      content_type: 'mixed',
       content_url: '',
       estimated_duration_minutes: 60,
       module_order: prev.length + 1
@@ -68,9 +68,9 @@ export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCrea
   const generateCsvTemplate = () => {
     const csvContent = [
       'module_name,module_description,content_type,content_url,estimated_duration_minutes',
-      'Introduction to React,Learn the basics of React framework,video,https://example.com/video1,90',
-      'React Components,Understanding React components,text,,60',
-      'State Management,Learn about state in React,pdf,https://example.com/guide.pdf,120'
+      'Introduction to React,Learn the basics of React framework,mixed,https://example.com/video1,90',
+      'React Components,Understanding React components,mixed,https://example.com/article,60',
+      'State Management,Learn about state in React,mixed,https://example.com/guide.pdf,120'
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -110,7 +110,7 @@ export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCrea
           parsedModules.push({
             module_name: values[0] || '',
             module_description: values[1] || '',
-            content_type: values[2] || 'text',
+            content_type: values[2] || 'mixed',
             content_url: values[3] || '',
             estimated_duration_minutes: parseInt(values[4]) || 60,
             module_order: i
@@ -167,7 +167,7 @@ export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCrea
       setModules([{
         module_name: '',
         module_description: '',
-        content_type: 'text',
+        content_type: 'mixed',
         content_url: '',
         estimated_duration_minutes: 60,
         module_order: 1

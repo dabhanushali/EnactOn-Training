@@ -162,14 +162,8 @@ export const EnhancedTrainingSessions = () => {
       const updateData: any = {
         status: 'completed'
       };
-      
-      // Add recording URL and notes if provided
-      if (editData.recording_url.trim()) {
-        updateData.recording_url = editData.recording_url.trim();
-      }
-      if (editData.notes.trim()) {
-        updateData.notes = editData.notes.trim();
-      }
+      if (editData.recording_url.trim()) updateData.recording_url = editData.recording_url.trim();
+      if (editData.notes.trim()) updateData.notes = editData.notes.trim();
 
       const { error } = await supabase
         .from('training_sessions')
@@ -177,12 +171,25 @@ export const EnhancedTrainingSessions = () => {
         .eq('id', sessionToEdit.id);
 
       if (error) throw error;
-      
-      toast.success('Session updated successfully.');
+      toast.success('Session marked as completed.');
       fetchSessions();
       setEditDialogOpen(false);
     } catch (error) {
       toast.error(`Failed to update session: ${(error as Error).message}`);
+    }
+  };
+
+  const markCompletedQuick = async (sessionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('training_sessions')
+        .update({ status: 'completed' })
+        .eq('id', sessionId);
+      if (error) throw error;
+      toast.success('Session marked as completed.');
+      fetchSessions();
+    } catch (e) {
+      toast.error('Failed to mark as completed');
     }
   };
 
@@ -331,6 +338,14 @@ export const EnhancedTrainingSessions = () => {
                       className="flex-1"
                     >
                       Assign Participants
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => markCompletedQuick(session.id)}
+                      className="flex-1"
+                    >
+                      Mark Complete
                     </Button>
                     <Button
                       variant="destructive"

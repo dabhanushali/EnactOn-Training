@@ -61,6 +61,7 @@ export default function AssignmentDetails() {
   const [loading, setLoading] = useState(true);
   const [evaluation, setEvaluation] = useState<any>(null);
   const [showEvaluation, setShowEvaluation] = useState(false);
+  const [submissions, setSubmissions] = useState<any[]>([]);
 
   const fetchDetails = useCallback(async () => {
     if (!assignmentId) return;
@@ -87,9 +88,14 @@ export default function AssignmentDetails() {
           .single();
         setEvaluation(evalData);
       }
-    }
 
-    setLoading(false);
+      // Fetch submissions
+      const { data: subs } = await supabase
+        .from('project_milestone_submissions' as any)
+        .select('*')
+        .eq('assignment_id', assignmentId)
+        .order('submitted_at', { ascending: false });
+      setSubmissions(subs || []);
   }, [assignmentId]);
 
   useEffect(() => {
@@ -298,6 +304,36 @@ export default function AssignmentDetails() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Submitted Works */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>Submitted Works ({submissions.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {submissions.length === 0 ? (
+              <p className="text-muted-foreground">No submissions yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {submissions.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between p-3 rounded border">
+                    <div className="space-y-1">
+                      <p className="text-sm">{new Date(s.submitted_at).toLocaleString()}</p>
+                      {s.submission_content && (
+                        <p className="text-xs text-muted-foreground">{s.submission_content}</p>
+                      )}
+                    </div>
+                    {s.file_url && (
+                      <Button asChild size="sm" variant="outline">
+                        <a href={s.file_url} target="_blank" rel="noopener noreferrer">Open</a>
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -89,18 +89,33 @@ export function AssessmentDialog({ courseId, assessment, onAssessmentSave, onClo
     if (!currentAssessmentId) return;
     try {
       setLoadingQuestions(true);
-      const { data, error } = await supabase
+      const { data: qs, error } = await supabase
         .from('assessment_questions')
-        .select(`*, question_options (*)`)
+        .select('*')
         .eq('assessment_template_id', currentAssessmentId)
         .order('question_order');
 
       if (error) throw error;
 
-      const questionsWithSortedOptions = data?.map(q => ({
+      // Fetch options separately to avoid ambiguous relationship error
+      let optionsByQuestion: Record<string, QuestionOption[]> = {};
+      if (qs && qs.length > 0) {
+        const { data: opts, error: optsError } = await supabase
+          .from('question_options')
+          .select('*')
+          .in('question_id', qs.map((q: any) => q.id))
+          .order('option_order');
+        if (optsError) throw optsError;
+        optionsByQuestion = (opts || []).reduce((acc: Record<string, QuestionOption[]>, opt: any) => {
+          (acc[opt.question_id] ||= []).push(opt);
+          return acc;
+        }, {} as Record<string, QuestionOption[]>);
+      }
+
+      const questionsWithSortedOptions = (qs || []).map((q: any) => ({
         ...q,
-        options: q.question_options?.sort((a, b) => a.option_order - b.option_order) || []
-      })) || [];
+        options: optionsByQuestion[q.id] || []
+      }));
       setQuestions(questionsWithSortedOptions);
     } catch (error) {
       console.error('Error fetching questions:', error);
@@ -216,7 +231,7 @@ export function AssessmentDialog({ courseId, assessment, onAssessmentSave, onClo
           </div>
           <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : assessment ? 'Update Assessment' : 'Create Assessment'}</Button>
+            <Button onClick={handleSave} disabled={saving} aria-label="Save assessment">{saving ? 'Saving...' : assessment ? 'Update Assessment' : 'Create Assessment'}</Button>
           </div>
         </TabsContent>
 

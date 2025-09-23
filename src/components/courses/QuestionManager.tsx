@@ -91,8 +91,13 @@ export function QuestionManager({ assessmentId, questions, onQuestionsChange, lo
         toast({ title: "Error", description: "At least 2 options are required.", variant: "destructive" });
         return;
       }
-      if (!validOptions.some(opt => opt.is_correct)) {
-        toast({ title: "Error", description: "At least one option must be correct.", variant: "destructive" });
+      const correctCount = validOptions.filter(opt => opt.is_correct).length;
+      if (questionForm.question_type === 'true_false' && correctCount !== 1) {
+        toast({ title: "Error", description: "Exactly one option must be marked correct for True/False.", variant: "destructive" });
+        return;
+      }
+      if (questionForm.question_type === 'multiple_choice' && correctCount !== 1) {
+        toast({ title: "Error", description: "Select exactly one correct option for Multiple Choice.", variant: "destructive" });
         return;
       }
     }
@@ -164,10 +169,20 @@ export function QuestionManager({ assessmentId, questions, onQuestionsChange, lo
   };
   const updateOption = (index: number, field: string, value: unknown) => {
     const newOptions = [...questionForm.options];
-    newOptions[index] = { ...newOptions[index], [field]: value };
+    if (field === 'is_correct' && (questionForm.question_type === 'multiple_choice' || questionForm.question_type === 'true_false')) {
+      if (value) {
+        // Ensure only one correct option
+        for (let i = 0; i < newOptions.length; i++) {
+          newOptions[i] = { ...newOptions[i], is_correct: i === index };
+        }
+      } else {
+        newOptions[index] = { ...newOptions[index], is_correct: false };
+      }
+    } else {
+      newOptions[index] = { ...newOptions[index], [field]: value } as any;
+    }
     setQuestionForm({ ...questionForm, options: newOptions });
   };
-
   const getQuestionTypeLabel = (type: string) => {
     const labels: Record<string, string> = { multiple_choice: 'Multiple Choice', true_false: 'True/False', essay: 'Essay', practical: 'Practical' };
     return labels[type] || type;
@@ -218,7 +233,7 @@ export function QuestionManager({ assessmentId, questions, onQuestionsChange, lo
                   <div className="space-y-2 mt-2">
                     {questionForm.options.map((option, index) => (
                       <div key={index} className="flex items-center space-x-2">
-                        <Switch checked={option.is_correct} onCheckedChange={(checked) => updateOption(index, 'is_correct', checked)} />
+                        <Switch checked={option.is_correct} onCheckedChange={(checked) => updateOption(index, 'is_correct', checked)} aria-label={`Mark option ${index + 1} as correct`} />
                         <Input value={option.option_text} onChange={(e) => updateOption(index, 'option_text', e.target.value)} placeholder={`Option ${index + 1}`} disabled={questionForm.question_type === 'true_false' && index < 2} />
                         {questionForm.question_type === 'multiple_choice' && questionForm.options.length > 2 && (
                           <Button variant="ghost" size="sm" onClick={() => removeOption(index)}><X className="w-4 h-4" /></Button>

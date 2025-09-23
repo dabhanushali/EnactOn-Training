@@ -106,6 +106,22 @@ export const EnhancedModuleCreator = ({ courseId }: EnhancedModuleCreatorProps) 
     setSelectedModule(null);
   };
 
+  const moveModule = async (module: CourseModuleData, direction: 'up' | 'down') => {
+    const index = modules.findIndex(m => m.id === module.id);
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= modules.length) return;
+    const other = modules[swapIndex];
+    try {
+      // Swap orders in DB
+      await supabase.from('course_modules').update({ module_order: other.module_order }).eq('id', module.id);
+      await supabase.from('course_modules').update({ module_order: module.module_order }).eq('id', other.id);
+      await fetchModules();
+      toast.success('Module order updated');
+    } catch (e) {
+      toast.error('Failed to reorder modules');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Existing Modules Overview */}
@@ -130,6 +146,22 @@ export const EnhancedModuleCreator = ({ courseId }: EnhancedModuleCreatorProps) 
                         </Badge>
                       </div>
                       <div className="flex gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => moveModule(module, 'up')}
+                          disabled={module.module_order === 1}
+                        >
+                          ↑
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => moveModule(module, 'down')}
+                          disabled={module.module_order === modules.length}
+                        >
+                          ↓
+                        </Button>
                         <Button 
                           variant="ghost" 
                           size="sm"
