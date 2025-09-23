@@ -236,7 +236,11 @@ export const EnhancedTrainingSessions = () => {
     session: Session; 
     showActions?: boolean; 
     isPast?: boolean;
-  }) => (
+  }) => {
+    const isCompleted = session.status.toLowerCase() === 'completed';
+    const showRecordingAndNotes = isPast || isCompleted;
+    
+    return (
     <Card key={session.id} className="hover:shadow-lg transition-all duration-300">
       <CardHeader>
         <div className="flex items-start justify-between">
@@ -276,8 +280,8 @@ export const EnhancedTrainingSessions = () => {
           )}
         </div>
 
-        {/* Show recording and notes for past sessions */}
-        {isPast && (
+        {/* Show recording and notes for completed or past sessions */}
+        {showRecordingAndNotes && (
           <div className="pt-2 border-t border-border space-y-2">
             <div className="text-sm space-y-1">
               <div>
@@ -310,11 +314,11 @@ export const EnhancedTrainingSessions = () => {
             {profile?.role?.role_name === 'Trainee' ? (
               // Trainee actions
               <div className="space-y-2">
-                {isPast ? (
+                {showRecordingAndNotes ? (
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" disabled className="flex-1">
                       <FileText className="h-4 w-4 mr-2" />
-                      View Details
+                      Session Completed
                     </Button>
                   </div>
                 ) : canJoinSession(session) ? (
@@ -333,26 +337,7 @@ export const EnhancedTrainingSessions = () => {
             ) : (
               // Admin actions
               <div className="flex gap-2">
-                {isPast ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditDialog(session)}
-                      className="flex-1"
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Session
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => openDeleteDialog(session)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </>
-                ) : session.status.toLowerCase() === 'completed' ? (
+                {showRecordingAndNotes ? (
                   <>
                     <Button
                       variant="outline"
@@ -405,6 +390,7 @@ export const EnhancedTrainingSessions = () => {
       </CardContent>
     </Card>
   );
+  };
 
   const SessionGrid = ({ sessions, isPast = false }: { sessions: Session[]; isPast?: boolean }) => (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -513,14 +499,43 @@ export const EnhancedTrainingSessions = () => {
 
       {/* Edit Session Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-[525px]">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Edit Session</DialogTitle>
+            <DialogTitle>Edit Session - {sessionToEdit?.session_name}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Session: {sessionToEdit?.session_name}</Label>
+          <div className="space-y-6 py-4">
+            {/* Session Info */}
+            <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+              <div className="text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  {sessionToEdit && new Date(sessionToEdit.start_datetime).toLocaleDateString()}
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <Clock className="h-4 w-4" />
+                  {sessionToEdit && new Date(sessionToEdit.start_datetime).toLocaleTimeString()} - {sessionToEdit && new Date(sessionToEdit.end_datetime).toLocaleTimeString()}
+                </div>
+              </div>
             </div>
+
+            {/* Current Recording (if exists) */}
+            {sessionToEdit?.recording_url && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Current Recording</Label>
+                <div className="p-3 bg-muted/30 rounded-md">
+                  <a 
+                    href={sessionToEdit.recording_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline text-sm"
+                  >
+                    View Current Recording
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Recording URL Input */}
             <div className="space-y-2">
               <Label htmlFor="recording_url">Recording URL</Label>
               <Input
@@ -531,6 +546,18 @@ export const EnhancedTrainingSessions = () => {
                 onChange={(e) => setEditData({ ...editData, recording_url: e.target.value })}
               />
             </div>
+
+            {/* Current Notes (if exists) */}
+            {sessionToEdit?.notes && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Current Notes</Label>
+                <div className="p-3 bg-muted/30 rounded-md">
+                  <p className="text-sm text-muted-foreground">{sessionToEdit.notes}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Notes Input */}
             <div className="space-y-2">
               <Label htmlFor="notes">Session Notes</Label>
               <Textarea
@@ -538,7 +565,7 @@ export const EnhancedTrainingSessions = () => {
                 placeholder="Add notes about the session..."
                 value={editData.notes}
                 onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
-                rows={3}
+                rows={4}
               />
             </div>
           </div>
