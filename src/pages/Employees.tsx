@@ -70,6 +70,10 @@ export default function Employees() {
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
     try {
+      // Fetch profiles with auth users data
+      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+      if (authError) throw authError;
+
       const { data, error } = await supabase
         .from('profiles')
         .select(`
@@ -80,14 +84,14 @@ export default function Employees() {
 
       if (error) throw error;
       
-      // Also fetch email from auth.users for each profile
-      const profilesWithEmails = await Promise.all((data || []).map(async (profile) => {
-        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
+      // Map profiles with their corresponding email from auth users
+      const profilesWithEmails = (data || []).map(profile => {
+        const authUser = authData.users.find((user: any) => user.id === profile.id);
         return {
           ...profile,
-          email: userData?.user?.email || ''
+          email: authUser?.email || ''
         };
-      }));
+      });
       
       setEmployees(profilesWithEmails);
       setFilteredEmployees(profilesWithEmails);
@@ -151,12 +155,12 @@ export default function Employees() {
     const csvData = employees.map(emp => [
       `${emp.first_name || ''} ${emp.last_name || ''}`.trim(),
       emp.employee_code || '',
-      (emp as any).email || '',
+      (emp as any).email || 'N/A',
       emp.role?.role_name || '',
       emp.department || '',
       emp.designation || '',
       emp.current_status || '',
-      emp.phone || '',
+      emp.phone ? emp.phone.replace(/^\+91\s*/, '+91 ') : '',
       emp.date_of_joining ? new Date(emp.date_of_joining).toLocaleDateString() : ''
     ]);
     

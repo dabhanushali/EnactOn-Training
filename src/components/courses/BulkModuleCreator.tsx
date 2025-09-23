@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,18 +26,58 @@ interface BulkModuleCreatorProps {
 const CONTENT_TYPES = ['mixed', 'link', 'video', 'pdf', 'text'];
 
 export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCreatorProps) => {
-  const [modules, setModules] = useState<ModuleData[]>([
-    {
-      module_name: '',
-      module_description: '',
-      content_type: 'mixed',
-      content_url: '',
-      estimated_duration_minutes: 60,
-      module_order: 1
-    }
-  ]);
+  const [modules, setModules] = useState<ModuleData[]>([]);
+  const [nextOrderNumber, setNextOrderNumber] = useState(1);
   const [loading, setLoading] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
+
+  // Fetch existing modules to determine next order number
+  useEffect(() => {
+    const fetchExistingModules = async () => {
+      if (!courseId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('course_modules')
+          .select('module_order')
+          .eq('course_id', courseId)
+          .order('module_order', { ascending: false })
+          .limit(1);
+
+        if (error) throw error;
+        
+        const maxOrder = data && data.length > 0 ? data[0].module_order : 0;
+        setNextOrderNumber(maxOrder + 1);
+        
+        // Initialize with first module if none exist
+        if (modules.length === 0) {
+          setModules([{
+            module_name: '',
+            module_description: '',
+            content_type: 'mixed',
+            content_url: '',
+            estimated_duration_minutes: 60,
+            module_order: maxOrder + 1
+          }]);
+        }
+      } catch (error) {
+        console.error('Error fetching existing modules:', error);
+        setNextOrderNumber(1);
+        if (modules.length === 0) {
+          setModules([{
+            module_name: '',
+            module_description: '',
+            content_type: 'mixed',
+            content_url: '',
+            estimated_duration_minutes: 60,
+            module_order: 1
+          }]);
+        }
+      }
+    };
+
+    fetchExistingModules();
+  }, [courseId, modules.length]);
 
   const addModule = () => {
     setModules(prev => [...prev, {
@@ -46,7 +86,7 @@ export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCrea
       content_type: 'mixed',
       content_url: '',
       estimated_duration_minutes: 60,
-      module_order: prev.length + 1
+      module_order: nextOrderNumber + prev.length
     }]);
   };
 
@@ -54,7 +94,7 @@ export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCrea
     if (modules.length > 1) {
       setModules(prev => prev.filter((_, i) => i !== index).map((module, i) => ({
         ...module,
-        module_order: i + 1
+        module_order: nextOrderNumber + i
       })));
     }
   };
@@ -68,18 +108,19 @@ export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCrea
   const generateCsvTemplate = () => {
     const csvContent = [
       'module_name,module_description,content_type,content_url,estimated_duration_minutes',
-      'Introduction to React,Learn the basics of React framework,mixed,https://example.com/video1,90',
-      'React Components,Understanding React components,mixed,https://example.com/article,60',
-      'State Management,Learn about state in React,mixed,https://example.com/guide.pdf,120'
+      '"Introduction to Programming","Learn basic programming concepts","mixed","https://example.com/intro",60',
+      '"Variables and Data Types","Understanding variables and data types","video","https://example.com/variables",45',
+      '"Control Structures","Learn about loops and conditionals","text","",90'
     ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    link.href = url;
-    link.download = 'module_template.csv';
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'module_template.csv');
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(link);
   };
 
   const handleCsvUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,27 +134,23 @@ export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCrea
   const parseCsvFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const lines = text.split('\n');
-      const headers = lines[0].split(',').map(h => h.trim());
+      const csv = e.target?.result as string;
+      const lines = csv.split('\n').filter(line => line.trim());
+      const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
       
-      if (!headers.includes('module_name')) {
-        toast.error('Invalid CSV format. Please use the provided template.');
-        return;
-      }
-
       const parsedModules: ModuleData[] = [];
       
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim());
-        if (values.length >= 3 && values[0]) {
+        const values = lines[i].split(',').map(v => v.replace(/"/g, '').trim());
+        
+        if (values.length >= 5) {
           parsedModules.push({
             module_name: values[0] || '',
             module_description: values[1] || '',
             content_type: values[2] || 'mixed',
             content_url: values[3] || '',
             estimated_duration_minutes: parseInt(values[4]) || 60,
-            module_order: i
+            module_order: nextOrderNumber + i - 1
           });
         }
       }
@@ -163,14 +200,16 @@ export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCrea
       toast.success(`Successfully created ${validModules.length} modules!`);
       onModulesCreated();
       
-      // Reset form
+      // Reset form with updated order number
+      const newNextOrder = nextOrderNumber + validModules.length;
+      setNextOrderNumber(newNextOrder);
       setModules([{
         module_name: '',
         module_description: '',
         content_type: 'mixed',
         content_url: '',
         estimated_duration_minutes: 60,
-        module_order: 1
+        module_order: newNextOrder
       }]);
     } catch (error) {
       console.error('Error creating modules:', error);
@@ -182,120 +221,124 @@ export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCrea
 
   return (
     <div className="space-y-6">
-      {/* CSV Import Section */}
+      {/* CSV Bulk Import Section */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+            <FileText className="w-5 h-5" />
             CSV Bulk Import
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              onClick={generateCsvTemplate}
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Download Template
+          <div className="flex gap-2">
+            <Button onClick={generateCsvTemplate} variant="outline" size="sm">
+              <Download className="w-4 h-4 mr-2" />
+              Download CSV Template
             </Button>
-            <div className="flex-1">
-              <Input
+            <div className="relative">
+              <input
                 type="file"
                 accept=".csv"
                 onChange={handleCsvUpload}
-                className="cursor-pointer"
+                className="absolute inset-0 opacity-0 cursor-pointer"
+                id="csv-upload"
               />
+              <Button variant="outline" size="sm" asChild>
+                <label htmlFor="csv-upload" className="cursor-pointer">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload CSV File
+                </label>
+              </Button>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Download the CSV template, fill it with your module data, then upload it back to bulk create modules.
-          </p>
+          {csvFile && (
+            <p className="text-sm text-muted-foreground">
+              Loaded file: {csvFile.name}
+            </p>
+          )}
         </CardContent>
       </Card>
 
-      {/* Manual Bulk Creation */}
+      {/* Manual Bulk Creation Section */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            Bulk Module Creation
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Manual Bulk Creation</span>
+            <Button onClick={addModule} variant="outline" size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Module
+            </Button>
           </CardTitle>
-          <Button onClick={addModule} variant="outline" size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Module
-          </Button>
         </CardHeader>
         <CardContent className="space-y-6">
           {modules.map((module, index) => (
-            <div key={index} className="p-4 border rounded-lg space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">Module {index + 1}</h3>
+            <Card key={index} className="p-4">
+              <div className="flex justify-between items-start mb-4">
+                <h4 className="font-medium text-sm">Module {module.module_order}</h4>
                 {modules.length > 1 && (
                   <Button
-                    variant="destructive"
-                    size="sm"
                     onClick={() => removeModule(index)}
+                    variant="outline"
+                    size="sm"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 )}
               </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <RequiredLabel htmlFor={`name-${index}`}>
+                  <RequiredLabel htmlFor={`module_name_${index}`}>
                     Module Name
                   </RequiredLabel>
                   <Input
-                    id={`name-${index}`}
+                    id={`module_name_${index}`}
                     value={module.module_name}
                     onChange={(e) => updateModule(index, 'module_name', e.target.value)}
-                    placeholder="e.g., Introduction to React"
+                    placeholder="Enter module name"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <RequiredLabel htmlFor={`type-${index}`}>
+                  <label htmlFor={`content_type_${index}`} className="text-sm font-medium">
                     Content Type
-                  </RequiredLabel>
-                  <Select
-                    value={module.content_type}
+                  </label>
+                  <Select 
+                    value={module.content_type} 
                     onValueChange={(value) => updateModule(index, 'content_type', value)}
                   >
-                    <SelectTrigger id={`type-${index}`}>
+                    <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {CONTENT_TYPES.map(type => (
                         <SelectItem key={type} value={type}>
-                          {type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          {type.charAt(0).toUpperCase() + type.slice(1)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="space-y-2 md:col-span-2">
-                  <RequiredLabel htmlFor={`desc-${index}`}>
+                <div className="md:col-span-2 space-y-2">
+                  <RequiredLabel htmlFor={`module_description_${index}`}>
                     Module Description
                   </RequiredLabel>
                   <Textarea
-                    id={`desc-${index}`}
+                    id={`module_description_${index}`}
                     value={module.module_description}
                     onChange={(e) => updateModule(index, 'module_description', e.target.value)}
-                    placeholder="Describe what this module covers..."
-                    rows={3}
+                    placeholder="Describe the module content and objectives"
+                    className="min-h-[80px]"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <RequiredLabel htmlFor={`url-${index}`}>
+                  <label htmlFor={`content_url_${index}`} className="text-sm font-medium">
                     Content URL (Optional)
-                  </RequiredLabel>
+                  </label>
                   <Input
-                    id={`url-${index}`}
+                    id={`content_url_${index}`}
                     value={module.content_url}
                     onChange={(e) => updateModule(index, 'content_url', e.target.value)}
                     placeholder="https://example.com/content"
@@ -303,29 +346,34 @@ export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCrea
                 </div>
 
                 <div className="space-y-2">
-                  <RequiredLabel htmlFor={`duration-${index}`}>
+                  <label htmlFor={`duration_${index}`} className="text-sm font-medium">
                     Duration (minutes)
-                  </RequiredLabel>
+                  </label>
                   <Input
-                    id={`duration-${index}`}
+                    id={`duration_${index}`}
                     type="number"
-                    min="1"
                     value={module.estimated_duration_minutes}
                     onChange={(e) => updateModule(index, 'estimated_duration_minutes', parseInt(e.target.value) || 60)}
+                    min={1}
+                    max={600}
                   />
                 </div>
               </div>
-            </div>
+            </Card>
           ))}
 
-          <div className="flex justify-end pt-4 border-t">
-            <Button onClick={saveAllModules} disabled={loading} size="lg">
-              <Save className="h-4 w-4 mr-2" />
-              {loading ? 'Creating Modules...' : `Create ${modules.filter(m => m.module_name.trim()).length} Modules`}
-            </Button>
-          </div>
+          <Button 
+            onClick={saveAllModules} 
+            disabled={loading}
+            className="w-full"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            {loading ? 'Creating Modules...' : `Create ${modules.filter(m => m.module_name.trim() && m.module_description.trim()).length} Modules`}
+          </Button>
         </CardContent>
       </Card>
     </div>
   );
 };
+
+export default BulkModuleCreator;
