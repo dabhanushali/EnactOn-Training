@@ -30,7 +30,7 @@ targetRoles: [
   'Accounting & Finance',     // Accountant
   'Students / Interns',       // Internship, Students
   'Others'                    // Fallback category
-]
+],
   // Designations
 designations: [
   'HR Manager',
