@@ -890,6 +890,27 @@ export type Database = {
         Args: { user_id: string }
         Returns: undefined
       }
+      get_profiles_with_emails: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          current_status: string
+          date_of_joining: string
+          department: string
+          designation: string
+          email: string
+          employee_code: string
+          first_name: string
+          id: string
+          last_name: string
+          manager_id: string
+          phone: string
+          role_description: string
+          role_id: string
+          role_name: string
+          updated_at: string
+        }[]
+      }
       get_project_assignments: {
         Args: { p_project_id: string }
         Returns: {
@@ -903,6 +924,10 @@ export type Database = {
       get_trainee_readiness_data: {
         Args: { p_user_id: string }
         Returns: Json
+      }
+      get_user_email: {
+        Args: { user_id: string }
+        Returns: string
       }
       get_user_role: {
         Args: { user_id: string }

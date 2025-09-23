@@ -70,31 +70,23 @@ export default function Employees() {
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch profiles with auth users data
-      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
-      if (authError) throw authError;
-
       const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          role:roles(id, role_name, role_description)
-        `)
-        .order('created_at', { ascending: false });
+        .rpc('get_profiles_with_emails');
 
       if (error) throw error;
       
-      // Map profiles with their corresponding email from auth users
-      const profilesWithEmails = (data || []).map(profile => {
-        const authUser = authData.users.find((user: any) => user.id === profile.id);
-        return {
-          ...profile,
-          email: authUser?.email || ''
-        };
-      });
+      // Map the data to match the expected format
+      const employeeData = (data || []).map(profile => ({
+        ...profile,
+        role: {
+          id: profile.role_id,
+          role_name: profile.role_name,
+          role_description: profile.role_description
+        }
+      }));
       
-      setEmployees(profilesWithEmails);
-      setFilteredEmployees(profilesWithEmails);
+      setEmployees(employeeData);
+      setFilteredEmployees(employeeData);
     } catch (error) {
       console.error('Error fetching employees:', error);
       toast.error('Failed to load employees');

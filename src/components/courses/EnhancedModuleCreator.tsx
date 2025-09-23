@@ -110,14 +110,35 @@ export const EnhancedModuleCreator = ({ courseId }: EnhancedModuleCreatorProps) 
     const index = modules.findIndex(m => m.id === module.id);
     const swapIndex = direction === 'up' ? index - 1 : index + 1;
     if (swapIndex < 0 || swapIndex >= modules.length) return;
+    
     const other = modules[swapIndex];
+    
     try {
-      // Swap orders in DB
-      await supabase.from('course_modules').update({ module_order: other.module_order }).eq('id', module.id);
-      await supabase.from('course_modules').update({ module_order: module.module_order }).eq('id', other.id);
+      // Use a temporary negative value to avoid unique constraint violations
+      const tempOrder = -Math.abs(module.module_order);
+      
+      // Step 1: Set first module to temporary order
+      await supabase
+        .from('course_modules')
+        .update({ module_order: tempOrder })
+        .eq('id', module.id);
+      
+      // Step 2: Set second module to first module's original order
+      await supabase
+        .from('course_modules')
+        .update({ module_order: module.module_order })
+        .eq('id', other.id);
+      
+      // Step 3: Set first module to second module's original order
+      await supabase
+        .from('course_modules')
+        .update({ module_order: other.module_order })
+        .eq('id', module.id);
+      
       await fetchModules();
       toast.success('Module order updated');
-    } catch (e) {
+    } catch (error) {
+      console.error('Error reordering modules:', error);
       toast.error('Failed to reorder modules');
     }
   };
