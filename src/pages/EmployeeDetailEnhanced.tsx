@@ -12,11 +12,13 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { 
   ArrowLeft, Edit, Save, X, User, Calendar, Phone, Building, UserCheck, 
-  Mail, MapPin, Users, Briefcase, Award, BookOpen, FileText
+  Mail, MapPin, Users, Briefcase, Award, BookOpen, FileText, Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserRoleType, EmployeeStatusOptions } from '@/lib/enums';
 import { EmployeeDocuments } from '@/components/employees/EmployeeDocuments';
+import { EmployeeCourseEnrollments } from '@/components/employees/EmployeeCourseEnrollments';
+import { StatusChangeDialog } from '@/components/employees/StatusChangeDialog';
 import { MASTER_DATA } from '@/lib/masterData';
 import { DEPARTMENTS, DESIGNATIONS } from '@/lib/employeeConstants';
 import { CourseEnrollmentDialog } from '@/components/employees/CourseEnrollmentDialog';
@@ -63,6 +65,7 @@ export default function EmployeeDetailEnhanced() {
   const [editData, setEditData] = useState<Partial<Employee>>({});
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [showDocumentDialog, setShowDocumentDialog] = useState(false);
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
 
   const canManage = profile?.role?.role_name === 'HR' || profile?.role?.role_name === 'Management';
 
@@ -477,6 +480,44 @@ export default function EmployeeDetailEnhanced() {
               </div>
               
               <div className="space-y-2">
+                <Label>Status</Label>
+                {isEditing ? (
+                  <Select 
+                    value={editData.current_status || ''} 
+                    onValueChange={value => handleInputChange('current_status', value)}
+                  >
+                    <SelectTrigger className="bg-white/50">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EmployeeStatusOptions.map(status => (
+                        <SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex items-center justify-between py-2 px-3 bg-muted/30 rounded-md">
+                    <Badge variant={getStatusBadgeVariant(employee.current_status)} className="font-medium">
+                      {employee.current_status}
+                    </Badge>
+                    {canManage && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setShowStatusDialog(true)}
+                        className="h-6 px-2 text-xs"
+                      >
+                        <Settings className="h-3 w-3 mr-1" />
+                        Change
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              <div className="space-y-2">
                 <Label className="flex items-center space-x-2">
                   <Calendar className="h-4 w-4" />
                   <span>Date of Joining</span>
@@ -584,7 +625,7 @@ export default function EmployeeDetailEnhanced() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Course enrollment information will be displayed here.</p>
+              <EmployeeCourseEnrollments employeeId={employeeId!} />
             </CardContent>
           </Card>
         </div>
@@ -609,6 +650,17 @@ export default function EmployeeDetailEnhanced() {
               onSuccess={() => {
                 setShowDocumentDialog(false);
                 // Refresh documents if needed
+              }}
+            />
+            
+            <StatusChangeDialog
+              open={showStatusDialog}
+              onOpenChange={setShowStatusDialog}
+              employeeId={employeeId!}
+              currentStatus={employee.current_status}
+              employeeName={`${employee.first_name} ${employee.last_name}`}
+              onSuccess={() => {
+                fetchEmployeeDetails(true);
               }}
             />
           </>
