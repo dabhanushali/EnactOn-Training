@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth-utils';
-import { AssignProjectDialog } from '@/components/projects/AssignProjectDialog';
+import { AssignProjectDialogEnhanced } from '@/components/projects/AssignProjectDialogEnhanced';
 
 // Interfaces for the new data structure
 interface Project {
@@ -168,7 +168,7 @@ export default function ProjectDetails() {
         </Card>
       </main>
 
-      <AssignProjectDialog 
+      <AssignProjectDialogEnhanced 
         projectId={projectId || null}
         open={isAssignDialogOpen}
         onOpenChange={setAssignDialogOpen}

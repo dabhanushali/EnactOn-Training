@@ -323,7 +323,7 @@ export default function CourseDetails() {
                 <UserPlus className="w-4 h-4 mr-2" />
                 Assign to Employees
               </Button>
-            ) : enrollment && isTrainee ? (
+            ) : enrollment && isTrainee && (
               <div className="space-y-4">
                 <CourseEnrollment
                   courseId={course.id}

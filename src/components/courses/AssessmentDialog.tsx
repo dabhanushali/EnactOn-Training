@@ -179,7 +179,7 @@ export function AssessmentDialog({ courseId, assessment, onAssessmentSave, onClo
           {/* Form fields... */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <RequiredLabel htmlFor="title" required>Assessment Title</RequiredLabel>
+              <RequiredLabel htmlFor="title">Assessment Title</RequiredLabel>
               <Input id="title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g., Module 1 Quiz" />
             </div>
             <div>

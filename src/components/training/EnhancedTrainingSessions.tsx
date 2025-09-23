@@ -34,8 +34,8 @@ interface Session {
   meeting_link: string;
   status: string;
   attendees: string[];
-  notes?: string;
-  recording_url?: string;
+        notes?: string;
+        recording_url?: string;
 }
 
 interface SessionEditData {
@@ -159,12 +159,21 @@ export const EnhancedTrainingSessions = () => {
     if (!sessionToEdit) return;
 
     try {
+      const updateData: any = {
+        status: 'completed'
+      };
+      
+      // Add recording URL and notes if provided
+      if (editData.recording_url.trim()) {
+        updateData.recording_url = editData.recording_url.trim();
+      }
+      if (editData.notes.trim()) {
+        updateData.notes = editData.notes.trim();
+      }
+
       const { error } = await supabase
         .from('training_sessions')
-        .update({
-          // Only update basic session details - notes and recording would need schema changes
-          status: 'completed'
-        })
+        .update(updateData)
         .eq('id', sessionToEdit.id);
 
       if (error) throw error;
@@ -237,12 +246,31 @@ export const EnhancedTrainingSessions = () => {
           )}
         </div>
 
-        {/* Show notes placeholder for past sessions - would require schema update */}
+        {/* Show recording and notes for past sessions */}
         {isPast && (
           <div className="pt-2 border-t border-border space-y-2">
-            <div className="text-sm">
-              <Label className="font-medium">Session Status:</Label>
-              <p className="text-muted-foreground mt-1">{session.status}</p>
+            <div className="text-sm space-y-1">
+              <div>
+                <Label className="font-medium">Recording:</Label>
+                {session.recording_url ? (
+                  <a 
+                    href={session.recording_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline block mt-1"
+                  >
+                    View Recording
+                  </a>
+                ) : (
+                  <p className="text-muted-foreground mt-1">Recording not yet available</p>
+                )}
+              </div>
+              {session.notes && (
+                <div>
+                  <Label className="font-medium">Notes:</Label>
+                  <p className="text-muted-foreground mt-1 text-xs">{session.notes}</p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -284,7 +312,7 @@ export const EnhancedTrainingSessions = () => {
                       className="flex-1"
                     >
                       <Edit className="h-4 w-4 mr-2" />
-                      Mark Complete
+                      Edit Session
                     </Button>
                     <Button
                       variant="destructive"
@@ -430,14 +458,31 @@ export const EnhancedTrainingSessions = () => {
       <Dialog open={isEditDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
-            <DialogTitle>Update Session Status</DialogTitle>
+            <DialogTitle>Edit Session</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Current Session: {sessionToEdit?.session_name}</Label>
-              <p className="text-sm text-muted-foreground">
-                Mark this session as completed or add additional status notes.
-              </p>
+              <Label>Session: {sessionToEdit?.session_name}</Label>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="recording_url">Recording URL</Label>
+              <Input
+                id="recording_url"
+                type="url"
+                placeholder="https://..."
+                value={editData.recording_url}
+                onChange={(e) => setEditData({ ...editData, recording_url: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Session Notes</Label>
+              <Textarea
+                id="notes"
+                placeholder="Add notes about the session..."
+                value={editData.notes}
+                onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
+                rows={3}
+              />
             </div>
           </div>
           <div className="flex justify-end gap-2">
@@ -446,7 +491,7 @@ export const EnhancedTrainingSessions = () => {
             </Button>
             <Button onClick={handleSaveEdit}>
               <Save className="h-4 w-4 mr-2" />
-              Mark Complete
+              Save Changes
             </Button>
           </div>
         </DialogContent>

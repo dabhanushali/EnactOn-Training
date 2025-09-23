@@ -148,7 +148,7 @@ export default function Projects() {
                       ) : assignmentStatus !== 'Submitted' ? (
                         <Badge variant="secondary">Not Submitted</Badge>
                       ) : (
-                        <Badge variant="success">Submitted</Badge>
+                        <Badge variant="outline">Submitted</Badge>
                       )}
                     </div>
                     <CardTitle className="text-lg pt-2">{project.project_name}</CardTitle>

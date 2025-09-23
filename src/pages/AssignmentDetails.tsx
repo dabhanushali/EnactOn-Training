@@ -34,9 +34,9 @@ const StatusBadge = ({ status }: { status: string }) => {
       case 'Not_Started':
         return { variant: 'secondary' as const, icon: Clock, label: 'Not Started' };
       case 'Started':
-        return { variant: 'warning' as const, icon: PlayCircle, label: 'In Progress' };
+        return { variant: 'outline' as const, icon: PlayCircle, label: 'In Progress' };
       case 'Submitted':
-        return { variant: 'success' as const, icon: CheckCircle, label: 'Submitted' };
+        return { variant: 'default' as const, icon: CheckCircle, label: 'Submitted' };
       default:
         return { variant: 'secondary' as const, icon: FileText, label: status };
     }
@@ -293,9 +293,7 @@ export default function AssignmentDetails() {
         {/* Submit Work Dialog */}
         <SubmitWorkDialog
           assignmentId={assignmentId || ''}
-          open={isSubmitDialogOpen}
-          onOpenChange={setSubmitDialogOpen}
-          onSubmitted={() => {
+          onSubmited={() => {
             setSubmitDialogOpen(false);
             fetchDetails();
           }}

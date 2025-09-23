@@ -326,7 +326,7 @@ export const AIModuleGenerator = ({
           </div>
 
           <div className="space-y-2">
-            <RequiredLabel htmlFor="ai-prompt" required>
+            <RequiredLabel htmlFor="ai-prompt">
               Course Description & Requirements
             </RequiredLabel>
             <Textarea

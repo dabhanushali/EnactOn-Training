@@ -210,7 +210,7 @@ export function EmployeeDocuments({ employeeId }: EmployeeDocumentsProps) {
           ) : (
             <ul className="space-y-3">
               {documents.map((doc) => (
-                <li key={doc.id} className="flex items-center justify-between p-3 bg-secondary rounded-md">
+                <li key={doc.id} className="flex items-center justify-between p-3 bg-card border border-border rounded-md hover:shadow-sm transition-shadow">
                   <div className="flex items-center gap-3">
                     <FileIcon className="h-5 w-5 text-primary" />
                     <span className="font-medium">{doc.document_name}</span>

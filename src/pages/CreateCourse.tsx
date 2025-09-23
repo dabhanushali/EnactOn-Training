@@ -26,7 +26,7 @@ export default function CreateCourse() {
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(false);
-  const [currentCourseId, setCurrentCourseId] = useState(null);
+  const [courseId, setCourseId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('details');
   const [modules, setModules] = useState([]);
   const [assessments, setAssessments] = useState([]);
@@ -105,7 +105,7 @@ export default function CreateCourse() {
 
       if (error) throw error;
 
-      setCurrentCourseId(data.id);
+      setCourseId(data.id);
       toast({
         title: "Success",
         description: "Course created successfully. Now you can add modules and assessments."
@@ -135,7 +135,7 @@ export default function CreateCourse() {
   };
 
   const handleDeleteModule = async (moduleId: string) => {
-    if (!currentCourseId) return;
+    if (!courseId) return;
     try {
       const { error } = await supabase
         .from('course_modules')
@@ -178,7 +178,7 @@ export default function CreateCourse() {
   };
 
   const handleDeleteAssessment = async (assessmentId: string) => {
-    if (!currentCourseId) return;
+    if (!courseId) return;
     try {
       const { error } = await supabase
         .from('assessment_templates')
@@ -203,7 +203,7 @@ export default function CreateCourse() {
   };
 
   const handleFinishCourse = () => {
-    navigate(`/courses/${currentCourseId}`);
+    navigate(`/courses/${courseId}`);
   };
 
   if (!canCreateCourse) {
@@ -239,8 +239,8 @@ export default function CreateCourse() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="details">Course Details</TabsTrigger>
-              <TabsTrigger value="modules" disabled={!currentCourseId}>Modules {currentCourseId ? '' : '(Save first)'}</TabsTrigger>
-              <TabsTrigger value="assessments" disabled={!currentCourseId}>Assessments {currentCourseId ? '' : '(Save first)'}</TabsTrigger>
+              <TabsTrigger value="modules" disabled={!courseId}>Modules {courseId ? '' : '(Save first)'}</TabsTrigger>
+              <TabsTrigger value="assessments" disabled={!courseId}>Assessments {courseId ? '' : '(Save first)'}</TabsTrigger>
             </TabsList>
             <TabsContent value="details" className="mt-4">
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -374,7 +374,7 @@ export default function CreateCourse() {
                         Saving...
                       </span>
                     ) : (
-                      <><Save className="mr-2 h-4 w-4" /> {currentCourseId ? 'Update Course' : 'Create Course'}</>
+                      <><Save className="mr-2 h-4 w-4" /> {courseId ? 'Update Course' : 'Create Course'}</>
                     )}
                   </Button>
                 </div>
@@ -383,7 +383,7 @@ export default function CreateCourse() {
             <TabsContent value="modules" className="mt-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">COURSE MODULES</h3>
-                <Button onClick={handleAddModule} disabled={!currentCourseId}>
+                <Button onClick={handleAddModule} disabled={!courseId}>
                   <Plus className="mr-2 h-4 w-4" /> Add Module
                 </Button>
               </div>
@@ -417,7 +417,7 @@ export default function CreateCourse() {
                 </div>
               )}
               <div className="flex justify-end mt-6">
-                <Button onClick={() => setActiveTab('assessments')} disabled={!currentCourseId}>
+                <Button onClick={() => setActiveTab('assessments')} disabled={!courseId}>
                   Continue to Course
                 </Button>
               </div>
@@ -425,7 +425,7 @@ export default function CreateCourse() {
             <TabsContent value="assessments" className="mt-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">COURSE ASSESSMENTS</h3>
-                <Button onClick={handleAddAssessment} disabled={!currentCourseId}>
+                <Button onClick={handleAddAssessment} disabled={!courseId}>
                   <Plus className="mr-2 h-4 w-4" /> Add Assessment
                 </Button>
               </div>
@@ -459,7 +459,7 @@ export default function CreateCourse() {
                 </div>
               )}
               <div className="flex justify-end mt-6">
-                <Button onClick={handleFinishCourse} disabled={!currentCourseId}>
+                <Button onClick={handleFinishCourse} disabled={!courseId}>
                   Finish & View Course
                 </Button>
               </div>
@@ -474,9 +474,9 @@ export default function CreateCourse() {
           <DialogHeader>
             <DialogTitle>{editingModule ? 'Edit Module' : 'Add New Module'}</DialogTitle>
           </DialogHeader>
-          {currentCourseId && (
+          {courseId && (
             <EnhancedModuleDialog
-              courseId={currentCourseId}
+              courseId={courseId}
               module={editingModule}
               moduleOrder={modules.length + 1}
               onSave={handleModuleSave}
@@ -491,9 +491,9 @@ export default function CreateCourse() {
           <DialogHeader>
             <DialogTitle>{editingAssessment ? 'Edit Assessment' : 'Add New Assessment'}</DialogTitle>
           </DialogHeader>
-          {currentCourseId && (
+          {courseId && (
             <AssessmentDialog
-              courseId={currentCourseId}
+              courseId={courseId}
               assessment={editingAssessment}
               onAssessmentSave={(newAssessment) => {
                 if (editingAssessment) {

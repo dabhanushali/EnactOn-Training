@@ -245,7 +245,7 @@ export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCrea
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <RequiredLabel htmlFor={`name-${index}`} required>
+                  <RequiredLabel htmlFor={`name-${index}`}>
                     Module Name
                   </RequiredLabel>
                   <Input
@@ -257,7 +257,7 @@ export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCrea
                 </div>
 
                 <div className="space-y-2">
-                  <RequiredLabel htmlFor={`type-${index}`} required>
+                  <RequiredLabel htmlFor={`type-${index}`}>
                     Content Type
                   </RequiredLabel>
                   <Select
@@ -278,7 +278,7 @@ export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCrea
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                  <RequiredLabel htmlFor={`desc-${index}`} required>
+                  <RequiredLabel htmlFor={`desc-${index}`}>
                     Module Description
                   </RequiredLabel>
                   <Textarea
@@ -303,7 +303,7 @@ export const BulkModuleCreator = ({ courseId, onModulesCreated }: BulkModuleCrea
                 </div>
 
                 <div className="space-y-2">
-                  <RequiredLabel htmlFor={`duration-${index}`} required>
+                  <RequiredLabel htmlFor={`duration-${index}`}>
                     Duration (minutes)
                   </RequiredLabel>
                   <Input

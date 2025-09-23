@@ -2,6 +2,7 @@ import { MainNav } from '@/components/navigation/MainNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
@@ -91,7 +92,7 @@ export default function EvaluateAssignment() {
     <Card className="mt-4">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Badge variant="success">Evaluation Complete</Badge>
+          <Badge variant="outline">Evaluation Complete</Badge>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -163,7 +164,7 @@ export default function EvaluateAssignment() {
                             <CardTitle className="flex items-center gap-2 mb-2">
                               Submission Details
                               {submission.project_evaluations && submission.project_evaluations.length > 0 && (
-                                <Badge variant="success">Evaluated</Badge>
+                                <Badge variant="outline">Evaluated</Badge>
                               )}
                             </CardTitle>
                             <div className="text-sm text-muted-foreground mb-2">
