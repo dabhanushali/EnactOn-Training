@@ -42,7 +42,7 @@ export const CourseEnrollment = ({
   isLoading = false
 }: CourseEnrollmentProps) => {
   // Check if assessments are complete before allowing "Mark as Complete"
-  const canMarkComplete = totalAssessments === 0 || assessmentsCompleted === totalAssessments;
+  const canMarkComplete = totalAssessments === 0 || completedAssessments === totalAssessments;
   
   if (isCompleted) {
     return (
@@ -77,6 +77,7 @@ export const CourseEnrollment = ({
     totalAssessments={totalAssessments}
     canMarkComplete={canMarkComplete}
     isEnrolled={isEnrolled}
+    enrollmentDate={enrollmentDate}
     onViewModules={onViewModules}
     onTakeAssessment={onTakeAssessment}
     onMarkComplete={onMarkComplete}
@@ -90,6 +91,7 @@ const InProgressCourse = ({
   totalAssessments = 0,
   canMarkComplete = true,
   isEnrolled = true,
+  enrollmentDate,
   onViewModules,
   onTakeAssessment,
   onMarkComplete,

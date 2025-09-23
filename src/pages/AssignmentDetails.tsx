@@ -79,7 +79,7 @@ export default function AssignmentDetails() {
       setAssignment(data as any);
       
       // Fetch evaluation if assignment is evaluated
-      if (data?.status === 'Evaluated') {
+      if (data && 'status' in data && data.status === 'Evaluated') {
         const { data: evalData } = await supabase
           .from('project_evaluations')
           .select('*')
@@ -126,7 +126,7 @@ export default function AssignmentDetails() {
       case 'Started':
         return {
           label: 'Submit Work',
-          action: () => setSubmitDialogOpen(true),
+          action: () => {}, // Will be handled by SubmitWorkDialog
           variant: 'default' as const
         };
       default:
