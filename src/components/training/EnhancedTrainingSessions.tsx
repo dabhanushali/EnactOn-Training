@@ -87,22 +87,22 @@ export const EnhancedTrainingSessions = () => {
 
   const categorizeSessionsByTime = (sessions: Session[]) => {
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(startOfToday);
+    endOfToday.setDate(endOfToday.getDate() + 1);
 
     return {
       today: sessions.filter(session => {
-        const sessionDate = new Date(session.start_datetime);
-        return sessionDate >= today && sessionDate < tomorrow;
+        const start = new Date(session.start_datetime);
+        return start >= startOfToday && start < endOfToday;
       }),
       scheduled: sessions.filter(session => {
-        const sessionDate = new Date(session.start_datetime);
-        return sessionDate >= tomorrow;
+        const start = new Date(session.start_datetime);
+        return start >= endOfToday;
       }),
       past: sessions.filter(session => {
-        const sessionDate = new Date(session.start_datetime);
-        return sessionDate < today;
+        const end = new Date(session.end_datetime);
+        return end < startOfToday;
       })
     };
   };

@@ -122,7 +122,7 @@ export function CourseEnrollmentDialog({ open, onOpenChange, employeeId, onSucce
                     </SelectItem>
                   ))
                 ) : (
-                  <SelectItem value="" disabled>
+                  <SelectItem value="no-courses" disabled>
                     No available courses
                   </SelectItem>
                 )}

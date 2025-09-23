@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RequiredLabel } from "@/components/forms/RequiredLabel";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/auth-utils";
 import { useEffect, useState } from "react";
@@ -69,7 +71,7 @@ export function CreateSessionDialog({ onSessionCreated }: CreateSessionDialogPro
 
   const handleSubmit = async () => {
     if (!user) return toast.error("You must be logged in.");
-    if (!sessionName || !trainerId || !startDateTime || !endDateTime || !link) {
+    if (!sessionName || !sessionType || !trainerId || !startDateTime || !endDateTime || !link) {
         return toast.warning("Please fill out all required fields.");
     }
     setCreating(true);
@@ -119,37 +121,56 @@ export function CreateSessionDialog({ onSessionCreated }: CreateSessionDialogPro
         </DialogHeader>
         <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">Session Name</Label>
-                <Input id="name" value={sessionName} onChange={e => setSessionName(e.target.value)} className="col-span-3" />
+                <RequiredLabel htmlFor="name" className="text-right">Session Name</RequiredLabel>
+                <Input id="name" value={sessionName} onChange={e => setSessionName(e.target.value)} className="col-span-3" required />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="type" className="text-right">Session Type</Label>
-                <Input id="type" placeholder="e.g., Workshop, Webinar" value={sessionType} onChange={e => setSessionType(e.target.value)} className="col-span-3" />
+                <RequiredLabel htmlFor="type" className="text-right">Session Type</RequiredLabel>
+                <div className="col-span-3">
+                  <Select value={sessionType} onValueChange={setSessionType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select session type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Workshop">Workshop</SelectItem>
+                      <SelectItem value="Webinar">Webinar</SelectItem>
+                      <SelectItem value="One-on-One">One-on-One</SelectItem>
+                      <SelectItem value="Group">Group</SelectItem>
+                      <SelectItem value="Onboarding">Onboarding</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="trainer" className="text-right">Trainer</Label>
-                <select id="trainer" value={trainerId} onChange={(e) => setTrainerId(e.target.value)} className="col-span-3">
-                    <option value="">Select a Trainer</option>
-                    {trainers.map(t => (
-                        <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
-                    ))}
-                </select>
+                <RequiredLabel htmlFor="trainer" className="text-right">Trainer</RequiredLabel>
+                <div className="col-span-3">
+                  <Select value={trainerId} onValueChange={setTrainerId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a Trainer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {trainers.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.first_name} {t.last_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="start" className="text-right">Start Time</Label>
-                <Input id="start" type="datetime-local" value={startDateTime} onChange={e => setStartDateTime(e.target.value)} className="col-span-3" />
+                <RequiredLabel htmlFor="start" className="text-right">Start Time</RequiredLabel>
+                <Input id="start" type="datetime-local" value={startDateTime} onChange={e => setStartDateTime(e.target.value)} className="col-span-3" required />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="end" className="text-right">End Time</Label>
-                <Input id="end" type="datetime-local" value={endDateTime} onChange={e => setEndDateTime(e.target.value)} className="col-span-3" />
+                <RequiredLabel htmlFor="end" className="text-right">End Time</RequiredLabel>
+                <Input id="end" type="datetime-local" value={endDateTime} onChange={e => setEndDateTime(e.target.value)} className="col-span-3" required />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="platform" className="text-right">Platform</Label>
                 <Input id="platform" placeholder="e.g., Zoom, Google Meet" value={platform} onChange={e => setPlatform(e.target.value)} className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="link" className="text-right">Meeting Link</Label>
-                <Input id="link" type="url" value={link} onChange={e => setLink(e.target.value)} className="col-span-3" />
+                <RequiredLabel htmlFor="link" className="text-right">Meeting Link</RequiredLabel>
+                <Input id="link" type="url" value={link} onChange={e => setLink(e.target.value)} className="col-span-3" required />
             </div>
         </div>
         <DialogFooter>

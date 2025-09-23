@@ -78,16 +78,6 @@ export default function AssignmentDetails() {
       setAssignment(null);
     } else {
       setAssignment(data as any);
-      
-      // Fetch evaluation if assignment is evaluated
-      if (data && 'status' in data && data.status === 'Evaluated') {
-        const { data: evalData } = await supabase
-          .from('project_evaluations')
-          .select('*')
-          .eq('submission_id', assignmentId)
-          .single();
-        setEvaluation(evalData);
-      }
 
       // Fetch submissions
       const { data: subs } = await supabase
@@ -101,26 +91,32 @@ export default function AssignmentDetails() {
     setLoading(false);
   }, [assignmentId]);
 
-  const [evaluations, setEvaluations] = useState([]);
+  const [evaluations, setEvaluations] = useState<any[]>([]);
 
-  const fetchEvaluations = async () => {
+  const fetchEvaluations = useCallback(async (projectId: string) => {
     try {
       const { data, error } = await supabase
         .from('project_evaluations')
         .select('*')
-        .eq('project_id', assignmentId)
-        .eq('employee_id', profile?.id);
+        .eq('project_id', projectId)
+        .eq('employee_id', profile?.id || '');
 
       if (error) throw error;
       setEvaluations(data || []);
     } catch (error) {
       console.error('Error fetching evaluations:', error);
     }
-  };
+  }, [profile?.id]);
 
   useEffect(() => {
     fetchDetails();
   }, [fetchDetails]);
+
+  useEffect(() => {
+    if (assignment?.projects?.id && profile?.id) {
+      fetchEvaluations(assignment.projects.id);
+    }
+  }, [assignment?.projects?.id, profile?.id, fetchEvaluations]);
 
   const handleStatusChange = async (newStatus: string) => {
     if (!assignmentId) return;

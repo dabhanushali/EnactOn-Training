@@ -80,7 +80,7 @@ export default function AssessmentTaker() {
         .from('assessment_questions')
         .select(`
           *,
-          question_options (*)
+          question_options:question_options!fk_question_options_question (*)
         `)
         .eq('assessment_template_id', assessmentId)
         .order('question_order');
