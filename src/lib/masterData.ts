@@ -10,18 +10,27 @@ export const MASTER_DATA = {
   ],
 
   // Target Roles
-  targetRoles: [
-    'Developer',
-    'Manager', 
-    'Devops',
-    'AI',
-    'Software',
-    'Product Manager',
-    'BDE',
-    'HR',
-    'Other'
-  ],
-
+targetRoles: [
+  'Developer',                // Generic dev role
+  'Frontend Developer',       // React, Angular, Vue, WordPress, UI/UX
+  'Backend Developer',        // Node.js, PHP, Laravel, Python
+  'Full Stack Developer',     // MERN, MEAN, LAMP, etc.
+  'Mobile Developer',         // React Native, Flutter
+  'AI / ML Engineer',         // AI, ML, Prompt Engineer
+  'DevOps Engineer',          // Cloud, AWS, CI/CD
+  'Quality Assurance',        // QA, Testing
+  'Product Manager',          // Product & Project Mgmt
+  'Project Manager',
+  'Business Development',     // BDE, Sales, Marketing
+  'Human Resources',          // HR, HR & Admin
+  'Design',                   // UI/UX, Web Designer, Content Creator
+  'Content & Marketing',      // Digital Marketing, Content Writer, Social Media
+  'Management / Leadership',  // CEO, CTO, Managers, Team Leads
+  'Data / Analytics',         // Data Analyst, Business Analyst
+  'Accounting & Finance',     // Accountant
+  'Students / Interns',       // Internship, Students
+  'Others'                    // Fallback category
+]
   // Designations
 designations: [
   'HR Manager',
