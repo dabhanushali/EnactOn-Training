@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { UserRoleType, EmployeeStatusOptions } from '@/lib/enums';
 import { EmployeeDocuments } from '@/components/employees/EmployeeDocuments';
 import { MASTER_DATA } from '@/lib/masterData';
+import { DEPARTMENTS, DESIGNATIONS } from '@/lib/employeeConstants';
 import { CourseEnrollmentDialog } from '@/components/employees/CourseEnrollmentDialog';
 import { DocumentUploadDialog } from '@/components/employees/DocumentUploadDialog';
 import { RequiredLabel } from '@/components/forms/RequiredLabel';
@@ -143,6 +144,26 @@ export default function EmployeeDetailEnhanced() {
     if (!editData.first_name?.trim() || !editData.last_name?.trim()) {
       toast.error("First name and last name are required fields.");
       return;
+    }
+    
+    // Check for unique employee code if it's being updated
+    if (editData.employee_code && editData.employee_code !== employee.employee_code) {
+      const { data: existingEmployee, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('employee_code', editData.employee_code)
+        .neq('id', employeeId)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        toast.error('Error checking employee code uniqueness');
+        return;
+      }
+
+      if (existingEmployee) {
+        toast.error('Please add a unique employee ID');
+        return;
+      }
     }
     
     const updatePayload = {
@@ -416,7 +437,7 @@ export default function EmployeeDetailEnhanced() {
                       <SelectValue placeholder="Select designation" />
                     </SelectTrigger>
                     <SelectContent>
-                      {MASTER_DATA.designations.map(designation => (
+                      {DESIGNATIONS.map(designation => (
                         <SelectItem key={designation} value={designation}>
                           {designation}
                         </SelectItem>
@@ -441,7 +462,7 @@ export default function EmployeeDetailEnhanced() {
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
                     <SelectContent>
-                      {MASTER_DATA.departments.map(department => (
+                      {DEPARTMENTS.map(department => (
                         <SelectItem key={department} value={department}>
                           {department}
                         </SelectItem>

@@ -79,8 +79,18 @@ export default function Employees() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setEmployees(data || []);
-      setFilteredEmployees(data || []);
+      
+      // Also fetch email from auth.users for each profile
+      const profilesWithEmails = await Promise.all((data || []).map(async (profile) => {
+        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
+        return {
+          ...profile,
+          email: userData?.user?.email || ''
+        };
+      }));
+      
+      setEmployees(profilesWithEmails);
+      setFilteredEmployees(profilesWithEmails);
     } catch (error) {
       console.error('Error fetching employees:', error);
       toast.error('Failed to load employees');
@@ -141,7 +151,7 @@ export default function Employees() {
     const csvData = employees.map(emp => [
       `${emp.first_name || ''} ${emp.last_name || ''}`.trim(),
       emp.employee_code || '',
-      '', // Email not available in current data structure
+      (emp as any).email || '',
       emp.role?.role_name || '',
       emp.department || '',
       emp.designation || '',
@@ -151,7 +161,7 @@ export default function Employees() {
     ]);
     
     const csvContent = [headers, ...csvData]
-      .map(row => row.map(field => `"${field}"`).join(','))
+      .map(row => row.map(field => `"${field || ''}"`).join(','))
       .join('\n');
     
     return csvContent;

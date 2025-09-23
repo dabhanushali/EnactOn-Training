@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserRoleType } from '@/lib/enums';
+import { DEPARTMENTS, DESIGNATIONS } from '@/lib/employeeConstants';
 
 interface AddEmployeeDialogProps {
   open: boolean;
@@ -62,6 +63,25 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
     if (!formData.email || !formData.password || !formData.firstName || !formData.lastName) {
       toast.error('Please fill in all required fields');
       return;
+    }
+
+    // Check for unique employee code
+    if (formData.employeeCode) {
+      const { data: existingEmployee, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('employee_code', formData.employeeCode)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        toast.error('Error checking employee code uniqueness');
+        return;
+      }
+
+      if (existingEmployee) {
+        toast.error('Please add a unique employee ID');
+        return;
+      }
     }
 
     setLoading(true);
@@ -229,21 +249,33 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="department">Department</Label>
-              <Input
-                id="department"
-                value={formData.department}
-                onChange={(e) => handleInputChange('department', e.target.value)}
-                placeholder="Engineering"
-              />
+              <Select value={formData.department} onValueChange={(value) => handleInputChange('department', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DEPARTMENTS.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="designation">Designation</Label>
-              <Input
-                id="designation"
-                value={formData.designation}
-                onChange={(e) => handleInputChange('designation', e.target.value)}
-                placeholder="Software Engineer"
-              />
+              <Select value={formData.designation} onValueChange={(value) => handleInputChange('designation', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select designation" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DESIGNATIONS.map((designation) => (
+                    <SelectItem key={designation} value={designation}>
+                      {designation}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

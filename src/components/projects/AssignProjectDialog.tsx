@@ -35,7 +35,7 @@ export function AssignProjectDialog({ projectId, open, onOpenChange, onProjectAs
   const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
-    if (open) {
+    if (open && projectId) {
       const fetchTrainees = async () => {
         const { data: roleData, error: roleError } = await supabase
           .from('roles')
@@ -49,6 +49,20 @@ export function AssignProjectDialog({ projectId, open, onOpenChange, onProjectAs
           return;
         }
 
+        // Get already assigned trainee IDs for this project
+        const { data: assignedData, error: assignedError } = await supabase
+          .from('project_assignments')
+          .select('assignee_id')
+          .eq('project_id', projectId);
+
+        if (assignedError) {
+          console.error("Error fetching assigned trainees:", assignedError);
+          toast.error("Could not fetch assigned trainees.");
+          return;
+        }
+
+        const assignedIds = assignedData?.map(a => a.assignee_id) || [];
+
         const { data, error } = await supabase
           .from('profiles')
           .select('id, first_name, last_name, role:roles(role_name)')
@@ -58,9 +72,9 @@ export function AssignProjectDialog({ projectId, open, onOpenChange, onProjectAs
           console.error("Error fetching trainees:", error);
           toast.error("Could not fetch list of trainees.");
         } else {
-          // Filter out admin users and only show trainees
+          // Filter out admin users, only show trainees, and exclude already assigned ones
           const filteredTrainees = (data as any[])?.filter(trainee => 
-            trainee.role?.role_name === 'Trainee'
+            trainee.role?.role_name === 'Trainee' && !assignedIds.includes(trainee.id)
           ) || [];
           setTrainees(filteredTrainees);
         }
@@ -68,7 +82,7 @@ export function AssignProjectDialog({ projectId, open, onOpenChange, onProjectAs
 
       fetchTrainees();
     }
-  }, [open]);
+  }, [open, projectId]);
 
   const handleSelectTrainee = (traineeId: string) => {
     setSelectedTrainees(prev => 
