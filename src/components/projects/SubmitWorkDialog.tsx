@@ -36,7 +36,7 @@ export function SubmitWorkDialog({ assignmentId, onSubmited }: SubmitWorkDialogP
     setSubmitting(true);
 
     const { error: dbError } = await supabase
-      .from('project_milestone_submissions')
+      .from('project_milestone_submissions' as any)
       .insert([
         {
           assignment_id: assignmentId,
@@ -52,7 +52,7 @@ export function SubmitWorkDialog({ assignmentId, onSubmited }: SubmitWorkDialogP
     } else {
       toast.success("Work submitted successfully!");
       // Also update the assignment status
-      await supabase.from('project_assignments').update({ status: 'Submitted' }).eq('id', assignmentId);
+      await supabase.from('project_assignments' as any).update({ status: 'Submitted' }).eq('id', assignmentId);
       onSubmited();
     }
 

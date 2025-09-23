@@ -90,8 +90,8 @@ export function AssignSessionDialog({ sessionId, open, onOpenChange, onSessionAs
     }
 
     // 2. Merge and deduplicate attendees
-    const currentAttendees = currentSession.attendees || [];
-    const newAttendees = [...new Set([...currentAttendees, ...selectedTrainees])];
+    const currentAttendees = Array.isArray(currentSession.attendees) ? currentSession.attendees : [];
+    const newAttendees = [...new Set([...currentAttendees as string[], ...selectedTrainees])];
 
     // 3. Update the record
     const { error: updateError } = await supabase

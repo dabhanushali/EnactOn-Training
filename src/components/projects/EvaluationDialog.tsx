@@ -47,7 +47,7 @@ export function EvaluationDialog({ submissionId, projectId, assignmentId, employ
     const scores = [technicalScore, qualityScore, timelineScore, communicationScore, innovationScore];
     const overallScore = scores.reduce((a, b) => a + b, 0) / scores.length;
 
-    const { error } = await supabase.from('project_evaluations').insert([
+    const { error } = await supabase.from('project_evaluations' as any).insert([
       {
         submission_id: submissionId,
         project_id: projectId,
@@ -58,7 +58,7 @@ export function EvaluationDialog({ submissionId, projectId, assignmentId, employ
         timeline_score: timelineScore,
         communication_score: communicationScore,
         innovation_score: innovationScore,
-        overall_score: overallScore.toFixed(2),
+        overall_score: parseFloat(overallScore.toFixed(2)),
         strengths: strengths,
         areas_for_improvement: areasForImprovement,
       },
@@ -69,7 +69,7 @@ export function EvaluationDialog({ submissionId, projectId, assignmentId, employ
       toast.error(`Evaluation failed: ${error.message}`);
     } else {
       // Also update the assignment status to Evaluated
-      await supabase.from('project_assignments').update({ status: 'Evaluated' }).eq('id', assignmentId);
+      await supabase.from('project_assignments' as any).update({ status: 'Evaluated' }).eq('id', assignmentId);
       toast.success("Evaluation submitted successfully!");
       onEvaluated();
     }

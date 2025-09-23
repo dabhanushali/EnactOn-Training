@@ -26,12 +26,26 @@ export function CourseEnrollmentDialog({ open, onOpenChange, employeeId, onSucce
   const [selectedCourse, setSelectedCourse] = useState('');
   const [enrolledCourses, setEnrolledCourses] = useState<string[]>([]);
 
+  const fetchEnrolledCourses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('course_enrollments')
+        .select('course_id')
+        .eq('employee_id', employeeId);
+
+      if (error) throw error;
+      setEnrolledCourses(data?.map(e => e.course_id) || []);
+    } catch (error) {
+      console.error('Error fetching enrolled courses:', error);
+    }
+  };
+
   useEffect(() => {
     if (open) {
       fetchCourses();
       fetchEnrolledCourses();
     }
-  }, [open, employeeId, fetchEnrolledCourses]);
+  }, [open, employeeId]);
 
   const fetchCourses = async () => {
     try {
@@ -48,23 +62,16 @@ export function CourseEnrollmentDialog({ open, onOpenChange, employeeId, onSucce
     }
   };
 
-  const fetchEnrolledCourses = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('course_enrollments')
-        .select('course_id')
-        .eq('employee_id', employeeId);
-
-      if (error) throw error;
-      setEnrolledCourses(data?.map(e => e.course_id) || []);
-    } catch (error) {
-      console.error('Error fetching enrolled courses:', error);
-    }
-  };
 
   const handleEnroll = async () => {
     if (!selectedCourse) {
       toast.error('Please select a course');
+      return;
+    }
+
+    // Check if employee is already enrolled in this course
+    if (enrolledCourses.includes(selectedCourse)) {
+      toast.error('This employee is already assigned to this course.');
       return;
     }
 
@@ -102,7 +109,7 @@ export function CourseEnrollmentDialog({ open, onOpenChange, employeeId, onSucce
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="course">Select Course</Label>
+            <Label htmlFor="course">Select Course *</Label>
             <Select value={selectedCourse} onValueChange={setSelectedCourse}>
               <SelectTrigger>
                 <SelectValue placeholder="Choose a course" />

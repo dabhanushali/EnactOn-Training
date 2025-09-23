@@ -23,7 +23,7 @@ const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
   }
 
   // If roles are specified, check if the user's role is one of them
-  if (roles && roles.length > 0 && (!profile || !roles.includes(profile.role))) {
+  if (roles && roles.length > 0 && (!profile || !profile.role?.role_name || !roles.includes(profile.role.role_name))) {
     // User does not have the required role, redirect them
     return <Navigate to="/dashboard" replace />;
   }

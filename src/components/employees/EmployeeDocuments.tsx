@@ -91,12 +91,7 @@ export function EmployeeDocuments({ employeeId }: EmployeeDocumentsProps) {
         .from('employee-documents')
         .upload(filePath, selectedFile, {
           cacheControl: '3600',
-          upsert: false,
-          onProgress: (event) => {
-            if (event.total) {
-              setUploadProgress((event.loaded / event.total) * 100);
-            }
-          },
+          upsert: false
         });
 
       if (uploadError) throw uploadError;

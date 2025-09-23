@@ -48,7 +48,7 @@ export function CreateProjectDialog({ onProjectCreated }: CreateProjectDialogPro
 
     setCreating(true);
 
-    const { data, error } = await supabase.from('projects').insert([
+    const { data, error } = await supabase.from('projects' as any).insert([
       {
         project_name: projectName,
         project_description: projectDescription,
@@ -65,7 +65,7 @@ export function CreateProjectDialog({ onProjectCreated }: CreateProjectDialogPro
       toast.error(`Error creating project: ${error.message}`);
     } else {
       toast.success("Project created successfully! Now assign it to trainees.");
-      onProjectCreated(data.id);
+      onProjectCreated((data as any)?.id);
       resetForm();
       setOpen(false);
     }

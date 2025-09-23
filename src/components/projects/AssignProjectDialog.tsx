@@ -88,7 +88,7 @@ export function AssignProjectDialog({ projectId, open, onOpenChange, onProjectAs
       assigned_by: user.id,
     }));
 
-    const { error } = await supabase.from('project_assignments').insert(assignments);
+    const { error } = await supabase.from('project_assignments' as any).insert(assignments);
 
     if (error) {
       console.error("Error assigning project:", error);
