@@ -15,7 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/auth-utils';
 import { useToast } from '@/hooks/use-toast';
 import { ModuleDialog } from '@/components/courses/ModuleDialog';
-import { EnhancedModuleDialog } from '@/components/courses/EnhancedModuleDialog';
+import { EnhancedModuleCreator } from '@/components/courses/EnhancedModuleCreator';
 import { AssessmentDialog } from '@/components/courses/AssessmentDialog';
 import { MASTER_DATA } from '@/lib/masterData';
 import { RequiredLabel } from '@/components/forms/RequiredLabel';
@@ -381,46 +381,15 @@ export default function CreateCourse() {
               </form>
             </TabsContent>
             <TabsContent value="modules" className="mt-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">COURSE MODULES</h3>
-                <Button onClick={handleAddModule} disabled={!courseId}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Module
-                </Button>
-              </div>
-              {modules.length === 0 ? (
+              {!courseId ? (
                 <p className="text-center text-muted-foreground">
-                  No modules added yet. Click "Add Module" to get started.
+                  Save course details first to add modules.
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {modules.map((module, index) => (
-                    <Card key={module.id || index}>
-                      <CardContent className="p-4 flex justify-between items-center">
-                        <div>
-                          <h4 className="font-semibold">{module.module_name}</h4>
-                          <p className="text-sm text-muted-foreground">{module.module_description}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Order: {module.module_order} Type: {module.content_type} Duration: {module.estimated_duration_minutes}min
-                          </p>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="icon" onClick={() => handleEditModule(module)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="destructive" size="icon" onClick={() => handleDeleteModule(module.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  <EnhancedModuleCreator courseId={courseId} />
                 </div>
               )}
-              <div className="flex justify-end mt-6">
-                <Button onClick={() => setActiveTab('assessments')} disabled={!courseId}>
-                  Continue to Course
-                </Button>
-              </div>
             </TabsContent>
             <TabsContent value="assessments" className="mt-4">
               <div className="flex justify-between items-center mb-4">
@@ -469,23 +438,6 @@ export default function CreateCourse() {
       </Card>
 
       {/* Dialogs */}
-      <Dialog open={showModuleDialog} onOpenChange={setShowModuleDialog}>
-        <DialogContent className="sm:max-w-[800px]">
-          <DialogHeader>
-            <DialogTitle>{editingModule ? 'Edit Module' : 'Add New Module'}</DialogTitle>
-          </DialogHeader>
-          {courseId && (
-            <EnhancedModuleDialog
-              courseId={courseId}
-              module={editingModule}
-              moduleOrder={modules.length + 1}
-              onSave={handleModuleSave}
-              onClose={() => setShowModuleDialog(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={showAssessmentDialog} onOpenChange={setShowAssessmentDialog}>
         <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>

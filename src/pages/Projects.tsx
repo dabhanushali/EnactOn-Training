@@ -2,7 +2,11 @@ import { MainNav } from '@/components/navigation/MainNav';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FolderOpen, Calendar, Trash2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { 
+  FolderOpen, Calendar, Trash2, Plus, Clock, Users, 
+  Target, TrendingUp, CheckCircle, PlayCircle, PauseCircle 
+} from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/auth-utils';
@@ -21,12 +25,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
 
-// Updated interfaces to match the new schema
 interface Project {
   id: string;
   project_name: string;
   project_description: string;
   status: string;
+  duration_days?: number;
+  created_at: string;
 }
 
 interface ProjectAssignment {
@@ -48,148 +53,377 @@ export default function Projects() {
 
   const fetchProjects = useCallback(async () => {
     if (!user || !profile) return;
+
     setLoading(true);
-    let response;
+    try {
+      if (profile.role?.role_name === 'Trainee') {
+        // Fetch assignments for trainees
+        const { data, error } = await supabase
+          .from('project_assignments')
+          .select('*, projects(*)')
+          .eq('assignee_id', user.id)
+          .order('created_at', { ascending: false });
 
-    if (profile.role?.role_name === 'Trainee') {
-      response = await supabase
-        .from('project_assignments' as any)
-        .select('id, status, projects (*)')
-        .eq('assignee_id', user.id);
-    } else {
-      response = await supabase.from('projects').select('*');
-    }
+        if (error) throw error;
+        setProjects(data || []);
+      } else {
+        // Fetch all projects for managers/HR/team leads
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-    const { data, error } = response;
-
-    if (error) {
+        if (error) throw error;
+        setProjects(data || []);
+      }
+    } catch (error) {
       console.error('Error fetching projects:', error);
-      setProjects([]);
-    } else {
-      setProjects(data || []);
+      toast.error('Failed to load projects');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [user, profile]);
 
   useEffect(() => {
     fetchProjects();
-  }, [user, profile, fetchProjects]);
-
-  const handleProjectCreated = (projectId: string) => {
-    setSelectedProjectId(projectId);
-    setAssignDialogOpen(true);
-  };
-
-  const handleProjectAssigned = () => {
-    fetchProjects();
-  };
-
-  const openDeleteDialog = (project: Project) => {
-    setProjectToDelete(project);
-    setDeleteDialogOpen(true);
-  };
+  }, [fetchProjects]);
 
   const handleDeleteProject = async () => {
     if (!projectToDelete) return;
-    const { error } = await supabase.from('projects').delete().eq('id', projectToDelete.id);
 
-    if (error) {
-      toast.error(`Failed to delete project: ${error.message}`);
-      console.error("Delete error:", error);
-    } else {
-      toast.success(`Project "${projectToDelete.project_name}" deleted.`);
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectToDelete.id);
+
+      if (error) throw error;
+
+      toast.success('Project deleted successfully');
       fetchProjects();
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      toast.error('Failed to delete project');
+    } finally {
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
     }
-    setDeleteDialogOpen(false);
-    setProjectToDelete(null);
   };
 
-  const isAdmin = ['Team Lead', 'HR', 'Management'].includes(profile?.role?.role_name || '');
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case 'Not_Started':
+        return { 
+          icon: PauseCircle, 
+          variant: 'secondary' as const, 
+          label: 'Not Started',
+          color: 'bg-slate-500/10 text-slate-600 border-slate-200'
+        };
+      case 'Started':
+        return { 
+          icon: PlayCircle, 
+          variant: 'default' as const, 
+          label: 'In Progress',
+          color: 'bg-blue-500/10 text-blue-600 border-blue-200'
+        };
+      case 'Submitted':
+        return { 
+          icon: CheckCircle, 
+          variant: 'outline' as const, 
+          label: 'Submitted',
+          color: 'bg-success/10 text-success border-success/20'
+        };
+      case 'Completed':
+        return { 
+          icon: CheckCircle, 
+          variant: 'default' as const, 
+          label: 'Completed',
+          color: 'bg-success/10 text-success border-success/20'
+        };
+      default:
+        return { 
+          icon: Clock, 
+          variant: 'secondary' as const, 
+          label: status,
+          color: 'bg-muted/10 text-muted-foreground border-muted/20'
+        };
+    }
+  };
+
+  const isManager = ['Team Lead', 'HR', 'Management'].includes(profile?.role?.role_name || '');
+
+  // Stats for managers
+  const totalProjects = isManager ? projects.length : 0;
+  const activeProjects = isManager 
+    ? (projects as Project[]).filter(p => p.status === 'Started').length 
+    : 0;
+  const completedProjects = isManager 
+    ? (projects as Project[]).filter(p => p.status === 'Completed').length 
+    : 0;
+
+  // Stats for trainees
+  const myAssignments = !isManager ? projects.length : 0;
+  const inProgress = !isManager 
+    ? (projects as ProjectAssignment[]).filter(p => p.status === 'Started').length 
+    : 0;
+  const submitted = !isManager 
+    ? (projects as ProjectAssignment[]).filter(p => p.status === 'Submitted').length 
+    : 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">
       <MainNav />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Projects</h1>
-            <p className="text-muted-foreground">
-              Manage and track your training projects and assignments.
-            </p>
+      <div className="container mx-auto py-8 px-4">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-primary/10 text-primary">
+                  <Target className="w-8 h-8" />
+                </div>
+                {isManager ? 'Project Management' : 'My Projects'}
+              </h1>
+              <p className="text-muted-foreground text-lg">
+                {isManager 
+                  ? 'Oversee and manage organizational projects' 
+                  : 'Track your assigned projects and submissions'
+                }
+              </p>
+            </div>
+            {isManager && <CreateProjectDialog onProjectCreated={fetchProjects} />}
           </div>
-          {isAdmin && (
-            <CreateProjectDialog onProjectCreated={handleProjectCreated} />
-          )}
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">
+                      {isManager ? 'Total Projects' : 'My Assignments'}
+                    </p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {isManager ? totalProjects : myAssignments}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-full bg-indigo-500/10">
+                    <FolderOpen className="w-6 h-6 text-indigo-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">
+                      {isManager ? 'Active' : 'In Progress'}
+                    </p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {isManager ? activeProjects : inProgress}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-full bg-blue-500/10">
+                    <PlayCircle className="w-6 h-6 text-blue-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">
+                      {isManager ? 'Completed' : 'Submitted'}
+                    </p>
+                    <p className="text-2xl font-bold text-success">
+                      {isManager ? completedProjects : submitted}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-full bg-success/10">
+                    <CheckCircle className="w-6 h-6 text-success" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Success Rate</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {isManager 
+                        ? totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0
+                        : myAssignments > 0 ? Math.round((submitted / myAssignments) * 100) : 0
+                      }%
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-full bg-green-500/10">
+                    <TrendingUp className="w-6 h-6 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {loading ? (
-          <p>Loading projects...</p>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {projects.map((item) => {
-              const project = profile?.role?.role_name === 'Trainee' ? (item as ProjectAssignment).projects : (item as Project);
-              const assignmentStatus = profile?.role?.role_name === 'Trainee' ? (item as ProjectAssignment).status : project.status;
-              const linkId = profile?.role?.role_name === 'Trainee' ? (item as ProjectAssignment).id : project.id;
-              const linkPath = isAdmin ? `/projects/${linkId}` : `/assignments/${linkId}`;
+        {/* Projects Grid */}
+        <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold flex items-center gap-2">
+              <FolderOpen className="w-5 h-5" />
+              {isManager ? 'All Projects' : 'My Project Assignments'} ({projects.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="bg-muted rounded-lg h-48"></div>
+                  </div>
+                ))}
+              </div>
+            ) : projects.length === 0 ? (
+              <div className="text-center py-12">
+                <FolderOpen className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">
+                  {isManager ? 'No projects created yet' : 'No projects assigned'}
+                </h3>
+                <p className="text-muted-foreground">
+                  {isManager 
+                    ? 'Create your first project to get started.' 
+                    : 'Check back later for new project assignments.'
+                  }
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {projects.map((item) => {
+                  const project = 'projects' in item ? item.projects : item;
+                  const status = 'projects' in item ? item.status : project.status;
+                  const statusConfig = getStatusConfig(status);
+                  const StatusIcon = statusConfig.icon;
 
-              return (
-                <Card key={item.id} className="hover:shadow-lg transition-shadow flex flex-col">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <FolderOpen className="h-8 w-8 text-primary" />
-              {profile?.role?.role_name === 'Trainee' && (
-                <Badge variant="secondary">{
-                  assignmentStatus === 'Not_Started' ? 'Not Started' :
-                  assignmentStatus === 'Started' ? 'In Progress' :
-                  assignmentStatus === 'Submitted' ? 'Submitted' :
-                  assignmentStatus
-                }</Badge>
-              )}
-                    </div>
-                    <CardTitle className="text-lg pt-2">{project.project_name}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex-grow flex flex-col justify-between">
-                    <p className="text-muted-foreground mb-4 h-12 overflow-hidden">
-                      {project.project_description}
-                    </p>
-                    <div className="flex items-center gap-2 mt-4">
-                        <Link to={linkPath} className="w-full">
-                            <Button variant="outline" className="w-full">View Details</Button>
-                        </Link>
-                        {isAdmin && (
-                            <Button variant="destructive" size="icon" onClick={() => openDeleteDialog(project)}>
-                                <Trash2 className="h-4 w-4" />
+                  return (
+                    <Card key={project.id} className="group hover:shadow-xl transition-all duration-300 border-0 bg-white/90 hover:bg-white">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg text-foreground mb-2 group-hover:text-primary transition-colors">
+                              {project.project_name}
+                            </h3>
+                            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                              {project.project_description}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 mb-4">
+                          <div className="flex items-center justify-between">
+                            <Badge className={`${statusConfig.color} font-medium flex items-center gap-1`}>
+                              <StatusIcon className="w-3 h-3" />
+                              {statusConfig.label}
+                            </Badge>
+                            {project.duration_days && (
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <Clock className="w-4 h-4 mr-1" />
+                                {project.duration_days} days
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <Calendar className="w-4 h-4 mr-2" />
+                            Created {new Date(project.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+
+                        <Separator className="mb-4" />
+
+                        <div className="flex justify-between items-center">
+                          <Link 
+                            to={isManager ? `/projects/${project.id}` : `/assignments/${'projects' in item ? item.id : project.id}`}
+                          >
+                            <Button variant="outline" size="sm" className="flex items-center gap-2 hover:bg-primary hover:text-primary-foreground">
+                              <Target className="w-4 h-4" />
+                              {isManager ? 'Manage' : 'View Details'}
                             </Button>
-                        )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </main>
+                          </Link>
 
-      <AssignProjectDialog 
-        projectId={selectedProjectId}
-        open={isAssignDialogOpen}
-        onOpenChange={setAssignDialogOpen}
-        onProjectAssigned={handleProjectAssigned}
-      />
+                          <div className="flex gap-2">
+                            {isManager && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedProjectId(project.id);
+                                    setAssignDialogOpen(true);
+                                  }}
+                                  className="flex items-center gap-1"
+                                >
+                                  <Users className="w-4 h-4" />
+                                  Assign
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setProjectToDelete(project);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
+      {/* Assign Project Dialog */}
+      {selectedProjectId && (
+        <AssignProjectDialog
+          projectId={selectedProjectId}
+          open={isAssignDialogOpen}
+          onOpenChange={setAssignDialogOpen}
+          onProjectAssigned={fetchProjects}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Project</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the project
-              <strong> {projectToDelete?.project_name}</strong> and all of its assignments and submissions.
+              Are you sure you want to delete "{projectToDelete?.project_name}"? 
+              This action cannot be undone and will remove all associated assignments and data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteProject}>Confirm Delete</AlertDialogAction>
+            <AlertDialogAction 
+              onClick={handleDeleteProject}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete Project
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -7,8 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Search, UserCheck, UserX, Crown, Plus, Eye, Trash2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { 
+  Users, Search, UserCheck, UserX, Crown, Plus, Eye, Trash2, 
+  Building2, Mail, Phone, Calendar, User, Briefcase 
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { UserRoleType } from '@/lib/enums';
 import { AddEmployeeDialog } from '@/components/employees/AddEmployeeDialog';
@@ -33,16 +36,18 @@ interface Employee {
   designation: string | null;
   current_status: string;
   created_at: string;
+  phone: string | null;
+  date_of_joining: string | null;
   role: {
     id: string;
-    role_name: UserRoleType;
+    role_name: string;
     role_description: string | null;
   } | null;
 }
 
 interface Role {
   id: string;
-  role_name: UserRoleType;
+  role_name: string;
   role_description: string | null;
 }
 
@@ -50,61 +55,50 @@ export default function Employees() {
   const { profile } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [addEmployeeDialogOpen, setAddEmployeeDialogOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
 
+  const canManageEmployees = ['Management', 'HR'].includes(profile?.role?.role_name || '');
+
   const fetchEmployees = useCallback(async () => {
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select(`
-          id,
-          first_name,
-          last_name,
-          employee_code,
-          department,
-          designation,
-          current_status,
-          created_at,
+          *,
           role:roles(id, role_name, role_description)
         `)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching employees:', error);
-        toast.error('Failed to load employees');
-        return;
-      }
-
-      setEmployees((data || []) as Employee[]);
+      if (error) throw error;
+      setEmployees(data || []);
+      setFilteredEmployees(data || []);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching employees:', error);
       toast.error('Failed to load employees');
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   const fetchRoles = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('roles')
-        .select('id, role_name, role_description')
+        .select('*')
         .order('role_name');
 
-      if (error) {
-        console.error('Error fetching roles:', error);
-        return;
-      }
-
-      setRoles((data || []) as Role[]);
+      if (error) throw error;
+      setRoles(data || []);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching roles:', error);
     }
   }, []);
 
@@ -113,351 +107,373 @@ export default function Employees() {
     fetchRoles();
   }, [fetchEmployees, fetchRoles]);
 
-  const canManageUsers = profile?.role?.role_name === 'Management' || profile?.role?.role_name === 'HR';
+  useEffect(() => {
+    let filtered = employees;
 
-  // Check if user has permission to access this page
-  if (!profile || !canManageUsers) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-96">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <UserX className="h-12 w-12 mx-auto text-muted-foreground" />
-              <h2 className="text-xl font-semibold">Access Denied</h2>
-              <p className="text-muted-foreground">
-                You don't have permission to access the employee management page.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const updateEmployeeRole = async (employeeId: string, roleId: string) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role_id: roleId })
-        .eq('id', employeeId);
-
-      if (error) {
-        console.error('Error updating role:', error);
-        toast.error('Failed to update employee role');
-        return;
-      }
-
-      toast.success('Employee role updated successfully');
-      fetchEmployees(); // Refresh the list
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Failed to update employee role');
+    if (searchTerm) {
+      filtered = filtered.filter(emp => 
+        `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.employee_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.department?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
-  };
 
-  const openDeleteDialog = (employee: Employee) => {
-    setEmployeeToDelete(employee);
-    setDeleteDialogOpen(true);
-  };
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(emp => emp.current_status === statusFilter);
+    }
+
+    if (roleFilter !== 'all') {
+      filtered = filtered.filter(emp => emp.role?.role_name === roleFilter);
+    }
+
+    if (departmentFilter !== 'all') {
+      filtered = filtered.filter(emp => emp.department === departmentFilter);
+    }
+
+    setFilteredEmployees(filtered);
+  }, [employees, searchTerm, statusFilter, roleFilter, departmentFilter]);
+
+  const departments = [...new Set(employees.map(emp => emp.department).filter(Boolean))];
 
   const handleDeleteEmployee = async () => {
     if (!employeeToDelete) return;
 
     try {
-      const { error } = await supabase.rpc('delete_user' as any, { user_id: employeeToDelete.id });
+      const { error } = await supabase.rpc('delete_user', {
+        user_id: employeeToDelete.id
+      });
 
-      if (error) {
-        console.error('Error deleting user:', error);
-        toast.error(`Failed to delete user: ${error?.message || 'Unauthorized'}`);
-        return;
-      }
+      if (error) throw error;
 
-      toast.success(`User "${employeeToDelete.first_name} ${employeeToDelete.last_name}" deleted.`);
-      fetchEmployees(); // Refresh the list
+      toast.success('Employee deleted successfully');
+      fetchEmployees();
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Failed to delete user');
+      console.error('Error deleting employee:', error);
+      toast.error('Failed to delete employee');
     } finally {
-      setEmployeeToDelete(null);
       setDeleteDialogOpen(false);
+      setEmployeeToDelete(null);
     }
   };
 
-  const filteredEmployees = employees.filter(employee => {
-    const matchesSearch = 
-      `${employee.first_name || ''} ${employee.last_name || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (employee.employee_code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (employee.department || '').toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus = statusFilter === 'all' || employee.current_status === statusFilter;
-    const matchesRole = roleFilter === 'all' || employee.role?.role_name === roleFilter;
-
-    return matchesSearch && matchesStatus && matchesRole;
-  });
-
-  const getStatusBadgeVariant = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active': return 'default';
-      case 'Pre-Joining': return 'secondary';
-      case 'Inactive': return 'destructive';
-      default: return 'outline';
+      case 'Active': return 'bg-success/10 text-success border-success/20';
+      case 'On Leave': return 'bg-warning/10 text-warning border-warning/20';
+      case 'Inactive': return 'bg-destructive/10 text-destructive border-destructive/20';
+      default: return 'bg-muted/10 text-muted-foreground border-muted/20';
     }
   };
 
-  const getRoleBadgeVariant = (role: string) => {
+  const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'Management': return 'default';
-      case 'HR': return 'secondary';
-      case 'Team Lead': return 'outline';
-      default: return 'outline';
+      case 'Management': return <Crown className="w-4 h-4" />;
+      case 'HR': return <Users className="w-4 h-4" />;
+      case 'Team Lead': return <UserCheck className="w-4 h-4" />;
+      default: return <User className="w-4 h-4" />;
     }
   };
 
-  if (loading) {
+  if (!canManageEmployees) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-background">
+        <MainNav />
+        <div className="container mx-auto py-8">
+          <Card className="max-w-md mx-auto">
+            <CardContent className="p-8 text-center">
+              <UserX className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
+              <p className="text-muted-foreground">You don't have permission to view employee information.</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <MainNav />
-      <div className="container mx-auto py-6 px-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <Users className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold">Employee Management</h1>
+      
+      <div className="container mx-auto py-8 px-4">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-primary/10 text-primary">
+                  <Building2 className="w-8 h-8" />
+                </div>
+                Employee Management
+              </h1>
+              <p className="text-muted-foreground text-lg">
+                Manage your organization's workforce with ease
+              </p>
+            </div>
+            <AddEmployeeDialog onEmployeeCreated={fetchEmployees} />
           </div>
-          <div className="flex items-center space-x-3">
-            <Button onClick={() => setAddEmployeeDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Employee
-            </Button>
-            <Badge variant="outline" className="text-sm">
-              {filteredEmployees.length} Employees
-            </Badge>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Total Employees</p>
+                    <p className="text-2xl font-bold text-foreground">{employees.length}</p>
+                  </div>
+                  <div className="p-3 rounded-full bg-blue-500/10">
+                    <Users className="w-6 h-6 text-blue-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Active</p>
+                    <p className="text-2xl font-bold text-success">
+                      {employees.filter(e => e.current_status === 'Active').length}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-full bg-success/10">
+                    <UserCheck className="w-6 h-6 text-success" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">On Leave</p>
+                    <p className="text-2xl font-bold text-warning">
+                      {employees.filter(e => e.current_status === 'On Leave').length}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-full bg-warning/10">
+                    <Calendar className="w-6 h-6 text-warning" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Departments</p>
+                    <p className="text-2xl font-bold text-foreground">{departments.length}</p>
+                  </div>
+                  <div className="p-3 rounded-full bg-purple-500/10">
+                    <Briefcase className="w-6 h-6 text-purple-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Employees</p>
-                  <p className="text-2xl font-bold">{employees.length}</p>
-                </div>
-                <Users className="h-8 w-8 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Active</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {employees.filter(e => e.current_status === 'Active').length}
-                  </p>
-                </div>
-                <UserCheck className="h-8 w-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Pre-Joining</p>
-                  <p className="text-2xl font-bold text-orange-600">
-                    {employees.filter(e => e.current_status === 'Pre-Joining').length}
-                  </p>
-                </div>
-                <UserX className="h-8 w-8 text-orange-600" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Management</p>
-                  <p className="text-2xl font-bold text-purple-600">
-                    {employees.filter(e => ['Management', 'HR'].includes(e.role?.role_name || '')).length}
-                  </p>
-                </div>
-                <Crown className="h-8 w-8 text-purple-600" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Filters */}
-        <Card className="mb-6">
+        {/* Filters Section */}
+        <Card className="mb-8 border-0 shadow-md bg-white/70 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-lg">Filters</CardTitle>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Search className="w-5 h-5" />
+              Search & Filter
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search by name, employee code, or department..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search employees..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-white/50"
+                />
               </div>
-              
+
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-40">
-                  <SelectValue placeholder="Status" />
+                <SelectTrigger className="bg-white/50">
+                  <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Pre-Joining">Pre-Joining</SelectItem>
+                  <SelectItem value="On Leave">On Leave</SelectItem>
                   <SelectItem value="Inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
 
               <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-full md:w-40">
-                  <SelectValue placeholder="Role" />
+                <SelectTrigger className="bg-white/50">
+                  <SelectValue placeholder="All Roles" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
-                  {roles.map((role) => (
+                  {roles.map(role => (
                     <SelectItem key={role.id} value={role.role_name}>
                       {role.role_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+
+              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                <SelectTrigger className="bg-white/50">
+                  <SelectValue placeholder="All Departments" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {departments.map(dept => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('all');
+                  setRoleFilter('all');
+                  setDepartmentFilter('all');
+                }}
+                className="bg-white/50"
+              >
+                Clear Filters
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Employees Table */}
-        <Card>
+        {/* Employee Grid */}
+        <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Employees List</CardTitle>
+            <CardTitle className="text-xl font-semibold">
+              Employee Directory ({filteredEmployees.length})
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Employee Code</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Designation</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredEmployees.map((employee) => (
-                    <TableRow key={employee.id}>
-                      <TableCell className="font-medium">
-                        {`${employee.first_name || ''} ${employee.last_name || ''}`.trim() || 'No Name'}
-                      </TableCell>
-                      <TableCell>{employee.employee_code || '-'}</TableCell>
-                      <TableCell>{employee.department || '-'}</TableCell>
-                      <TableCell>{employee.designation || '-'}</TableCell>
-                      <TableCell>
-                        <Badge variant={getRoleBadgeVariant(employee.role?.role_name || '')}>
-                          {employee.role?.role_name || 'No Role'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusBadgeVariant(employee.current_status)}>
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="bg-muted rounded-lg h-48"></div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredEmployees.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">No employees found</h3>
+                <p className="text-muted-foreground">Try adjusting your search or filter criteria.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredEmployees.map((employee) => (
+                  <Card key={employee.id} className="group hover:shadow-lg transition-all duration-300 border-0 bg-white/80">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white font-semibold text-lg">
+                            {(employee.first_name?.[0] || '') + (employee.last_name?.[0] || '')}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-lg text-foreground">
+                              {employee.first_name} {employee.last_name}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {employee.employee_code || 'No Code'}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge className={`${getStatusColor(employee.current_status)} font-medium`}>
                           {employee.current_status}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Link to={`/employees/${employee.id}`}>
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Select 
-                            value={employee.role?.id || ''} 
-                            onValueChange={(roleId) => updateEmployeeRole(employee.id, roleId)}
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue placeholder="Change Role" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {roles.map((role) => (
-                                <SelectItem key={role.id} value={role.id}>
-                                  {role.role_name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {canManageUsers && (
-                            <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(employee)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </div>
 
-              {filteredEmployees.length === 0 && (
-                <div className="text-center py-8">
-                  <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium text-muted-foreground mb-2">No employees found</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Try adjusting your search or filter criteria.
-                  </p>
-                </div>
-              )}
-            </div>
+                      <div className="space-y-3 mb-4">
+                        <div className="flex items-center space-x-2 text-sm">
+                          {getRoleIcon(employee.role?.role_name || '')}
+                          <span className="font-medium text-foreground">
+                            {employee.role?.role_name || 'No Role'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                          <Briefcase className="w-4 h-4" />
+                          <span>{employee.designation || 'No Position'}</span>
+                        </div>
+
+                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                          <Building2 className="w-4 h-4" />
+                          <span>{employee.department || 'No Department'}</span>
+                        </div>
+
+                        {employee.date_of_joining && (
+                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                            <Calendar className="w-4 h-4" />
+                            <span>Joined {new Date(employee.date_of_joining).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <Separator className="mb-4" />
+
+                      <div className="flex justify-between items-center">
+                        <Link to={`/employees/${employee.id}`}>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Eye className="w-4 h-4" />
+                            View Details
+                          </Button>
+                        </Link>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEmployeeToDelete(employee);
+                            setDeleteDialogOpen(true);
+                          }}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
-
-        {/* Add Employee Dialog */}
-        <AddEmployeeDialog
-          open={addEmployeeDialogOpen}
-          onOpenChange={setAddEmployeeDialogOpen}
-          onSuccess={() => {
-            fetchEmployees();
-            setAddEmployeeDialogOpen(false);
-          }}
-        />
-
-        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the user
-                <strong> {employeeToDelete?.first_name} {employeeToDelete?.last_name}</strong> and all of their associated data.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteEmployee}>Confirm Delete</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Employee</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {employeeToDelete?.first_name} {employeeToDelete?.last_name}? 
+              This action cannot be undone and will permanently remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteEmployee} className="bg-destructive hover:bg-destructive/90">
+              Delete Employee
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

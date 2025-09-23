@@ -96,6 +96,9 @@ export default function AssignmentDetails() {
         .eq('assignment_id', assignmentId)
         .order('submitted_at', { ascending: false });
       setSubmissions(subs || []);
+    }
+
+    setLoading(false);
   }, [assignmentId]);
 
   useEffect(() => {

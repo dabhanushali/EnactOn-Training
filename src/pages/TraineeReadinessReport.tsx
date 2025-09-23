@@ -7,8 +7,14 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { ChevronsUpDown, Check, TrendingUp, Star, BookOpen, FolderOpen, UserCheck, Clock, BarChart2, Percent } from "lucide-react";
+import { 
+  ChevronsUpDown, Check, TrendingUp, Star, BookOpen, FolderOpen, 
+  UserCheck, Clock, BarChart2, Percent, Award, Target, Brain,
+  GraduationCap, CheckCircle, AlertCircle, User
+} from "lucide-react";
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/auth-utils';
 import { AccessDenied } from '@/components/common/AccessDenied';
@@ -50,320 +56,539 @@ interface ProjectDetail {
     evaluation: ProjectEvaluation[];
 }
 
-interface ReportData {
-  profile: {
+interface TraineeProfile {
     user_id: string;
     first_name: string;
     last_name: string;
     email: string;
     designation: string;
     department: string;
-  };
-  readiness_summary: ReadinessSummary;
-  completed_courses: Course[];
-  pending_courses: Course[];
-  assessment_details: AssessmentDetail[];
-  project_details: ProjectDetail[];
 }
 
-// Type definitions
-interface Trainee {
-  user_id: string;
-  first_name: string;
-  last_name: string;
+interface ReadinessData {
+    profile: TraineeProfile;
+    readiness_summary: ReadinessSummary;
+    completed_courses: Course[];
+    pending_courses: Course[];
+    assessment_details: AssessmentDetail[];
+    project_details: ProjectDetail[];
 }
 
-interface ProfileWithRole {
-  id: string;
-  first_name: string;
-  last_name: string;
-  roles?: {
-    role_name: string;
-  };
+interface Employee {
+    id: string;
+    first_name: string;
+    last_name: string;
+    department: string;
+    designation: string;
 }
 
-// --- Data Fetching ---
-const fetchTrainees = async (): Promise<Trainee[]> => {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select(`id, first_name, last_name, roles(role_name)`);
+const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-  if (error) throw new Error(error.message);
+export default function TraineeReadinessReport() {
+    const { profile } = useAuth();
+    const [selectedTraineeId, setSelectedTraineeId] = useState<string>('');
+    const [open, setOpen] = useState(false);
 
-  const trainees = (data as any[])
-    .filter(profile => profile.roles?.role_name === 'Trainee')
-    .map(p => ({ user_id: p.id, first_name: p.first_name, last_name: p.last_name }));
-    
-  return trainees;
-};
+    const canViewReports = ['Management', 'HR', 'Team Lead'].includes(profile?.role?.role_name || '');
 
-const fetchReadinessReport = async (userId: string | null): Promise<ReportData | null> => {
-  if (!userId) return null;
-  const { data, error } = await supabase.rpc('get_trainee_readiness_data' as any, { p_user_id: userId });
-  if (error) throw new Error(`Failed to fetch readiness report: ${error.message}`);
-  return data as any;
-};
+    // Fetch all employees for selection
+    const { data: employees = [], isLoading: employeesLoading } = useQuery({
+        queryKey: ['employees'],
+        queryFn: async () => {
+            if (!canViewReports) return [];
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('id, first_name, last_name, department, designation')
+                .order('first_name');
+            if (error) throw error;
+            return data as Employee[];
+        },
+        enabled: canViewReports,
+    });
 
+    // Fetch readiness data for selected trainee
+    const { data: readinessData, isLoading: readinessLoading, error } = useQuery({
+        queryKey: ['trainee_readiness', selectedTraineeId],
+        queryFn: async () => {
+            if (!selectedTraineeId) return null;
+            const { data, error } = await supabase.rpc('get_trainee_readiness_data', {
+                p_user_id: selectedTraineeId
+            });
+            if (error) throw error;
+            return data as unknown as ReadinessData;
+        },
+        enabled: !!selectedTraineeId && canViewReports,
+    });
 
-// --- Main Component ---
-const TraineeReadinessReport: React.FC = () => {
-  const { profile } = useAuth();
-  const [open, setOpen] = useState(false);
-  const [selectedTrainee, setSelectedTrainee] = useState<Trainee | null>(null);
+    // Prepare chart data
+    const skillsData = useMemo(() => {
+        if (!readinessData) return [];
+        return [
+            { name: 'Overall Readiness', score: readinessData.readiness_summary.overall_readiness_score },
+            { name: 'Assessment Average', score: readinessData.readiness_summary.average_assessment_score },
+            { name: 'Project Average', score: readinessData.readiness_summary.average_project_score * 10 }, // Convert to percentage
+        ];
+    }, [readinessData]);
 
-  // Check access permissions
-  const userRole = profile?.role?.role_name;
-  const hasAccess = userRole === 'Management' || userRole === 'HR' || userRole === 'Team Lead';
+    const courseCompletionData = useMemo(() => {
+        if (!readinessData) return [];
+        return [
+            { name: 'Completed', value: readinessData.completed_courses.length, color: '#10b981' },
+            { name: 'Pending', value: readinessData.pending_courses.length, color: '#f59e0b' },
+        ];
+    }, [readinessData]);
 
-  if (!hasAccess) {
+    const assessmentTrendData = useMemo(() => {
+        if (!readinessData) return [];
+        return readinessData.assessment_details
+            .sort((a, b) => new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime())
+            .map((assessment, index) => ({
+                name: `Assessment ${index + 1}`,
+                score: assessment.score,
+                date: new Date(assessment.taken_at).toLocaleDateString(),
+            }));
+    }, [readinessData]);
+
+    const getReadinessLevel = (score: number) => {
+        if (score >= 80) return { label: 'Excellent', color: 'bg-green-500/10 text-green-700 border-green-200', icon: Award };
+        if (score >= 60) return { label: 'Good', color: 'bg-blue-500/10 text-blue-700 border-blue-200', icon: CheckCircle };
+        if (score >= 40) return { label: 'Fair', color: 'bg-yellow-500/10 text-yellow-700 border-yellow-200', icon: Clock };
+        return { label: 'Needs Improvement', color: 'bg-red-500/10 text-red-700 border-red-200', icon: AlertCircle };
+    };
+
+    if (!canViewReports) {
+        return <AccessDenied />;
+    }
+
     return (
-      <>
-        <MainNav />
-        <AccessDenied 
-          message="Access to Trainee Readiness Reports is restricted."
-          allowedRoles={['Management', 'HR', 'Team Lead']}
-        />
-      </>
-    );
-  }
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50">
+            <MainNav />
+            
+            <div className="container mx-auto py-8 px-4">
+                {/* Header */}
+                <div className="mb-8">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="space-y-1">
+                            <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+                                <div className="p-3 rounded-xl bg-primary/10 text-primary">
+                                    <Brain className="w-8 h-8" />
+                                </div>
+                                Trainee Readiness Report
+                            </h1>
+                            <p className="text-muted-foreground text-lg">
+                                Comprehensive assessment of employee training progress and readiness
+                            </p>
+                        </div>
+                    </div>
 
-  const { data: trainees, isLoading: traineesLoading, error: traineesError } = useQuery<Trainee[]>({ 
-    queryKey: ['traineesForReport'], 
-    queryFn: fetchTrainees 
-  });
+                    {/* Trainee Selector */}
+                    <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+                        <CardHeader>
+                            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                                <User className="w-5 h-5" />
+                                Select Trainee
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Popover open={open} onOpenChange={setOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={open}
+                                        className="w-full justify-between bg-white/50"
+                                    >
+                                        {selectedTraineeId
+                                            ? employees.find((emp) => emp.id === selectedTraineeId)?.first_name + ' ' + 
+                                              employees.find((emp) => emp.id === selectedTraineeId)?.last_name
+                                            : "Select trainee..."}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-full p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Search trainee..." />
+                                        <CommandEmpty>No trainee found.</CommandEmpty>
+                                        <CommandGroup>
+                                            {employees.map((employee) => (
+                                                <CommandItem
+                                                    key={employee.id}
+                                                    value={employee.id}
+                                                    onSelect={(currentValue) => {
+                                                        setSelectedTraineeId(currentValue === selectedTraineeId ? "" : currentValue);
+                                                        setOpen(false);
+                                                    }}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            "mr-2 h-4 w-4",
+                                                            selectedTraineeId === employee.id ? "opacity-100" : "opacity-0"
+                                                        )}
+                                                    />
+                                                    <div>
+                                                        <div className="font-medium">
+                                                            {employee.first_name} {employee.last_name}
+                                                        </div>
+                                                        <div className="text-sm text-muted-foreground">
+                                                            {employee.designation} • {employee.department}
+                                                        </div>
+                                                    </div>
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                        </CardContent>
+                    </Card>
+                </div>
 
-  const { data: reportData, isLoading: reportLoading, error: reportError } = useQuery<ReportData | null>({
-    queryKey: ['readinessReport', selectedTrainee?.user_id], 
-    queryFn: () => fetchReadinessReport(selectedTrainee?.user_id || null),
-    enabled: !!selectedTrainee,
-  });
+                {/* Main Content */}
+                {readinessLoading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[...Array(6)].map((_, i) => (
+                            <Card key={i} className="h-48 animate-pulse bg-muted/50" />
+                        ))}
+                    </div>
+                ) : !selectedTraineeId ? (
+                    <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+                        <CardContent className="py-12 text-center">
+                            <GraduationCap className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                            <h3 className="text-lg font-medium mb-2">Select a Trainee</h3>
+                            <p className="text-muted-foreground">Choose a trainee from the dropdown above to view their readiness report.</p>
+                        </CardContent>
+                    </Card>
+                ) : error ? (
+                    <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+                        <CardContent className="py-12 text-center">
+                            <AlertCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
+                            <h3 className="text-lg font-medium mb-2 text-destructive">Error Loading Data</h3>
+                            <p className="text-muted-foreground">Failed to load readiness data. Please try again.</p>
+                        </CardContent>
+                    </Card>
+                ) : readinessData ? (
+                    <div className="space-y-8">
+                        {/* Profile Summary */}
+                        <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+                            <CardHeader>
+                                <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                                    <User className="w-5 h-5" />
+                                    Trainee Profile
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    <div className="text-center">
+                                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white font-bold text-xl mx-auto mb-3">
+                                            {readinessData.profile.first_name[0]}{readinessData.profile.last_name[0]}
+                                        </div>
+                                        <h3 className="font-semibold text-lg">
+                                            {readinessData.profile.first_name} {readinessData.profile.last_name}
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground">{readinessData.profile.email}</p>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                        <h4 className="font-medium text-muted-foreground">Position</h4>
+                                        <p className="font-semibold">{readinessData.profile.designation}</p>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                        <h4 className="font-medium text-muted-foreground">Department</h4>
+                                        <p className="font-semibold">{readinessData.profile.department}</p>
+                                    </div>
 
-  return (
-    <>
-    <MainNav />
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 bg-gray-50/50 min-h-screen">
-      <HeaderSection 
-        trainees={trainees || []}
-        selectedTrainee={selectedTrainee}
-        setSelectedTrainee={setSelectedTrainee}
-        isLoading={traineesLoading}
-        error={traineesError}
-        open={open}
-        setOpen={setOpen}
-      />
+                                    <div className="space-y-2">
+                                        <h4 className="font-medium text-muted-foreground">Readiness Level</h4>
+                                        {(() => {
+                                            const level = getReadinessLevel(readinessData.readiness_summary.overall_readiness_score);
+                                            const LevelIcon = level.icon;
+                                            return (
+                                                <Badge className={`${level.color} font-medium flex items-center gap-1 w-fit`}>
+                                                    <LevelIcon className="w-3 h-3" />
+                                                    {level.label}
+                                                </Badge>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
 
-      {selectedTrainee ? (
-        reportLoading ? <p className="text-center py-12">Loading report...</p> :
-        reportError ? <p className="text-center py-12 text-red-500">Error: {reportError.message}</p> :
-        reportData && (
-          <div className="space-y-6">
-            <SummarySection summary={reportData.readiness_summary} profile={reportData.profile} />
-            <PerformanceChart data={reportData.assessment_details} />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <CoursesSection title="Completed Courses" courses={reportData.completed_courses} />
-                <CoursesSection title="Pending Courses" courses={reportData.pending_courses} />
+                        {/* Key Metrics */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium text-muted-foreground mb-1">Overall Readiness</p>
+                                            <p className="text-3xl font-bold text-foreground">
+                                                {readinessData.readiness_summary.overall_readiness_score.toFixed(1)}%
+                                            </p>
+                                        </div>
+                                        <div className="p-3 rounded-full bg-purple-500/10">
+                                            <Target className="w-8 h-8 text-purple-600" />
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium text-muted-foreground mb-1">Assessment Avg</p>
+                                            <p className="text-3xl font-bold text-blue-600">
+                                                {readinessData.readiness_summary.average_assessment_score.toFixed(1)}%
+                                            </p>
+                                        </div>
+                                        <div className="p-3 rounded-full bg-blue-500/10">
+                                            <BookOpen className="w-8 h-8 text-blue-600" />
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium text-muted-foreground mb-1">Project Avg</p>
+                                            <p className="text-3xl font-bold text-green-600">
+                                                {(readinessData.readiness_summary.average_project_score * 10).toFixed(1)}%
+                                            </p>
+                                        </div>
+                                        <div className="p-3 rounded-full bg-green-500/10">
+                                            <FolderOpen className="w-8 h-8 text-green-600" />
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Charts Section */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Skills Radar */}
+                            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <BarChart2 className="w-5 h-5" />
+                                        Performance Overview
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <LineChart data={skillsData}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="name" />
+                                            <YAxis domain={[0, 100]} />
+                                            <Tooltip />
+                                            <Line 
+                                                type="monotone" 
+                                                dataKey="score" 
+                                                stroke="#3b82f6" 
+                                                strokeWidth={3}
+                                                strokeLinecap="round"
+                                            />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+
+                            {/* Course Completion */}
+                            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <GraduationCap className="w-5 h-5" />
+                                        Course Progress
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <PieChart>
+                                            <Pie
+                                                data={courseCompletionData}
+                                                cx="50%"
+                                                cy="50%"
+                                                outerRadius={100}
+                                                fill="#8884d8"
+                                                dataKey="value"
+                                                label={({ name, value }) => `${name}: ${value}`}
+                                            >
+                                                {courseCompletionData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Assessment Trend */}
+                        {assessmentTrendData.length > 0 && (
+                            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <TrendingUp className="w-5 h-5" />
+                                        Assessment Progress Trend
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <LineChart data={assessmentTrendData}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="name" />
+                                            <YAxis domain={[0, 100]} />
+                                            <Tooltip />
+                                            <Line 
+                                                type="monotone" 
+                                                dataKey="score" 
+                                                stroke="#10b981" 
+                                                strokeWidth={3}
+                                                strokeLinecap="round"
+                                            />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Detailed Tables */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Course Details */}
+                            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <BookOpen className="w-5 h-5" />
+                                        Course History
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <h4 className="font-semibold text-success mb-2">Completed Courses</h4>
+                                            {readinessData.completed_courses.length === 0 ? (
+                                                <p className="text-muted-foreground text-sm">No completed courses yet</p>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    {readinessData.completed_courses.map((course) => (
+                                                        <div key={course.course_id} className="flex justify-between items-center p-2 bg-success/5 rounded">
+                                                            <span className="font-medium">{course.course_name}</span>
+                                                            <span className="text-sm text-muted-foreground">
+                                                                {course.completion_date && new Date(course.completion_date).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <Separator />
+
+                                        <div>
+                                            <h4 className="font-semibold text-warning mb-2">Pending Courses</h4>
+                                            {readinessData.pending_courses.length === 0 ? (
+                                                <p className="text-muted-foreground text-sm">No pending courses</p>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    {readinessData.pending_courses.map((course) => (
+                                                        <div key={course.course_id} className="flex justify-between items-center p-2 bg-warning/5 rounded">
+                                                            <span className="font-medium">{course.course_name}</span>
+                                                            <span className="text-sm text-muted-foreground">
+                                                                Enrolled: {course.enrollment_date && new Date(course.enrollment_date).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Assessment Details */}
+                            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Star className="w-5 h-5" />
+                                        Assessment Results
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {readinessData.assessment_details.length === 0 ? (
+                                        <p className="text-muted-foreground">No assessments taken yet</p>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {readinessData.assessment_details.map((assessment) => (
+                                                <div key={assessment.assessment_id} className="p-3 border rounded-lg">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div>
+                                                            <h5 className="font-semibold">{assessment.assessment_title}</h5>
+                                                            <p className="text-sm text-muted-foreground">{assessment.course_name}</p>
+                                                        </div>
+                                                        <Badge variant={assessment.passed ? "default" : "destructive"}>
+                                                            {assessment.score}%
+                                                        </Badge>
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Taken on {new Date(assessment.taken_at).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Project Evaluations */}
+                        {readinessData.project_details.length > 0 && (
+                            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <FolderOpen className="w-5 h-5" />
+                                        Project Evaluations
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-6">
+                                        {readinessData.project_details.map((project) => (
+                                            <div key={project.project_id} className="border rounded-lg p-4">
+                                                <h4 className="font-semibold text-lg mb-2">{project.project_name}</h4>
+                                                <Badge variant="outline" className="mb-3">{project.status}</Badge>
+                                                
+                                                {project.evaluation.map((evaluation, index) => (
+                                                    <div key={index} className="bg-muted/30 p-3 rounded mt-3">
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="font-medium">Evaluated by: {evaluation.evaluator}</span>
+                                                            <Badge variant="secondary">{evaluation.overall_score}/10</Badge>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                                            <div>
+                                                                <h6 className="font-medium text-success mb-1">Strengths:</h6>
+                                                                <p>{evaluation.strengths}</p>
+                                                            </div>
+                                                            <div>
+                                                                <h6 className="font-medium text-warning mb-1">Areas for Improvement:</h6>
+                                                                <p>{evaluation.areas_for_improvement}</p>
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground mt-2">
+                                                            Evaluated on {new Date(evaluation.evaluation_date).toLocaleDateString()}
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                ) : null}
             </div>
-            <DetailsTable title="Assessment Details" data={reportData.assessment_details} type="assessment" />
-            <DetailsTable title="Project Details" data={reportData.project_details} type="project" />
-          </div>
-        )
-      ) : (
-        <div className="text-center py-20 text-gray-500"><p>Please select a trainee to view their readiness report.</p></div>
-      )}
-    </div>
-    </>
-  );
-};
-
-// --- Sub-Components ---
-
-const HeaderSection = ({ trainees, selectedTrainee, setSelectedTrainee, isLoading, error, open, setOpen }: any) => (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2 sm:mb-0">Trainee Readiness Report</h1>
-        <TraineeSelector 
-          trainees={trainees} 
-          selectedTrainee={selectedTrainee} 
-          setSelectedTrainee={setSelectedTrainee} 
-          isLoading={isLoading}
-          error={error}
-          open={open}
-          setOpen={setOpen}
-        />
-    </div>
-);
-
-const TraineeSelector = ({ trainees, selectedTrainee, setSelectedTrainee, isLoading, error, open, setOpen }: any) => (
-  isLoading ? <p>Loading trainees...</p> :
-  error ? <p className="text-red-500">Failed to load trainees.</p> :
-  <Popover open={open} onOpenChange={setOpen}>
-    <PopoverTrigger asChild>
-      <Button variant="outline" role="combobox" aria-expanded={open} className="w-full sm:w-[250px] justify-between">
-        {selectedTrainee ? `${selectedTrainee.first_name} ${selectedTrainee.last_name}` : "Select a trainee..."}
-        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-      </Button>
-    </PopoverTrigger>
-    <PopoverContent className="w-full sm:w-[250px] p-0">
-      <Command>
-        <CommandInput placeholder="Search trainee..." />
-        <CommandEmpty>No trainee found.</CommandEmpty>
-        <CommandGroup>
-          {trainees?.map((trainee: Trainee) => (
-            <CommandItem
-              key={trainee.user_id}
-              value={`${trainee.first_name} ${trainee.last_name}`}
-              onSelect={() => { setSelectedTrainee(trainee); setOpen(false); }}
-            >
-              <Check className={cn("mr-2 h-4 w-4", selectedTrainee?.user_id === trainee.user_id ? "opacity-100" : "opacity-0")} />
-              {trainee.first_name} {trainee.last_name}
-            </CommandItem>
-          )) || <CommandItem disabled>No trainees available</CommandItem>}
-        </CommandGroup>
-      </Command>
-    </PopoverContent>
-  </Popover>
-);
-
-const SummarySection = ({ summary, profile }: { summary: ReadinessSummary, profile: ReportData['profile'] }) => {
-    const scoreColor = summary.overall_readiness_score >= 70 ? 'text-green-600' : summary.overall_readiness_score >= 40 ? 'text-yellow-600' : 'text-red-600';
-    return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Trainee</CardTitle>
-                    <UserCheck className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-xl font-bold">{profile.first_name} {profile.last_name}</div>
-                    <p className="text-xs text-muted-foreground">{profile.email}</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Overall Readiness</CardTitle>
-                    <Star className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className={`text-5xl font-bold ${scoreColor}`}>{summary.overall_readiness_score}%</div>
-                    <p className="text-xs text-muted-foreground">Composite score of all metrics</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Assessment Score</CardTitle>
-                    <BarChart2 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{summary.average_assessment_score}%</div>
-                    <p className="text-xs text-muted-foreground">Average across all assessments</p>
-                </CardContent>
-            </Card>
         </div>
     );
-};
-
-const PerformanceChart = ({ data }: { data: AssessmentDetail[] }) => {
-    const chartData = useMemo(() => 
-        data.map(a => ({
-            name: a.assessment_title,
-            score: a.score,
-            date: new Date(a.taken_at)
-        })).sort((a, b) => a.date.getTime() - b.date.getTime()), 
-    [data]);
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center"><TrendingUp className="mr-2 h-5 w-5"/>Performance Trend</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" angle={-30} textAnchor="end" height={70} tick={{ fontSize: 10 }} />
-                        <YAxis domain={[0, 100]} />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="score" name="Assessment Score" stroke="#8884d8" strokeWidth={2} />
-                    </LineChart>
-                </ResponsiveContainer>
-            </CardContent>
-        </Card>
-    );
-};
-
-const CoursesSection = ({ title, courses }: { title: string, courses: Course[] }) => (
-    <Card>
-        <CardHeader><CardTitle className="flex items-center"><BookOpen className="mr-2 h-5 w-5"/>{title}</CardTitle></CardHeader>
-        <CardContent>
-            {courses.length > 0 ? (
-                <ul className="space-y-2">
-                    {courses.map(c => (
-                        <li key={c.course_id} className="text-sm text-gray-700">{c.course_name}</li>
-                    ))}
-                </ul>
-            ) : <p className="text-sm text-gray-500">No courses in this category.</p>}
-        </CardContent>
-    </Card>
-);
-
-const DetailsTable = ({ data, type, title }: { data: any[], type: 'assessment' | 'project', title: string }) => (
-  <Card>
-    <CardHeader><CardTitle className="flex items-center">
-        {type === 'assessment' && <BookOpen className="mr-2 h-5 w-5"/>}
-        {type === 'project' && <FolderOpen className="mr-2 h-5 w-5"/>}
-        {title}
-    </CardTitle></CardHeader>
-    <CardContent>
-      <Table>
-        <TableHeader>
-          {type === 'assessment' ? (
-            <TableRow>
-              <TableHead>Course</TableHead>
-              <TableHead>Assessment</TableHead>
-              <TableHead className="text-right">Score</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          ) : (
-            <TableRow>
-              <TableHead>Project</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Avg. Score</TableHead>
-              <TableHead>Feedback</TableHead>
-            </TableRow>
-          )}
-        </TableHeader>
-        <TableBody>
-          {data.length === 0 ? (
-            <TableRow><TableCell colSpan={4} className="text-center">No data available.</TableCell></TableRow>
-          ) : type === 'assessment' ? (
-            data.map((item: AssessmentDetail) => (
-              <TableRow key={item.assessment_id}>
-                <TableCell>{item.course_name}</TableCell>
-                <TableCell>{item.assessment_title}</TableCell>
-                <TableCell className="text-right">{item.score}%</TableCell>
-                <TableCell>{item.passed ? 'Passed' : 'Failed'}</TableCell>
-              </TableRow>
-            ))
-          ) : (
-            data.map((item: ProjectDetail) => (
-              <TableRow key={item.project_id}>
-                <TableCell>{item.project_name}</TableCell>
-                <TableCell>{item.status}</TableCell>
-                <TableCell className="text-right">
-                  {item.evaluation?.length > 0 ? 
-                    `${Math.round(item.evaluation.reduce((sum, e) => sum + e.overall_score, 0) / item.evaluation.length * 10)}%`
-                    : 'N/A'}
-                </TableCell>
-                <TableCell className="truncate max-w-[200px]">
-                  {item.evaluation?.[0]?.strengths || 'No feedback yet.'}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </CardContent>
-  </Card>
-);
-
-export default TraineeReadinessReport;
+}
