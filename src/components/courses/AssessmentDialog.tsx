@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { RequiredLabel } from '../forms/RequiredLabel';
 import { QuestionManager } from './QuestionManager';
 
 // Interfaces
@@ -47,10 +48,11 @@ interface AssessmentTemplate {
 interface AssessmentDialogProps {
   courseId: string;
   assessment: AssessmentTemplate | null;
+  onAssessmentSave: (assessment: AssessmentTemplate) => void;
   onClose: () => void;
 }
 
-export function AssessmentDialog({ courseId, assessment, onClose }: AssessmentDialogProps) {
+export function AssessmentDialog({ courseId, assessment, onAssessmentSave, onClose }: AssessmentDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -137,6 +139,7 @@ export function AssessmentDialog({ courseId, assessment, onClose }: AssessmentDi
       }
 
       toast({ title: "Success", description: `Assessment ${assessment ? 'updated' : 'created'} successfully.` });
+      onAssessmentSave(result);
 
     } catch (error) {
       console.error('Error saving assessment:', error);
@@ -176,7 +179,7 @@ export function AssessmentDialog({ courseId, assessment, onClose }: AssessmentDi
           {/* Form fields... */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="title">Assessment Title *</Label>
+              <RequiredLabel htmlFor="title" required>Assessment Title</RequiredLabel>
               <Input id="title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g., Module 1 Quiz" />
             </div>
             <div>
@@ -185,7 +188,6 @@ export function AssessmentDialog({ courseId, assessment, onClose }: AssessmentDi
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="quiz">Quiz</SelectItem>
-                  <SelectItem value="project">Project</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -81,7 +81,7 @@ export default function CourseDetails() {
       setEnrollment(enrollmentData);
       setAssessments(assessmentsData || []);
       setAssessmentTemplates(templateData || []);
-      setIsCompleted(enrollmentData?.status === 'completed');
+      setIsCompleted(enrollmentData?.[0]?.status === 'completed');
 
     } catch (error) {
       console.error('Error fetching course data:', error);

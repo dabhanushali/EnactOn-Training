@@ -43,7 +43,7 @@ export default function ModuleViewer() {
 
         setModule(moduleData);
         setCourse(courseData);
-      } catch (error: Error) {
+      } catch (error: any) {
         console.error('Error fetching module data:', error);
         toast({
           title: "Error",

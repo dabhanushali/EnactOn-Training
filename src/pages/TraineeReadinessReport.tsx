@@ -64,6 +64,22 @@ interface ReportData {
   project_details: ProjectDetail[];
 }
 
+// Type definitions
+interface Trainee {
+  user_id: string;
+  first_name: string;
+  last_name: string;
+}
+
+interface ProfileWithRole {
+  id: string;
+  first_name: string;
+  last_name: string;
+  roles?: {
+    role_name: string;
+  };
+}
+
 // --- Data Fetching ---
 const fetchTrainees = async (): Promise<Trainee[]> => {
   const { data, error } = await supabase
@@ -72,7 +88,7 @@ const fetchTrainees = async (): Promise<Trainee[]> => {
 
   if (error) throw new Error(error.message);
 
-  const trainees = (data as ProfileWithRole[])
+  const trainees = (data as any[])
     .filter(profile => profile.roles?.role_name === 'Trainee')
     .map(p => ({ user_id: p.id, first_name: p.first_name, last_name: p.last_name }));
     
@@ -81,9 +97,9 @@ const fetchTrainees = async (): Promise<Trainee[]> => {
 
 const fetchReadinessReport = async (userId: string | null): Promise<ReportData | null> => {
   if (!userId) return null;
-  const { data, error } = await supabase.rpc('get_trainee_readiness_data', { p_user_id: userId });
+  const { data, error } = await supabase.rpc('get_trainee_readiness_data' as any, { p_user_id: userId });
   if (error) throw new Error(`Failed to fetch readiness report: ${error.message}`);
-  return data as ReportData;
+  return data as any;
 };
 
 

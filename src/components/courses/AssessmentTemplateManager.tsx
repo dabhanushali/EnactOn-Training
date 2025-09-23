@@ -154,6 +154,11 @@ export function AssessmentTemplateManager({ courseId }: AssessmentTemplateManage
             <AssessmentDialog
               courseId={courseId}
               assessment={editingAssessment}
+              onAssessmentSave={() => {
+                setDialogOpen(false);
+                setEditingAssessment(null);
+                fetchAssessments();
+              }}
               onClose={() => {
                 setDialogOpen(false);
                 setEditingAssessment(null);

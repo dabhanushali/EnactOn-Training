@@ -424,6 +424,7 @@ export default function CreateCourse() {
             <EnhancedModuleDialog
               courseId={currentCourseId}
               module={editingModule}
+              moduleOrder={modules.length + 1}
               onSave={handleModuleSave}
               onClose={() => setShowModuleDialog(false)}
             />
@@ -440,14 +441,15 @@ export default function CreateCourse() {
             <AssessmentDialog
               courseId={currentCourseId}
               assessment={editingAssessment}
-              onSave={(newAssessment) => {
+              onAssessmentSave={(newAssessment) => {
                 if (editingAssessment) {
                   setAssessments(prev => prev.map(a => a.id === newAssessment.id ? newAssessment : a));
                 } else {
                   setAssessments(prev => [...prev, newAssessment]);
                 }
+                setShowAssessmentDialog(false);
               }}
-              onClose={() => setShowAssessmentDialog(false)}
+               onClose={() => setShowAssessmentDialog(false)}
             />
           )}
         </DialogContent>

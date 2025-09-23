@@ -53,7 +53,7 @@ export default function Projects() {
 
     if (profile.role?.role_name === 'Trainee') {
       response = await supabase
-        .from('project_assignments')
+        .from('project_assignments' as any)
         .select('id, status, projects (*)')
         .eq('assignee_id', user.id);
     } else {

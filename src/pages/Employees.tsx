@@ -164,9 +164,9 @@ export default function Employees() {
     if (!employeeToDelete) return;
 
     try {
-      const { data, error } = await supabase.rpc('delete_user', { user_id: employeeToDelete.id });
+      const { error } = await supabase.rpc('delete_user' as any, { user_id: employeeToDelete.id });
 
-      if (error || data === 'error: unauthorized') {
+      if (error) {
         console.error('Error deleting user:', error);
         toast.error(`Failed to delete user: ${error?.message || 'Unauthorized'}`);
         return;

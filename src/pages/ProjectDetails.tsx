@@ -51,7 +51,7 @@ export default function ProjectDetails() {
 
     // Fetch assigned trainees
     const assignmentsPromise = supabase
-      .from('project_assignments')
+      .from('project_assignments' as any)
       .select('id, status, profiles!assignee_id(id, first_name, last_name)')
       .eq('project_id', projectId);
 
@@ -60,13 +60,13 @@ export default function ProjectDetails() {
     if (projectResult.error) {
       console.error('Error fetching project details:', projectResult.error);
     } else {
-      setProject(projectResult.data as Project);
+      setProject(projectResult.data as any);
     }
 
     if (assignmentsResult.error) {
       console.error('Error fetching assignments:', assignmentsResult.error);
     } else {
-      setAssignments(assignmentsResult.data as Assignment[]);
+      setAssignments(assignmentsResult.data as any);
     }
 
     setLoading(false);

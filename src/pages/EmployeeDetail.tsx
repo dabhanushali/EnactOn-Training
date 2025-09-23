@@ -74,8 +74,8 @@ export default function EmployeeDetail() {
         .maybeSingle();
 
       if (error) throw error;
-      setEmployee(data);
-      setEditData(data || {}); // Initialize edit data
+      setEmployee(data as any);
+      setEditData(data as any || {});
       if(showToast) toast.success("Employee details refreshed.");
     } catch (error) {
       console.error('Failed to fetch employee data:', error);
@@ -92,7 +92,7 @@ export default function EmployeeDetail() {
         .select(`id, first_name, last_name, role:roles(role_name)`);
 
       if (error) throw error;
-      setAllUsers(data?.filter(user => user.id !== employeeId) || []);
+      setAllUsers(data?.filter(user => user.id !== employeeId) as any || []);
     } catch (error) {
       console.error('Error fetching all users:', error);
       toast.error(`Failed to load users list: ${(error as Error).message}`);

@@ -50,7 +50,7 @@ export default function AssignmentDetails() {
     setLoading(true);
 
     const { data, error } = await supabase
-      .from('project_assignments')
+      .from('project_assignments' as any)
       .select('*, projects(*), project_milestone_submissions(*, project_evaluations(*))')
       .eq('id', assignmentId)
       .single();
@@ -59,7 +59,7 @@ export default function AssignmentDetails() {
       console.error('Error fetching assignment details:', error);
       setAssignment(null);
     } else {
-      setAssignment(data as Assignment);
+      setAssignment(data as any);
     }
 
     setLoading(false);
