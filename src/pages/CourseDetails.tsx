@@ -325,27 +325,23 @@ export default function CourseDetails() {
               </Button>
             ) : enrollment && isTrainee && (
               <div className="space-y-4">
-                <CourseEnrollment
-                  courseId={course.id}
-                  courseName={course.course_name}
-                  courseDescription={course.course_description}
-                  completionRule={course.completion_rule}
-                  minimumPassingPercentage={course.minimum_passing_percentage}
-                  isCompleted={enrollment.status === 'completed'}
-                  enrollmentDate={enrollment.enrolled_date}
-                  completionDate={enrollment.completion_date}
-                  assessmentsCompleted={assessments.filter(a => a.status === 'completed').length}
-                  totalAssessments={assessments.length}
-                  onViewModules={() => {}} // Scroll to modules section
-                  onTakeAssessment={() => {}} // Handle assessment
-                />
+                  <CourseEnrollment
+                    course={course}
+                    completedAssessments={assessments.filter(a => a.status === 'completed').length}
+                    totalAssessments={assessments.length}
+                    isCompleted={enrollment[0]?.status === 'completed'}
+                    isEnrolled={true}
+                    onViewModules={() => {}} // Scroll to modules section
+                    onTakeAssessment={() => {}} // Handle assessment
+                    onMarkComplete={handleMarkCourseComplete}
+                  />
               </div>
             )}
           </CardContent>
         </Card>
 
         {/* Show course content for trainees or enrolled admins */}
-        {(enrollment && isTrainee) || (canManageCourses) ? (
+        {enrollment && isTrainee ? (
           <>
             {/* Modules Section */}
             <Card className="mb-8 bg-muted/20 border-l-4 border-primary transition-all hover:shadow-md animate-fade-in-delay-1">
@@ -431,7 +427,43 @@ export default function CourseDetails() {
               </CardContent>
             </Card>
           </>
-        ) : null}
+        ) : canManageCourses && (
+          /* Management Overview */
+          <Card className="bg-muted/20">
+            <CardContent className="py-12">
+              <div className="text-center space-y-6">
+                <div className="flex justify-center">
+                  <div className="p-4 rounded-full bg-primary/10">
+                    <Settings className="h-12 w-12 text-primary" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Course Management</h3>
+                  <p className="text-muted-foreground mb-6">
+                    This course is configured and ready for employee assignments.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto">
+                  <div className="text-center p-4 rounded-lg bg-background border">
+                    <Clock className="h-8 w-8 text-primary mx-auto mb-2" />
+                    <h4 className="font-medium mb-1">Modules</h4>
+                    <p className="text-sm text-muted-foreground">{modules.length} available</p>
+                  </div>
+                  <div className="text-center p-4 rounded-lg bg-background border">
+                    <Award className="h-8 w-8 text-primary mx-auto mb-2" />
+                    <h4 className="font-medium mb-1">Assessments</h4>
+                    <p className="text-sm text-muted-foreground">{assessmentTemplates.length} configured</p>
+                  </div>
+                  <div className="text-center p-4 rounded-lg bg-background border">
+                    <Users className="h-8 w-8 text-primary mx-auto mb-2" />
+                    <h4 className="font-medium mb-1">Access</h4>
+                    <p className="text-sm text-muted-foreground">Ready for assignment</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Assignment Dialog */}
         <Dialog open={showAssignmentDialog} onOpenChange={setShowAssignmentDialog}>

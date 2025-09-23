@@ -59,7 +59,8 @@ export default function AssignmentDetails() {
   const { profile } = useAuth();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isSubmitDialogOpen, setSubmitDialogOpen] = useState(false);
+  const [evaluation, setEvaluation] = useState<any>(null);
+  const [showEvaluation, setShowEvaluation] = useState(false);
 
   const fetchDetails = useCallback(async () => {
     if (!assignmentId) return;
@@ -76,6 +77,16 @@ export default function AssignmentDetails() {
       setAssignment(null);
     } else {
       setAssignment(data as any);
+      
+      // Fetch evaluation if assignment is evaluated
+      if (data?.status === 'Evaluated') {
+        const { data: evalData } = await supabase
+          .from('project_evaluations')
+          .select('*')
+          .eq('submission_id', assignmentId)
+          .single();
+        setEvaluation(evalData);
+      }
     }
 
     setLoading(false);
@@ -290,11 +301,9 @@ export default function AssignmentDetails() {
           </CardContent>
         </Card>
 
-        {/* Submit Work Dialog */}
         <SubmitWorkDialog
           assignmentId={assignmentId || ''}
           onSubmited={() => {
-            setSubmitDialogOpen(false);
             fetchDetails();
           }}
         />

@@ -808,6 +808,8 @@ export type Database = {
           id: string
           meeting_link: string | null
           meeting_platform: string | null
+          notes: string | null
+          recording_url: string | null
           session_name: string
           session_type: string | null
           start_datetime: string
@@ -824,6 +826,8 @@ export type Database = {
           id?: string
           meeting_link?: string | null
           meeting_platform?: string | null
+          notes?: string | null
+          recording_url?: string | null
           session_name: string
           session_type?: string | null
           start_datetime: string
@@ -840,6 +844,8 @@ export type Database = {
           id?: string
           meeting_link?: string | null
           meeting_platform?: string | null
+          notes?: string | null
+          recording_url?: string | null
           session_name?: string
           session_type?: string | null
           start_datetime?: string

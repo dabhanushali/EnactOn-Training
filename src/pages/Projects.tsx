@@ -138,18 +138,14 @@ export default function Projects() {
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <FolderOpen className="h-8 w-8 text-primary" />
-                      {profile?.role?.role_name === 'Trainee' ? (
-                        <Badge variant="secondary">{
-                          assignmentStatus === 'Not_Started' ? 'Not Started' :
-                          assignmentStatus === 'Started' ? 'In Progress' :
-                          assignmentStatus === 'Submitted' ? 'Submitted' :
-                          assignmentStatus
-                        }</Badge>
-                      ) : assignmentStatus !== 'Submitted' ? (
-                        <Badge variant="secondary">Not Submitted</Badge>
-                      ) : (
-                        <Badge variant="outline">Submitted</Badge>
-                      )}
+              {profile?.role?.role_name === 'Trainee' && (
+                <Badge variant="secondary">{
+                  assignmentStatus === 'Not_Started' ? 'Not Started' :
+                  assignmentStatus === 'Started' ? 'In Progress' :
+                  assignmentStatus === 'Submitted' ? 'Submitted' :
+                  assignmentStatus
+                }</Badge>
+              )}
                     </div>
                     <CardTitle className="text-lg pt-2">{project.project_name}</CardTitle>
                   </CardHeader>

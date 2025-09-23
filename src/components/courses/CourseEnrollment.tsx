@@ -9,28 +9,37 @@ import { toast } from 'sonner';
 import { BookOpen, Award, CheckCircle, Clock, Star } from 'lucide-react';
 
 interface CourseEnrollmentProps {
-  courseId: string;
-  courseName: string;
-  courseDescription?: string;
-  completionRule?: string;
-  minimumPassingPercentage?: number;
-  assessmentsCompleted?: number;
-  totalAssessments?: number;
-  isCompleted?: boolean;
-  enrollmentDate?: string;
+  course: {
+    id: string;
+    course_name: string;
+    course_description?: string;
+    completion_rule?: string;
+    minimum_passing_percentage?: number;
+  };
+  completedAssessments: number;
+  totalAssessments: number;
+  isCompleted: boolean;
+  isEnrolled?: boolean;
   completionDate?: string;
-  onViewModules?: () => void;
-  onTakeAssessment?: () => void;
+  enrollmentDate?: string;
+  onViewModules: () => void;
+  onTakeAssessment: () => void;
+  onMarkComplete: (courseId: string) => void;
+  isLoading?: boolean;
 }
 
 export const CourseEnrollment = ({
-  courseId,
-  courseName,
-  isCompleted = false,
+  course,
+  completedAssessments,
+  totalAssessments,
+  isCompleted,
   completionDate,
-  assessmentsCompleted = 0,
-  totalAssessments = 0,
-  ...props
+  enrollmentDate,
+  isEnrolled = true,
+  onViewModules,
+  onTakeAssessment,
+  onMarkComplete,
+  isLoading = false
 }: CourseEnrollmentProps) => {
   // Check if assessments are complete before allowing "Mark as Complete"
   const canMarkComplete = totalAssessments === 0 || assessmentsCompleted === totalAssessments;
@@ -44,10 +53,10 @@ export const CourseEnrollment = ({
           <p className="text-muted-foreground">
             You have successfully completed the course:
           </p>
-          <p className="text-lg font-semibold">{courseName}</p>
+          <p className="text-lg font-semibold">{course.course_name}</p>
           {completionDate && (
             <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
-              <CheckCircle className="w-4 h-4 text-green-500" />
+              <CheckCircle className="w-4 w-4 text-green-500" />
               <span>Completed on {new Date(completionDate).toLocaleDateString()}</span>
             </div>
           )}
@@ -63,58 +72,55 @@ export const CourseEnrollment = ({
   }
 
   return <InProgressCourse 
-    courseId={courseId} 
-    courseName={courseName} 
+    course={course}
+    completedAssessments={completedAssessments}
+    totalAssessments={totalAssessments}
     canMarkComplete={canMarkComplete}
-    {...props} 
+    isEnrolled={isEnrolled}
+    onViewModules={onViewModules}
+    onTakeAssessment={onTakeAssessment}
+    onMarkComplete={onMarkComplete}
+    isLoading={isLoading}
   />;
 };
 
 const InProgressCourse = ({
-  courseId,
-  courseName,
-  courseDescription,
-  completionRule = 'pass_all_assessments',
-  minimumPassingPercentage = 70,
-  assessmentsCompleted = 0,
+  course,
+  completedAssessments = 0,
   totalAssessments = 0,
-  enrollmentDate,
   canMarkComplete = true,
+  isEnrolled = true,
   onViewModules,
   onTakeAssessment,
+  onMarkComplete,
+  isLoading = false,
 }: Omit<CourseEnrollmentProps, 'isCompleted' | 'completionDate'> & { canMarkComplete?: boolean }) => {
   const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMark, setIsLoadingMark] = useState(false);
 
   const completionPercentage = totalAssessments > 0 
-    ? (assessmentsCompleted / totalAssessments) * 100 
+    ? (completedAssessments / totalAssessments) * 100 
     : 0;
 
   const getCompletionRuleText = (rule: string) => {
     switch (rule) {
       case 'pass_all_assessments': return 'Pass all assessments to complete';
-      case 'pass_minimum_percentage': return `Pass ${minimumPassingPercentage}% of assessments`;
+      case 'pass_minimum_percentage': return `Pass ${course.minimum_passing_percentage || 70}% of assessments`;
       case 'pass_mandatory_only': return 'Pass all mandatory assessments';
       default: return 'Complete all requirements';
     }
   };
 
   const handleMarkComplete = async () => {
-    if (!user) return;
-    setIsLoading(true);
+    if (!user || !isEnrolled) {
+      toast.error("You haven't enrolled in this course yet");
+      return;
+    }
+    setIsLoadingMark(true);
     try {
-      const { error } = await supabase
-        .from('course_enrollments')
-        .update({ status: 'completed', completion_date: new Date().toISOString() })
-        .eq('employee_id', user.id)
-        .eq('course_id', courseId);
-      if (error) throw error;
-      toast.success('Course marked as completed!');
-    } catch (error) {
-      toast.error('Failed to update course status');
-      console.error('Error updating course:', error);
+      await onMarkComplete(course.id);
     } finally {
-      setIsLoading(false);
+      setIsLoadingMark(false);
     }
   };
 
@@ -136,25 +142,26 @@ const InProgressCourse = ({
           {totalAssessments === 0 && (
             <Button 
               onClick={handleMarkComplete} 
-              disabled={isLoading || !canMarkComplete}
+              disabled={isLoadingMark || !canMarkComplete || !isEnrolled}
               size="sm"
+              className="flex items-center gap-2"
             >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              {isLoading ? 'Marking...' : 'Mark as Complete'}
+              <CheckCircle className="w-4 h-4" />
+              {isLoadingMark ? 'Marking...' : 'Mark as Complete'}
             </Button>
           )}
         </div>
-        <CardTitle className="text-xl font-semibold">{courseName}</CardTitle>
+        <CardTitle className="text-xl font-semibold">{course.course_name}</CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-6">
         <div className="space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Assessment Progress</span>
-            <span className="font-medium">{assessmentsCompleted}/{totalAssessments}</span>
+            <span className="font-medium">{completedAssessments}/{totalAssessments}</span>
           </div>
           <Progress value={completionPercentage} className="h-2" />
-          <p className="text-xs text-muted-foreground">{getCompletionRuleText(completionRule)}</p>
+          <p className="text-xs text-muted-foreground">{getCompletionRuleText(course.completion_rule || 'pass_all_assessments')}</p>
         </div>
 
         <div className="flex space-x-3 pt-4 border-t">
