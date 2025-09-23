@@ -73,6 +73,7 @@ export default function CourseBuilder() {
   const [course, setCourse] = useState<Course | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [assessmentCount, setAssessmentCount] = useState(0);
+  const [activeTab, setActiveTab] = useState("details"); // Add controlled tab state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -309,7 +310,7 @@ export default function CourseBuilder() {
           </Button>
         </div>
 
-        <Tabs defaultValue="details" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList>
             <TabsTrigger value="details">Course Details</TabsTrigger>
             <TabsTrigger value="modules">Modules ({modules.length})</TabsTrigger>
@@ -480,7 +481,17 @@ export default function CourseBuilder() {
 
           {/* Assessments Tab */}
           <TabsContent value="assessments" className="space-y-6">
-            <AssessmentTemplateManager courseId={courseId!} />
+            <AssessmentTemplateManager 
+              courseId={courseId!} 
+              onQuestionManagement={(assessmentId) => {
+                // Auto-redirect functionality: switch to assessments tab and scroll to the specific assessment
+                setActiveTab("assessments");
+                toast({
+                  title: "Assessment Created!",
+                  description: "You can now add questions to your assessment.",
+                });
+              }}
+            />
           </TabsContent>
         </Tabs>
       </div>

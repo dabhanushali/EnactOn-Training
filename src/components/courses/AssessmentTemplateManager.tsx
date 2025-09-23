@@ -25,9 +25,10 @@ interface AssessmentTemplate {
 
 interface AssessmentTemplateManagerProps {
   courseId: string;
+  onQuestionManagement?: (assessmentId: string) => void; // Add callback for redirecting to questions
 }
 
-export function AssessmentTemplateManager({ courseId }: AssessmentTemplateManagerProps) {
+export function AssessmentTemplateManager({ courseId, onQuestionManagement }: AssessmentTemplateManagerProps) {
   const [assessments, setAssessments] = useState<AssessmentTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -154,10 +155,15 @@ export function AssessmentTemplateManager({ courseId }: AssessmentTemplateManage
             <AssessmentDialog
               courseId={courseId}
               assessment={editingAssessment}
-              onAssessmentSave={() => {
+              onAssessmentSave={(assessment: AssessmentTemplate) => {
                 setDialogOpen(false);
                 setEditingAssessment(null);
                 fetchAssessments();
+                
+                // Auto-redirect to questions tab for new assessments
+                if (!editingAssessment && onQuestionManagement) {
+                  onQuestionManagement(assessment.id);
+                }
               }}
               onClose={() => {
                 setDialogOpen(false);

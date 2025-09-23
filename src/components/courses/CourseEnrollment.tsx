@@ -28,8 +28,13 @@ export const CourseEnrollment = ({
   courseName,
   isCompleted = false,
   completionDate,
+  assessmentsCompleted = 0,
+  totalAssessments = 0,
   ...props
 }: CourseEnrollmentProps) => {
+  // Check if assessments are complete before allowing "Mark as Complete"
+  const canMarkComplete = totalAssessments === 0 || assessmentsCompleted === totalAssessments;
+  
   if (isCompleted) {
     return (
       <Card className="bg-gradient-to-br from-background to-muted/50 border-green-500/30">
@@ -57,7 +62,12 @@ export const CourseEnrollment = ({
     );
   }
 
-  return <InProgressCourse courseId={courseId} courseName={courseName} {...props} />;
+  return <InProgressCourse 
+    courseId={courseId} 
+    courseName={courseName} 
+    canMarkComplete={canMarkComplete}
+    {...props} 
+  />;
 };
 
 const InProgressCourse = ({
@@ -69,9 +79,10 @@ const InProgressCourse = ({
   assessmentsCompleted = 0,
   totalAssessments = 0,
   enrollmentDate,
+  canMarkComplete = true,
   onViewModules,
   onTakeAssessment,
-}: Omit<CourseEnrollmentProps, 'isCompleted' | 'completionDate'>) => {
+}: Omit<CourseEnrollmentProps, 'isCompleted' | 'completionDate'> & { canMarkComplete?: boolean }) => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -111,12 +122,26 @@ const InProgressCourse = ({
     <Card className="hover:shadow-lg transition-all duration-300">
       <CardHeader>
         <div className="flex items-center justify-between mb-2">
-          <Badge variant="secondary">In Progress</Badge>
-          {enrollmentDate && (
-            <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-              <Clock className="w-3 h-3" />
-              <span>Enrolled: {new Date(enrollmentDate).toLocaleDateString()}</span>
-            </div>
+          <div className="flex items-center space-x-2">
+            <Badge variant="secondary">In Progress</Badge>
+            {enrollmentDate && (
+              <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                <span>Enrolled: {new Date(enrollmentDate).toLocaleDateString()}</span>
+              </div>
+            )}
+          </div>
+          
+          {/* Move Mark as Complete button to top-right */}
+          {totalAssessments === 0 && (
+            <Button 
+              onClick={handleMarkComplete} 
+              disabled={isLoading || !canMarkComplete}
+              size="sm"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              {isLoading ? 'Marking...' : 'Mark as Complete'}
+            </Button>
           )}
         </div>
         <CardTitle className="text-xl font-semibold">{courseName}</CardTitle>
@@ -142,9 +167,17 @@ const InProgressCourse = ({
               Go to Assessments
             </Button>
           ) : (
-            <Button className="flex-1" onClick={handleMarkComplete} disabled={isLoading}>
-              {isLoading ? 'Marking...' : 'Mark as Complete'}
-            </Button>
+            <div className="flex-1 flex justify-end">
+              <Button 
+                onClick={handleMarkComplete} 
+                disabled={isLoading || !canMarkComplete}
+                variant={canMarkComplete ? "default" : "secondary"}
+                title={!canMarkComplete ? "Complete all required assessments first" : ""}
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                {isLoading ? 'Marking...' : canMarkComplete ? 'Mark as Complete' : 'Complete Assessments First'}
+              </Button>
+            </div>
           )}
         </div>
       </CardContent>

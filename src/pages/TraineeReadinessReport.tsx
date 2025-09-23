@@ -10,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { ChevronsUpDown, Check, TrendingUp, Star, BookOpen, FolderOpen, UserCheck, Clock, BarChart2, Percent } from "lucide-react";
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/auth-utils';
+import { AccessDenied } from '@/components/common/AccessDenied';
 
 interface ReadinessSummary {
     overall_readiness_score: number;
@@ -105,8 +107,25 @@ const fetchReadinessReport = async (userId: string | null): Promise<ReportData |
 
 // --- Main Component ---
 const TraineeReadinessReport: React.FC = () => {
+  const { profile } = useAuth();
   const [open, setOpen] = useState(false);
   const [selectedTrainee, setSelectedTrainee] = useState<Trainee | null>(null);
+
+  // Check access permissions
+  const userRole = profile?.role?.role_name;
+  const hasAccess = userRole === 'Management' || userRole === 'HR' || userRole === 'Team Lead';
+
+  if (!hasAccess) {
+    return (
+      <>
+        <MainNav />
+        <AccessDenied 
+          message="Access to Trainee Readiness Reports is restricted."
+          allowedRoles={['Management', 'HR', 'Team Lead']}
+        />
+      </>
+    );
+  }
 
   const { data: trainees, isLoading: traineesLoading, error: traineesError } = useQuery<Trainee[]>({ 
     queryKey: ['traineesForReport'], 

@@ -264,7 +264,7 @@ export default function CourseDetails() {
               </div>
               
               <div className="flex items-center space-x-2">
-                {enrollment && (
+                {enrollment && !canManageCourses && (
                   <Button onClick={handleMarkCourseComplete} disabled={isCompleted} variant="secondary">
                     <CheckCircle className="w-4 h-4 mr-2" />
                     {isCompleted ? 'Completed' : 'Mark as Complete'}
@@ -304,9 +304,18 @@ export default function CourseDetails() {
               </div>
             )}
 
-            {!enrollment ? (
+            {!enrollment && !canManageCourses ? (
               <Button onClick={handleEnroll} size="lg">
                 Enroll in Course
+              </Button>
+            ) : canManageCourses && !enrollment ? (
+              <Button 
+                onClick={() => setShowAssignmentDialog(true)} 
+                size="lg"
+                variant="default"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Assign to Employees
               </Button>
             ) : (
               <div className="space-y-4">
