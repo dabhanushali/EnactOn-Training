@@ -94,15 +94,19 @@ export const EnhancedTrainingSessions = () => {
     return {
       today: sessions.filter(session => {
         const start = new Date(session.start_datetime);
-        return start >= startOfToday && start < endOfToday;
+        const end = new Date(session.end_datetime);
+        // Today's sessions: start today and haven't ended yet
+        return start >= startOfToday && start < endOfToday && end > now;
       }),
       scheduled: sessions.filter(session => {
         const start = new Date(session.start_datetime);
+        // Future sessions: start date is after today
         return start >= endOfToday;
       }),
       past: sessions.filter(session => {
         const end = new Date(session.end_datetime);
-        return end < startOfToday;
+        // Past sessions: session has ended (end time is before now)
+        return end < now;
       })
     };
   };
@@ -222,8 +226,10 @@ export const EnhancedTrainingSessions = () => {
   const canJoinSession = (session: Session) => {
     const tenMinutes = 10 * 60 * 1000;
     const startTime = new Date(session.start_datetime).getTime();
+    const endTime = new Date(session.end_datetime).getTime();
     const now = new Date().getTime();
-    return (startTime - now) < tenMinutes && startTime > (now - 60 * 60 * 1000); // Can join 10 min before to 1 hour after
+    // Can join 10 minutes before start time until session ends
+    return now >= (startTime - tenMinutes) && now <= endTime;
   };
 
   const SessionCard = ({ session, showActions = true, isPast = false }: { 
@@ -346,6 +352,25 @@ export const EnhancedTrainingSessions = () => {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </>
+                ) : session.status.toLowerCase() === 'completed' ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditDialog(session)}
+                      className="flex-1"
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Session
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => openDeleteDialog(session)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
                 ) : (
                   <>
                     <Button
@@ -359,7 +384,7 @@ export const EnhancedTrainingSessions = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => markCompletedQuick(session.id)}
+                      onClick={() => openEditDialog(session)}
                       className="flex-1"
                     >
                       Mark Complete
