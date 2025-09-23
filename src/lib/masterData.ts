@@ -145,3 +145,8 @@ export const getNestedDropdownOptions = (dataKey: string, subKey?: string) => {
   
   return data || [];
 };
+
+// Named exports for compatibility
+export const COURSE_TYPES = MASTER_DATA.courseTypes;
+export const TARGET_ROLES = MASTER_DATA.targetRoles;
+export const DEPARTMENTS = MASTER_DATA.departments;

@@ -166,19 +166,18 @@ const InProgressCourse = ({
             <Button className="flex-1" onClick={onTakeAssessment}>
               Go to Assessments
             </Button>
-          ) : (
+          ) : !canMarkComplete ? (
             <div className="flex-1 flex justify-end">
               <Button 
-                onClick={handleMarkComplete} 
-                disabled={isLoading || !canMarkComplete}
-                variant={canMarkComplete ? "default" : "secondary"}
-                title={!canMarkComplete ? "Complete all required assessments first" : ""}
+                disabled
+                variant="secondary"
+                title="Complete all required assessments first"
               >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                {isLoading ? 'Marking...' : canMarkComplete ? 'Mark as Complete' : 'Complete Assessments First'}
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Complete Assessments First
               </Button>
             </div>
-          )}
+          ) : null}
         </div>
       </CardContent>
     </Card>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { MainNav } from '@/components/navigation/MainNav';
 import { CourseCard } from '@/components/courses/CourseCard';
+import { CourseFiltersComponent, type CourseFilters } from '@/components/courses/CourseFilters';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Plus, Search } from 'lucide-react';
@@ -24,6 +25,7 @@ interface Course {
     course_name: string;
     course_description: string;
     course_type: string;
+    target_role?: string;
     difficulty_level: string;
     is_mandatory: boolean;
 }
@@ -32,6 +34,12 @@ export default function Courses() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<CourseFilters>({
+    courseType: 'all',
+    targetRole: 'all',
+    isMandatory: 'all',
+    difficultyLevel: 'all'
+  });
   const [enrollments, setEnrollments] = useState(new Map());
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -154,10 +162,32 @@ export default function Courses() {
     setCourseToDelete(null);
   };
 
-  const filteredCourses = courses.filter(course =>
-    course.course_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.course_description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const applyFilters = (courses: Course[]) => {
+    return courses.filter(course => {
+      const matchesSearch = course.course_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           course.course_description?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesCourseType = filters.courseType === 'all' || course.course_type === filters.courseType;
+      const matchesTargetRole = filters.targetRole === 'all' || course.target_role === filters.targetRole;
+      const matchesMandatory = filters.isMandatory === 'all' || 
+                              (filters.isMandatory === 'true' && course.is_mandatory) ||
+                              (filters.isMandatory === 'false' && !course.is_mandatory);
+      const matchesDifficulty = filters.difficultyLevel === 'all' || course.difficulty_level === filters.difficultyLevel;
+      
+      return matchesSearch && matchesCourseType && matchesTargetRole && matchesMandatory && matchesDifficulty;
+    });
+  };
+
+  const filteredCourses = applyFilters(courses);
+
+  const resetFilters = () => {
+    setFilters({
+      courseType: 'all',
+      targetRole: 'all',
+      isMandatory: 'all',
+      difficultyLevel: 'all'
+    });
+  };
 
   const canManageCourses = profile?.role?.role_name === 'Team Lead' || 
                           profile?.role?.role_name === 'HR' ||
@@ -194,6 +224,13 @@ export default function Courses() {
             />
           </div>
         </div>
+
+        {/* Enhanced Filters */}
+        <CourseFiltersComponent 
+          filters={filters}
+          onFiltersChange={setFilters}
+          onReset={resetFilters}
+        />
 
         {loading ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
