@@ -1,49 +1,65 @@
-
 import { MainNav } from '@/components/navigation/MainNav';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/auth-utils';
 import { SubmitWorkDialog } from '@/components/projects/SubmitWorkDialog';
-
-// Define complex types for the nested data
-interface Evaluation {
-    id: string;
-    overall_score: number;
-    strengths: string;
-    areas_for_improvement: string;
-}
-
-interface Submission {
-    id: string;
-    submission_content: string;
-    file_url: string;
-    submitted_at: string;
-    project_evaluations: Evaluation[];
-}
+import { ArrowLeft, CheckCircle, Clock, PlayCircle, FileText, Upload } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Project {
-    id: string;
-    project_name: string;
-    project_description: string;
-    instructions: string;
-    deliverables: string;
-    due_date: string;
+  id: string;
+  project_name: string;
+  project_description: string;
+  instructions: string;
+  deliverables: string;
+  due_date?: string;
 }
 
 interface Assignment {
-    id: string;
-    status: string;
-    projects: Project;
-    project_milestone_submissions: Submission[];
+  id: string;
+  status: string;
+  projects: Project;
 }
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case 'Not_Started':
+        return { variant: 'secondary' as const, icon: Clock, label: 'Not Started' };
+      case 'Started':
+        return { variant: 'warning' as const, icon: PlayCircle, label: 'In Progress' };
+      case 'Submitted':
+        return { variant: 'success' as const, icon: CheckCircle, label: 'Submitted' };
+      default:
+        return { variant: 'secondary' as const, icon: FileText, label: status };
+    }
+  };
+
+  const config = getStatusConfig(status);
+  const IconComponent = config.icon;
+
+  return (
+    <Badge variant={config.variant} className="flex items-center gap-1">
+      <IconComponent className="w-3 h-3" />
+      {config.label}
+    </Badge>
+  );
+};
 
 export default function AssignmentDetails() {
   const { assignmentId } = useParams<{ assignmentId: string }>();
+  const navigate = useNavigate();
+  const { profile } = useAuth();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSubmitDialogOpen, setSubmitDialogOpen] = useState(false);
 
   const fetchDetails = useCallback(async () => {
     if (!assignmentId) return;
@@ -51,7 +67,7 @@ export default function AssignmentDetails() {
 
     const { data, error } = await supabase
       .from('project_assignments' as any)
-      .select('*, projects(*), project_milestone_submissions(*, project_evaluations(*))')
+      .select('*, projects(*)')
       .eq('id', assignmentId)
       .single();
 
@@ -69,82 +85,221 @@ export default function AssignmentDetails() {
     fetchDetails();
   }, [fetchDetails]);
 
+  const handleStatusChange = async (newStatus: string) => {
+    if (!assignmentId) return;
+
+    try {
+      const { error } = await supabase
+        .from('project_assignments' as any)
+        .update({ status: newStatus })
+        .eq('id', assignmentId);
+
+      if (error) throw error;
+
+      await fetchDetails();
+      toast.success(`Status updated to ${newStatus.replace('_', ' ')}`);
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Failed to update status');
+    }
+  };
+
+  const getNextAction = (currentStatus: string) => {
+    switch (currentStatus) {
+      case 'Not_Started':
+        return {
+          label: 'Start Working',
+          action: () => handleStatusChange('Started'),
+          variant: 'default' as const
+        };
+      case 'Started':
+        return {
+          label: 'Submit Work',
+          action: () => setSubmitDialogOpen(true),
+          variant: 'default' as const
+        };
+      default:
+        return null;
+    }
+  };
+
   if (loading) {
-    return <div className="p-8">Loading assignment details...</div>;
+    return (
+      <div className="min-h-screen bg-background">
+        <MainNav />
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-muted rounded w-1/3"></div>
+            <div className="h-32 bg-muted rounded"></div>
+            <div className="h-64 bg-muted rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!assignment) {
-    return <div className="p-8">Assignment not found.</div>;
+    return (
+      <div className="min-h-screen bg-background">
+        <MainNav />
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">Assignment not found</p>
+              <Button onClick={() => navigate('/projects')} className="mt-4">
+                Back to Projects
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
-  const { projects: project, status, project_milestone_submissions: submissions } = assignment;
+  const { projects: project } = assignment;
+  const nextAction = getNextAction(assignment.status);
 
   return (
     <div className="min-h-screen bg-background">
       <MainNav />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      
+      <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
-            <div>
-                <h1 className="text-3xl font-bold text-foreground mb-1">{project.project_name}</h1>
-                <div className="flex items-center gap-2">
-                    <p className="text-muted-foreground">Assignment Status:</p> 
-                    <Badge>{status}</Badge>
-                </div>
-            </div>
-            {status !== 'Submitted' && status !== 'Evaluated' && (
-                <SubmitWorkDialog assignmentId={assignment.id} onSubmited={fetchDetails} />
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/projects')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Projects
+          </Button>
+          
+          <div className="flex items-center gap-4">
+            <StatusBadge status={assignment.status} />
+            {nextAction && (
+              <Button onClick={nextAction.action} variant={nextAction.variant}>
+                {nextAction.label === 'Submit Work' && <Upload className="w-4 h-4 mr-2" />}
+                {nextAction.label}
+              </Button>
             )}
+          </div>
         </div>
 
+        {/* Project Overview */}
         <Card className="mb-8">
-            <CardHeader>
-                <CardTitle>Project Brief</CardTitle>
-                <CardDescription>{project.project_description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                        <h4 className="font-semibold mb-2">Instructions</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{project.instructions}</p>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold mb-2">Deliverables</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{project.deliverables}</p>
-                    </div>
-                </div>
-            </CardContent>
+          <CardHeader>
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle className="text-2xl mb-2">{project.project_name}</CardTitle>
+                <p className="text-muted-foreground">{project.project_description}</p>
+              </div>
+              <FileText className="w-8 h-8 text-primary" />
+            </div>
+          </CardHeader>
         </Card>
 
+        {/* Project Details */}
+        <div className="grid gap-6 md:grid-cols-2 mb-8">
+          {/* Instructions */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                Instructions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="prose prose-sm max-w-none">
+                {project.instructions ? (
+                  <div className="whitespace-pre-wrap text-sm">{project.instructions}</div>
+                ) : (
+                  <p className="text-muted-foreground">No specific instructions provided.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Deliverables */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-success" />
+                Deliverables
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="prose prose-sm max-w-none">
+                {project.deliverables ? (
+                  <div className="whitespace-pre-wrap text-sm">{project.deliverables}</div>
+                ) : (
+                  <p className="text-muted-foreground">No specific deliverables listed.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Progress Tracker */}
         <Card>
           <CardHeader>
-            <CardTitle>Your Submissions</CardTitle>
-            <CardDescription>A history of your work for this project.</CardDescription>
+            <CardTitle>Progress Tracker</CardTitle>
           </CardHeader>
           <CardContent>
-            {submissions && submissions.length > 0 ? submissions.map(submission => (
-                <div key={submission.id} className="border rounded-lg p-4 mb-4">
-                    <h4 className="font-semibold">Submission on {new Date(submission.submitted_at).toLocaleDateString()}</h4>
-                    <p className="text-sm text-muted-foreground my-2">{submission.submission_content}</p>
-                    {submission.file_url && <a href={submission.file_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline">View Submission Link/File</a>}
-                    
-                    {submission.project_evaluations && submission.project_evaluations.length > 0 && (
-                        <div className="mt-4 border-t pt-4">
-                            <h5 className="font-bold">Evaluation</h5>
-                            {submission.project_evaluations.map(evalItem => (
-                                <div key={evalItem.id} className="mt-2">
-                                    <p className="font-semibold">Overall Score: {evalItem.overall_score}/5</p>
-                                    <p><span className="font-semibold">Strengths:</span> {evalItem.strengths}</p>
-                                    <p><span className="font-semibold">Areas for Improvement:</span> {evalItem.areas_for_improvement}</p>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-8">
+                <div className={`flex items-center space-x-2 ${
+                  ['Not_Started', 'Started', 'Submitted'].includes(assignment.status) 
+                    ? 'text-primary' 
+                    : 'text-muted-foreground'
+                }`}>
+                  <div className={`w-3 h-3 rounded-full ${
+                    ['Not_Started', 'Started', 'Submitted'].includes(assignment.status)
+                      ? 'bg-primary'
+                      : 'bg-muted'
+                  }`}></div>
+                  <span className="text-sm font-medium">Assigned</span>
                 </div>
-            )) : (
-                <p className="text-center text-muted-foreground">You have not made any submissions for this project yet.</p>
-            )}
+                
+                <div className={`flex items-center space-x-2 ${
+                  ['Started', 'Submitted'].includes(assignment.status)
+                    ? 'text-primary'
+                    : 'text-muted-foreground'
+                }`}>
+                  <div className={`w-3 h-3 rounded-full ${
+                    ['Started', 'Submitted'].includes(assignment.status)
+                      ? 'bg-primary'
+                      : 'bg-muted'
+                  }`}></div>
+                  <span className="text-sm font-medium">In Progress</span>
+                </div>
+                
+                <div className={`flex items-center space-x-2 ${
+                  assignment.status === 'Submitted'
+                    ? 'text-success'
+                    : 'text-muted-foreground'
+                }`}>
+                  <div className={`w-3 h-3 rounded-full ${
+                    assignment.status === 'Submitted'
+                      ? 'bg-success'
+                      : 'bg-muted'
+                  }`}></div>
+                  <span className="text-sm font-medium">Submitted</span>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
+
+        {/* Submit Work Dialog */}
+        <SubmitWorkDialog
+          assignmentId={assignmentId || ''}
+          open={isSubmitDialogOpen}
+          onOpenChange={setSubmitDialogOpen}
+          onSubmitted={() => {
+            setSubmitDialogOpen(false);
+            fetchDetails();
+          }}
+        />
       </main>
     </div>
   );

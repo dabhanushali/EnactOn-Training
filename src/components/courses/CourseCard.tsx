@@ -146,13 +146,22 @@ export const CourseCard = ({
             View Details
           </Button>
           
-          {!isEnrolled ? (
+          {!isEnrolled && !isAdmin ? (
             <Button
               size="sm"
               className="flex-1 bg-gradient-to-r from-primary to-secondary hover:from-primary-dark hover:to-secondary text-white"
               onClick={() => onEnroll?.(id)}
             >
               Enroll Now
+            </Button>
+          ) : !isEnrolled && isAdmin ? (
+            <Button
+              size="sm"
+              className="flex-1"
+              onClick={() => onViewDetails?.(id)}
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Assign Employees
             </Button>
           ) : (
             <Button

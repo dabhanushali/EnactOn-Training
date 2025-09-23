@@ -9,10 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Edit, Save, X } from 'lucide-react';
+import { ArrowLeft, Edit, Save, X, User, Calendar, Phone, Building, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserRoleType, EmployeeStatusOptions } from '@/lib/enums';
 import { EmployeeDocuments } from '@/components/employees/EmployeeDocuments';
+import { MASTER_DATA } from '@/lib/masterData';
+import { CourseEnrollmentDialog } from '@/components/employees/CourseEnrollmentDialog';
+import { DocumentUploadDialog } from '@/components/employees/DocumentUploadDialog';
+import { RequiredLabel } from '@/components/forms/RequiredLabel';
 
 // --- TYPE DEFINITIONS ---
 
@@ -56,6 +60,8 @@ export default function EmployeeDetail() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Employee>>({});
+  const [showEnrollDialog, setShowEnrollDialog] = useState(false);
+  const [showDocumentDialog, setShowDocumentDialog] = useState(false);
 
   const canManage = profile?.role?.role_name === 'HR' || profile?.role?.role_name === 'Management';
 
@@ -132,9 +138,15 @@ export default function EmployeeDetail() {
   const handleSave = async () => {
     if (!canManage || !isEditing) return;
     
+    // Validate required fields
+    if (!editData.first_name?.trim() || !editData.last_name?.trim()) {
+      toast.error("First name and last name are required fields.");
+      return;
+    }
+    
     const updatePayload = {
-      first_name: editData.first_name,
-      last_name: editData.last_name,
+      first_name: editData.first_name?.trim(),
+      last_name: editData.last_name?.trim(),
       employee_code: editData.employee_code,
       department: editData.department,
       designation: editData.designation,
@@ -181,106 +193,290 @@ export default function EmployeeDetail() {
   return (
     <>
     <MainNav />
-    <div className="container mx-auto py-6 px-4">
-      <div className="flex justify-between items-center">
-        {canManage ? (
-          <Link to="/employees">
-            <Button variant="ghost"><ArrowLeft className="h-4 w-4 mr-2" />Back to Employees</Button>
-          </Link>
-        ) : (
-          <Link to="/dashboard">
-            <Button variant="ghost"><ArrowLeft className="h-4 w-4 mr-2" />Back to Dashboard</Button>
-          </Link>
-        )}
-        {canManage && (
-          <div className="flex gap-2">
-            {isEditing ? (
-              <>
-                <Button variant="outline" onClick={() => setIsEditing(false)}><X className="h-4 w-4 mr-2" />Cancel</Button>
-                <Button onClick={handleSave}><Save className="h-4 w-4 mr-2" />Save Changes</Button>
-              </>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center space-x-4">
+            {canManage ? (
+              <Link to="/employees">
+                <Button variant="ghost">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Employees
+                </Button>
+              </Link>
             ) : (
-              <Button onClick={() => setIsEditing(true)}><Edit className="h-4 w-4 mr-2" />Edit</Button>
+              <Link to="/dashboard">
+                <Button variant="ghost">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </Link>
             )}
-          </div>
-        )}
-      </div>
-
-      <Card className="mt-4">
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            {isEditing ? (
-                <div className="flex gap-2">
-                    <Input value={editData.first_name || ''} onChange={e => handleInputChange('first_name', e.target.value)} placeholder="First Name"/>
-                    <Input value={editData.last_name || ''} onChange={e => handleInputChange('last_name', e.target.value)} placeholder="Last Name"/>
-                </div>
-            ) : (
-                <CardTitle className="text-2xl">{employee.first_name} {employee.last_name}</CardTitle>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
             <div>
-              <Label>Role</Label>
-              <p className="text-lg">{employee.role?.role_name || 'N/A'}</p>
+              <h1 className="text-3xl font-bold text-foreground">Employee Profile</h1>
+              <p className="text-muted-foreground">Manage employee information and documents</p>
             </div>
-            <div>
-              <Label>Team Lead</Label>
-              {canManage ? (
-                <Select onValueChange={handleManagerSelection} defaultValue={employee.manager_id || ''}>
-                  <SelectTrigger className="text-lg"><SelectValue placeholder="Select a Team Lead" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassign">Unassign Team Lead</SelectItem>
-                    {allUsers.map(user => (user.id && <SelectItem key={user.id} value={user.id}>{user.first_name} {user.last_name} ({user.role?.role_name || 'No Role'})</SelectItem>))}
-                  </SelectContent>
-                </Select>
+          </div>
+          
+          {canManage && (
+            <div className="flex gap-2">
+              {isEditing ? (
+                <>
+                  <Button variant="outline" onClick={() => setIsEditing(false)}>
+                    <X className="h-4 w-4 mr-2" />Cancel
+                  </Button>
+                  <Button onClick={handleSave}>
+                    <Save className="h-4 w-4 mr-2" />Save Changes
+                  </Button>
+                </>
               ) : (
-                <p className="text-lg">{employee.manager ? `${employee.manager.first_name} ${employee.manager.last_name}` : <span className="text-muted-foreground">Not Assigned</span>}</p>
+                <>
+                  <Button variant="outline" onClick={() => setShowEnrollDialog(true)}>
+                    <UserCheck className="h-4 w-4 mr-2" />
+                    Assign Course
+                  </Button>
+                  <Button onClick={() => setIsEditing(true)}>
+                    <Edit className="h-4 w-4 mr-2" />Edit Profile
+                  </Button>
+                </>
               )}
             </div>
-            <div>
-              <Label>Employee Code</Label>
-              {isEditing ? <Input value={editData.employee_code || ''} onChange={e => handleInputChange('employee_code', e.target.value)} /> : <p className="text-lg">{employee.employee_code || 'N/A'}</p>}
-            </div>
-            <div>
-              <Label>Department</Label>
-              {isEditing ? <Input value={editData.department || ''} onChange={e => handleInputChange('department', e.target.value)} /> : <p className="text-lg">{employee.department || 'N/A'}</p>}
-            </div>
-            <div>
-              <Label>Designation</Label>
-              {isEditing ? <Input value={editData.designation || ''} onChange={e => handleInputChange('designation', e.target.value)} /> : <p className="text-lg">{employee.designation || 'N/A'}</p>}
-            </div>
-            <div>
-              <Label>Status</Label>
-              {isEditing ? (
-                <Select onValueChange={value => handleInputChange('current_status', value)} value={editData.current_status || ''}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a status" />
+          )}
+        </div>
+
+        {/* Employee Information */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+          {/* Personal Information Card */}
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <User className="h-5 w-5 text-primary" />
+                <CardTitle>Personal Information</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <RequiredLabel htmlFor="first_name">First Name</RequiredLabel>
+                  {isEditing ? (
+                    <Input 
+                      id="first_name"
+                      value={editData.first_name || ''} 
+                      onChange={e => handleInputChange('first_name', e.target.value)}
+                      placeholder="Enter first name"
+                      required
+                    />
+                  ) : (
+                    <p className="text-lg font-medium">{employee.first_name || 'N/A'}</p>
+                  )}
+                </div>
+                <div>
+                  <RequiredLabel htmlFor="last_name">Last Name</RequiredLabel>
+                  {isEditing ? (
+                    <Input 
+                      id="last_name"
+                      value={editData.last_name || ''} 
+                      onChange={e => handleInputChange('last_name', e.target.value)}
+                      placeholder="Enter last name"
+                      required
+                    />
+                  ) : (
+                    <p className="text-lg font-medium">{employee.last_name || 'N/A'}</p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="employee_code">Employee Code</Label>
+                  {isEditing ? (
+                    <Input 
+                      id="employee_code"
+                      value={editData.employee_code || ''} 
+                      onChange={e => handleInputChange('employee_code', e.target.value)}
+                      placeholder="Enter employee code"
+                    />
+                  ) : (
+                    <p className="text-lg">{employee.employee_code || 'N/A'}</p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="phone" className="flex items-center space-x-2">
+                    <Phone className="h-4 w-4" />
+                    <span>Phone Number</span>
+                  </Label>
+                  {isEditing ? (
+                    <Input 
+                      id="phone"
+                      value={editData.phone || ''} 
+                      onChange={e => handleInputChange('phone', e.target.value)}
+                      placeholder="Enter phone number"
+                    />
+                  ) : (
+                    <p className="text-lg">{employee.phone || 'N/A'}</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Work Information Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Building className="h-5 w-5 text-primary" />
+                <CardTitle>Work Information</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Role</Label>
+                <p className="text-lg font-medium">{employee.role?.role_name || 'N/A'}</p>
+              </div>
+              <div>
+                <Label>Designation</Label>
+                {isEditing ? (
+                  <Select 
+                    value={editData.designation || ''} 
+                    onValueChange={value => handleInputChange('designation', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select designation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MASTER_DATA.designations.map(designation => (
+                        <SelectItem key={designation} value={designation}>
+                          {designation}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-lg">{employee.designation || 'N/A'}</p>
+                )}
+              </div>
+              <div>
+                <Label>Department</Label>
+                {isEditing ? (
+                  <Select 
+                    value={editData.department || ''} 
+                    onValueChange={value => handleInputChange('department', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MASTER_DATA.departments.map(department => (
+                        <SelectItem key={department} value={department}>
+                          {department}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-lg">{employee.department || 'N/A'}</p>
+                )}
+              </div>
+              <div>
+                <Label>Status</Label>
+                {isEditing ? (
+                  <Select 
+                    value={editData.current_status || ''} 
+                    onValueChange={value => handleInputChange('current_status', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EmployeeStatusOptions.map(status => (
+                        <SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Badge variant="secondary">{employee.current_status}</Badge>
+                )}
+              </div>
+              <div>
+                <Label className="flex items-center space-x-2">
+                  <Calendar className="h-4 w-4" />
+                  <span>Date of Joining</span>
+                </Label>
+                {isEditing ? (
+                  <Input 
+                    type="date" 
+                    className="text-black dark:[color-scheme:dark]" 
+                    value={editData.date_of_joining ? new Date(editData.date_of_joining).toISOString().split('T')[0] : ''} 
+                    onChange={e => handleInputChange('date_of_joining', e.target.value)}
+                  />
+                ) : (
+                  <p className="text-lg">
+                    {employee.date_of_joining 
+                      ? new Date(employee.date_of_joining).toLocaleDateString() 
+                      : <span className="text-muted-foreground">Not Set</span>
+                    }
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Team Lead Assignment */}
+        {canManage && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Team Lead Assignment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-4">
+                <Label>Assigned Team Lead:</Label>
+                <Select 
+                  onValueChange={handleManagerSelection} 
+                  defaultValue={employee.manager_id || ''}
+                >
+                  <SelectTrigger className="max-w-md">
+                    <SelectValue placeholder="Select a Team Lead" />
                   </SelectTrigger>
                   <SelectContent>
-                    {EmployeeStatusOptions.map(status => (
-                      <SelectItem key={status} value={status}>{status}</SelectItem>
+                    <SelectItem value="unassign">Unassign Team Lead</SelectItem>
+                    {allUsers.map(user => (
+                      user.id && (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.first_name} {user.last_name} ({user.role?.role_name || 'No Role'})
+                        </SelectItem>
+                      )
                     ))}
                   </SelectContent>
                 </Select>
-              ) : (
-                <Badge>{employee.current_status}</Badge>
-              )}
-            </div>
-            <div>
-              <Label>Phone</Label>
-              {isEditing ? <Input value={editData.phone || ''} onChange={e => handleInputChange('phone', e.target.value)} /> : <p className="text-lg">{employee.phone || 'N/A'}</p>}
-            </div>
-            <div>
-              <Label>Date of Joining</Label>
-              {isEditing ? <Input type="date" className="text-black dark:[color-scheme:dark]" value={editData.date_of_joining ? new Date(editData.date_of_joining).toISOString().split('T')[0] : ''} onChange={e => handleInputChange('date_of_joining', e.target.value)} /> : <p className="text-lg">{employee.date_of_joining ? new Date(employee.date_of_joining).toLocaleDateString() : <span className="text-muted-foreground">Not Set</span>}</p>}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+                {employee.manager && (
+                  <p className="text-muted-foreground">
+                    Currently: {employee.manager.first_name} {employee.manager.last_name}
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-      {employeeId && <EmployeeDocuments employeeId={employeeId} />}
+        {/* Documents Section */}
+        {employeeId && (
+          <div className="space-y-6">
+            <EmployeeDocuments employeeId={employeeId} />
+          </div>
+        )}
+
+        {/* Course Enrollment Dialog */}
+        <CourseEnrollmentDialog
+          open={showEnrollDialog}
+          onOpenChange={setShowEnrollDialog}
+          employeeId={employeeId || ''}
+          onSuccess={() => {
+            setShowEnrollDialog(false);
+            toast.success('Course assigned successfully');
+          }}
+        />
+      </div>
     </div>
     </>
   );

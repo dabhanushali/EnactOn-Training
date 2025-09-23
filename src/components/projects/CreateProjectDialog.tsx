@@ -15,6 +15,9 @@ import { useAuth } from "@/hooks/auth-utils";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
+import { MASTER_DATA } from '@/lib/masterData';
+import { RequiredLabel } from "@/components/forms/RequiredLabel";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface CreateProjectDialogProps {
   onProjectCreated: (projectId: string) => void;
@@ -46,16 +49,37 @@ export function CreateProjectDialog({ onProjectCreated }: CreateProjectDialogPro
         return;
     }
 
+    // Validate required fields
+    if (!projectName.trim()) {
+      toast.error("Project name is required.");
+      return;
+    }
+
+    if (!projectDescription.trim()) {
+      toast.error("Project description is required.");
+      return;
+    }
+
+    if (!instructions.trim()) {
+      toast.error("Instructions are required.");
+      return;
+    }
+
+    if (!deliverables.trim()) {
+      toast.error("Deliverables are required.");
+      return;
+    }
+
     setCreating(true);
 
     const { data, error } = await supabase.from('projects' as any).insert([
       {
-        project_name: projectName,
-        project_description: projectDescription,
+        project_name: projectName.trim(),
+        project_description: projectDescription.trim(),
         project_type: projectType,
         duration_days: durationDays,
-        instructions: instructions,
-        deliverables: deliverables,
+        instructions: instructions.trim(),
+        deliverables: deliverables.trim(),
         created_by: user.id,
       },
     ]).select('id').single();
@@ -85,30 +109,74 @@ export function CreateProjectDialog({ onProjectCreated }: CreateProjectDialogPro
             Fill in the details below to create a new project template.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="project-name" className="text-right">Project Name</Label>
-            <Input id="project-name" placeholder="e.g. E-commerce Website" value={projectName} onChange={(e) => setProjectName(e.target.value)} className="col-span-3" />
+        <div className="grid gap-6 py-4">
+          <div className="space-y-2">
+            <RequiredLabel htmlFor="project-name">Project Name</RequiredLabel>
+            <Input 
+              id="project-name" 
+              placeholder="e.g. E-commerce Website" 
+              value={projectName} 
+              onChange={(e) => setProjectName(e.target.value)} 
+              required
+            />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="project-description" className="text-right">Description</Label>
-            <Textarea id="project-description" placeholder="A short description of the project." value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} className="col-span-3" />
+          <div className="space-y-2">
+            <RequiredLabel htmlFor="project-description">Description</RequiredLabel>
+            <Textarea 
+              id="project-description" 
+              placeholder="A comprehensive description of the project scope and objectives" 
+              value={projectDescription} 
+              onChange={(e) => setProjectDescription(e.target.value)} 
+              rows={3}
+              required
+            />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="project-type" className="text-right">Project Type</Label>
-            <Input id="project-type" placeholder="e.g. Internal, Client" value={projectType} onChange={(e) => setProjectType(e.target.value)} className="col-span-3" />
+          <div className="space-y-2">
+            <Label htmlFor="project-type">Project Type</Label>
+            <Select value={projectType} onValueChange={setProjectType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select project type" />
+              </SelectTrigger>
+              <SelectContent>
+                {MASTER_DATA.projectTypes.map(type => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="duration" className="text-right">Duration (Days)</Label>
-            <Input id="duration" type="number" placeholder="e.g. 14" value={durationDays} onChange={(e) => setDurationDays(parseInt(e.target.value))} className="col-span-3" />
+          <div className="space-y-2">
+            <Label htmlFor="duration">Duration (Days)</Label>
+            <Input 
+              id="duration" 
+              type="number" 
+              placeholder="e.g. 14" 
+              value={durationDays || ''} 
+              onChange={(e) => setDurationDays(parseInt(e.target.value) || undefined)} 
+            />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="instructions" className="text-right">Instructions</Label>
-            <Textarea id="instructions" placeholder="Detailed instructions for the trainee." value={instructions} onChange={(e) => setInstructions(e.target.value)} className="col-span-3" />
+          <div className="space-y-2">
+            <RequiredLabel htmlFor="instructions">Instructions</RequiredLabel>
+            <Textarea 
+              id="instructions" 
+              placeholder="Detailed instructions and requirements for the trainee" 
+              value={instructions} 
+              onChange={(e) => setInstructions(e.target.value)} 
+              rows={4}
+              required
+            />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="deliverables" className="text-right">Deliverables</Label>
-            <Textarea id="deliverables" placeholder="Expected deliverables for the project." value={deliverables} onChange={(e) => setDeliverables(e.target.value)} className="col-span-3" />
+          <div className="space-y-2">
+            <RequiredLabel htmlFor="deliverables">Deliverables</RequiredLabel>
+            <Textarea 
+              id="deliverables" 
+              placeholder="Expected deliverables and submission requirements" 
+              value={deliverables} 
+              onChange={(e) => setDeliverables(e.target.value)} 
+              rows={4}
+              required
+            />
           </div>
         </div>
         <DialogFooter>

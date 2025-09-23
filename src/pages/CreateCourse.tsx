@@ -17,6 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { ModuleDialog } from '@/components/courses/ModuleDialog';
 import { EnhancedModuleDialog } from '@/components/courses/EnhancedModuleDialog';
 import { AssessmentDialog } from '@/components/courses/AssessmentDialog';
+import { MASTER_DATA } from '@/lib/masterData';
+import { RequiredLabel } from '@/components/forms/RequiredLabel';
 
 export default function CreateCourse() {
   const navigate = useNavigate();
@@ -60,6 +62,34 @@ export default function CreateCourse() {
       toast({
         title: "Access Denied",
         description: "You don't have permission to create courses",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate required fields
+    if (!formData.course_name?.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Course name is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.course_description?.trim()) {
+      toast({
+        title: "Validation Error", 
+        description: "Course description is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.course_type?.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Course type is required", 
         variant: "destructive"
       });
       return;
@@ -216,31 +246,43 @@ export default function CreateCourse() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="course_name">Course Name</Label>
+                    <RequiredLabel htmlFor="course_name">Course Name</RequiredLabel>
                     <Input
                       id="course_name"
                       value={formData.course_name}
                       onChange={(e) => handleInputChange('course_name', e.target.value)}
+                      placeholder="Enter course name"
                       required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="course_description">Course Description</Label>
+                    <RequiredLabel htmlFor="course_description">Course Description</RequiredLabel>
                     <Textarea
                       id="course_description"
                       value={formData.course_description}
                       onChange={(e) => handleInputChange('course_description', e.target.value)}
+                      placeholder="Describe the course content and objectives"
                       rows={3}
+                      required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="course_type">Course Type</Label>
-                    <Input
-                      id="course_type"
-                      value={formData.course_type}
-                      onChange={(e) => handleInputChange('course_type', e.target.value)}
-                      placeholder="e.g., Technical, Soft Skills"
-                    />
+                    <RequiredLabel htmlFor="course_type">Course Type</RequiredLabel>
+                    <Select 
+                      value={formData.course_type} 
+                      onValueChange={(value) => handleInputChange('course_type', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select course type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MASTER_DATA.courseTypes.map(type => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label htmlFor="difficulty_level">Difficulty Level</Label>
@@ -249,20 +291,31 @@ export default function CreateCourse() {
                         <SelectValue placeholder="Select difficulty" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Beginner">Beginner</SelectItem>
-                        <SelectItem value="Intermediate">Intermediate</SelectItem>
-                        <SelectItem value="Advanced">Advanced</SelectItem>
+                        {MASTER_DATA.difficultyLevels.map(level => (
+                          <SelectItem key={level} value={level}>
+                            {level}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
                     <Label htmlFor="target_role">Target Role</Label>
-                    <Input
-                      id="target_role"
-                      value={formData.target_role}
-                      onChange={(e) => handleInputChange('target_role', e.target.value)}
-                      placeholder="e.g., Developer, Manager"
-                    />
+                    <Select 
+                      value={formData.target_role} 
+                      onValueChange={(value) => handleInputChange('target_role', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select target role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MASTER_DATA.targetRoles.map(role => (
+                          <SelectItem key={role} value={role}>
+                            {role}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label htmlFor="learning_objectives">Learning Objectives</Label>
@@ -270,6 +323,7 @@ export default function CreateCourse() {
                       id="learning_objectives"
                       value={formData.learning_objectives}
                       onChange={(e) => handleInputChange('learning_objectives', e.target.value)}
+                      placeholder="List the key learning outcomes for this course"
                       rows={3}
                     />
                   </div>

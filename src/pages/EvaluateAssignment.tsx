@@ -1,7 +1,7 @@
 import { MainNav } from '@/components/navigation/MainNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from "@/components/ui/badge";
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
@@ -88,25 +88,60 @@ export default function EvaluateAssignment() {
   const { projects: project, profiles: trainee, project_milestone_submissions: submissions } = assignment;
 
   const EvaluationDetails = ({ evaluation }: { evaluation: Evaluation }) => (
-    <div className="mt-4 border-t pt-4">
-        <h5 className="font-bold">Evaluation Results</h5>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 text-sm">
-            <p><strong>Overall Score:</strong> {evaluation.overall_score}/5</p>
-            <p><strong>Technical:</strong> {evaluation.technical_score}/5</p>
-            <p><strong>Quality:</strong> {evaluation.quality_score}/5</p>
-            <p><strong>Timeline:</strong> {evaluation.timeline_score}/5</p>
-            <p><strong>Communication:</strong> {evaluation.communication_score}/5</p>
-            <p><strong>Innovation:</strong> {evaluation.innovation_score}/5</p>
+    <Card className="mt-4">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Badge variant="success">Evaluation Complete</Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-primary mb-1">{evaluation.overall_score}/5</div>
+            <div className="text-sm text-muted-foreground">Overall Score</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600 mb-1">{evaluation.technical_score}/5</div>
+            <div className="text-sm text-muted-foreground">Technical</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600 mb-1">{evaluation.quality_score}/5</div>
+            <div className="text-sm text-muted-foreground">Quality</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-orange-600 mb-1">{evaluation.timeline_score}/5</div>
+            <div className="text-sm text-muted-foreground">Timeline</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-600 mb-1">{evaluation.communication_score}/5</div>
+            <div className="text-sm text-muted-foreground">Communication</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-pink-600 mb-1">{evaluation.innovation_score}/5</div>
+            <div className="text-sm text-muted-foreground">Innovation</div>
+          </div>
         </div>
-        <div className="mt-4">
-            <p className="font-semibold">Strengths:</p>
-            <p className="text-sm text-muted-foreground p-2 bg-secondary rounded-md">{evaluation.strengths}</p>
+        
+        <div className="space-y-4">
+          <div>
+            <Label className="text-base font-semibold text-success">Strengths</Label>
+            <Card className="mt-2">
+              <CardContent className="pt-4">
+                <p className="text-sm">{evaluation.strengths}</p>
+              </CardContent>
+            </Card>
+          </div>
+          <div>
+            <Label className="text-base font-semibold text-warning">Areas for Improvement</Label>
+            <Card className="mt-2">
+              <CardContent className="pt-4">
+                <p className="text-sm">{evaluation.areas_for_improvement}</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-        <div className="mt-2">
-            <p className="font-semibold">Areas for Improvement:</p>
-            <p className="text-sm text-muted-foreground p-2 bg-secondary rounded-md">{evaluation.areas_for_improvement}</p>
-        </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 
   return (
@@ -124,14 +159,26 @@ export default function EvaluateAssignment() {
             <Card key={submission.id} className="mb-6">
                 <CardHeader>
                     <div className="flex justify-between items-start">
-                        <div>
-                            <CardTitle>Submission on {new Date(submission.submitted_at).toLocaleString()}</CardTitle>
-                            <CardDescription className="mt-2">{submission.submission_content || "No comments provided."}</CardDescription>
+                        <div className="flex-1">
+                            <CardTitle className="flex items-center gap-2 mb-2">
+                              Submission Details
+                              {submission.project_evaluations && submission.project_evaluations.length > 0 && (
+                                <Badge variant="success">Evaluated</Badge>
+                              )}
+                            </CardTitle>
+                            <div className="text-sm text-muted-foreground mb-2">
+                              Submitted on {new Date(submission.submitted_at).toLocaleDateString()} at {new Date(submission.submitted_at).toLocaleTimeString()}
+                            </div>
+                            {submission.submission_content && (
+                              <CardDescription className="mt-2 whitespace-pre-wrap">{submission.submission_content}</CardDescription>
+                            )}
                         </div>
                         {submission.file_url && 
-                            <a href={submission.file_url} target="_blank" rel="noopener noreferrer">
-                                <Button variant="outline">View Submission</Button>
-                            </a>
+                            <Button variant="outline" asChild className="ml-4">
+                              <a href={submission.file_url} target="_blank" rel="noopener noreferrer">
+                                View Submission
+                              </a>
+                            </Button>
                         }
                     </div>
                 </CardHeader>

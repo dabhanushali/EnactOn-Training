@@ -202,6 +202,9 @@ export default function CourseDetails() {
                           profile?.role?.role_name === 'HR' ||
                           profile?.role?.role_name === 'Management';
 
+  // Check if user is a trainee
+  const isTrainee = profile?.role?.role_name === 'Trainee';
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -264,12 +267,14 @@ export default function CourseDetails() {
               </div>
               
               <div className="flex items-center space-x-2">
-                {enrollment && !canManageCourses && (
+                {/* Only show trainee-specific actions for trainees */}
+                {enrollment && isTrainee && (
                   <Button onClick={handleMarkCourseComplete} disabled={isCompleted} variant="secondary">
                     <CheckCircle className="w-4 h-4 mr-2" />
                     {isCompleted ? 'Completed' : 'Mark as Complete'}
                   </Button>
                 )}
+                {/* Management actions for admins */}
                 {canManageCourses && (
                   <>
                     <Button
@@ -304,11 +309,12 @@ export default function CourseDetails() {
               </div>
             )}
 
-            {!enrollment && !canManageCourses ? (
+            {/* Show different actions based on role */}
+            {!enrollment && isTrainee ? (
               <Button onClick={handleEnroll} size="lg">
                 Enroll in Course
               </Button>
-            ) : canManageCourses && !enrollment ? (
+            ) : !enrollment && canManageCourses ? (
               <Button 
                 onClick={() => setShowAssignmentDialog(true)} 
                 size="lg"
@@ -317,7 +323,7 @@ export default function CourseDetails() {
                 <UserPlus className="w-4 h-4 mr-2" />
                 Assign to Employees
               </Button>
-            ) : (
+            ) : enrollment && isTrainee ? (
               <div className="space-y-4">
                 <CourseEnrollment
                   courseId={course.id}
@@ -338,7 +344,8 @@ export default function CourseDetails() {
           </CardContent>
         </Card>
 
-        {enrollment && (
+        {/* Show course content for trainees or enrolled admins */}
+        {(enrollment && isTrainee) || (canManageCourses) ? (
           <>
             {/* Modules Section */}
             <Card className="mb-8 bg-muted/20 border-l-4 border-primary transition-all hover:shadow-md animate-fade-in-delay-1">
@@ -367,7 +374,7 @@ export default function CourseDetails() {
                       contentUrl={module.content_url}
                       contentPath={module.content_path}
                       estimatedDuration={module.estimated_duration_minutes}
-                      onStartModule={handleStartModule}
+                      onStartModule={isTrainee ? handleStartModule : handleViewContent}
                       onViewContent={handleViewContent}
                     />
                   ))
@@ -415,8 +422,8 @@ export default function CourseDetails() {
                           description={template.description}
                           instructions={template.instructions}
                           timeLimit={template.time_limit_minutes}
-                          onRetakeAssessment={handleTakeAssessment}
-                          onMarkAsComplete={handleMarkAsComplete}
+                          onRetakeAssessment={isTrainee ? handleTakeAssessment : undefined}
+                          onMarkAsComplete={isTrainee ? handleMarkAsComplete : undefined}
                         />
                       );
                     })
@@ -424,7 +431,7 @@ export default function CourseDetails() {
               </CardContent>
             </Card>
           </>
-        )}
+        ) : null}
 
         {/* Assignment Dialog */}
         <Dialog open={showAssignmentDialog} onOpenChange={setShowAssignmentDialog}>
