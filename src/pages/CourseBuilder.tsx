@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from '@/hooks/use-toast';
 import { MainNav } from '@/components/navigation/MainNav';
 import { AssessmentTemplateManager } from '@/components/courses/AssessmentTemplateManager';
-import { EnhancedModuleDialog } from '@/components/courses/EnhancedModuleDialog';
+import { EnhancedModuleCreator } from '@/components/courses/EnhancedModuleCreator';
 import { 
   ArrowLeft, 
   Plus, 
@@ -393,90 +393,9 @@ export default function CourseBuilder() {
             </Card>
           </TabsContent>
 
-          {/* Modules Tab */}
+          {/* Enhanced Module Creator */}
           <TabsContent value="modules" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Course Modules</h3>
-              <Button onClick={() => {
-                setEditingModule(null);
-                setModuleDialogOpen(true);
-              }}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Module
-              </Button>
-            </div>
-
-            {moduleDialogOpen && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                <div className="bg-background p-6 rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold">
-                      {editingModule ? 'Edit Module' : 'Add New Module'}
-                    </h2>
-                    <Button variant="ghost" size="sm" onClick={() => setModuleDialogOpen(false)}>
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <EnhancedModuleDialog
-                    courseId={courseId!}
-                    module={editingModule}
-                    moduleOrder={modules.length + 1}
-                    onSave={handleSaveModule}
-                    onClose={() => setModuleDialogOpen(false)}
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              {modules.map((module, index) => (
-                <Card key={module.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
-                          <GripVertical className="w-4 h-4 text-muted-foreground" />
-                          <Badge variant="outline">Module {module.module_order}</Badge>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            {getContentIcon(module.content_type)}
-                            <div>
-                              <h4 className="font-medium">{module.module_name}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {module.content_type} • {module.estimated_duration_minutes} min
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {/* Display additional content */}
-                          
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEditingModule(module);
-                            setModuleDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteModule(module.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <EnhancedModuleCreator courseId={courseId!} />
           </TabsContent>
 
           {/* Assessments Tab */}
