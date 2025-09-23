@@ -50,6 +50,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "assessment_questions_assessment_template_id_fkey"
+            columns: ["assessment_template_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_templates"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_assessment_questions_template"
             columns: ["assessment_template_id"]
             isOneToOne: false
@@ -102,6 +109,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "assessment_templates_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_assessment_templates_course"
             columns: ["course_id"]
@@ -171,6 +185,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "course_assessments_assessment_template_id_fkey"
+            columns: ["assessment_template_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_templates"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "course_assessments_assessor_id_fkey"
             columns: ["assessor_id"]
             isOneToOne: false
@@ -224,7 +245,22 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "course_enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_enrollments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       course_modules: {
         Row: {
@@ -456,6 +492,58 @@ export type Database = {
           },
         ]
       }
+      project_assignments: {
+        Row: {
+          assigned_by: string | null
+          assignee_id: string
+          created_at: string
+          id: string
+          project_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          assignee_id: string
+          created_at?: string
+          id?: string
+          project_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string | null
+          assignee_id?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_assignments_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_evaluations: {
         Row: {
           areas_for_improvement: string | null
@@ -470,6 +558,7 @@ export type Database = {
           project_id: string
           quality_score: number | null
           strengths: string | null
+          submission_id: string | null
           technical_score: number | null
           timeline_score: number | null
         }
@@ -486,6 +575,7 @@ export type Database = {
           project_id: string
           quality_score?: number | null
           strengths?: string | null
+          submission_id?: string | null
           technical_score?: number | null
           timeline_score?: number | null
         }
@@ -502,6 +592,7 @@ export type Database = {
           project_id?: string
           quality_score?: number | null
           strengths?: string | null
+          submission_id?: string | null
           technical_score?: number | null
           timeline_score?: number | null
         }
@@ -521,73 +612,73 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "project_evaluations_milestone_id_fkey"
-            columns: ["milestone_id"]
-            isOneToOne: false
-            referencedRelation: "project_milestones"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "project_evaluations_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_evaluations_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "project_milestone_submissions"
+            referencedColumns: ["id"]
+          },
         ]
       }
-      project_milestones: {
+      project_milestone_submissions: {
         Row: {
-          completion_date: string | null
+          assignment_id: string | null
           created_at: string
-          due_date: string | null
+          file_url: string | null
           id: string
-          milestone_description: string | null
-          milestone_name: string
-          milestone_order: number
-          project_id: string
-          status: string | null
+          submission_content: string | null
+          submitted_at: string | null
+          submitted_by: string
           updated_at: string
         }
         Insert: {
-          completion_date?: string | null
+          assignment_id?: string | null
           created_at?: string
-          due_date?: string | null
+          file_url?: string | null
           id?: string
-          milestone_description?: string | null
-          milestone_name: string
-          milestone_order: number
-          project_id: string
-          status?: string | null
+          submission_content?: string | null
+          submitted_at?: string | null
+          submitted_by: string
           updated_at?: string
         }
         Update: {
-          completion_date?: string | null
+          assignment_id?: string | null
           created_at?: string
-          due_date?: string | null
+          file_url?: string | null
           id?: string
-          milestone_description?: string | null
-          milestone_name?: string
-          milestone_order?: number
-          project_id?: string
-          status?: string | null
+          submission_content?: string | null
+          submitted_at?: string | null
+          submitted_by?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "project_milestones_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: "project_milestone_submissions_assignment_id_fkey"
+            columns: ["assignment_id"]
             isOneToOne: false
-            referencedRelation: "projects"
+            referencedRelation: "project_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_milestone_submissions_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
       }
       projects: {
         Row: {
-          assigned_by: string
-          assigned_to: string
           created_at: string
+          created_by: string
           deliverables: string | null
           duration_days: number | null
           id: string
@@ -599,9 +690,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          assigned_by: string
-          assigned_to: string
           created_at?: string
+          created_by: string
           deliverables?: string | null
           duration_days?: number | null
           id?: string
@@ -613,9 +703,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          assigned_by?: string
-          assigned_to?: string
           created_at?: string
+          created_by?: string
           deliverables?: string | null
           duration_days?: number | null
           id?: string
@@ -629,14 +718,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "projects_assigned_by_fkey"
-            columns: ["assigned_by"]
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "projects_assigned_to_fkey"
-            columns: ["assigned_to"]
+            foreignKeyName: "projects_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -671,6 +760,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fk_question_options_question"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_options_question_id_fkey"
             columns: ["question_id"]
             isOneToOne: false
             referencedRelation: "assessment_questions"
@@ -783,6 +879,24 @@ export type Database = {
       check_course_completion: {
         Args: { p_course_id: string; p_employee_id: string }
         Returns: boolean
+      }
+      delete_user: {
+        Args: { user_id: string }
+        Returns: undefined
+      }
+      get_project_assignments: {
+        Args: { p_project_id: string }
+        Returns: {
+          id: string
+          status: string
+          trainee_first_name: string
+          trainee_id: string
+          trainee_last_name: string
+        }[]
+      }
+      get_trainee_readiness_data: {
+        Args: { p_user_id: string }
+        Returns: Json
       }
       get_user_role: {
         Args: { user_id: string }
