@@ -20,7 +20,6 @@ import { EmployeeDocuments } from '@/components/employees/EmployeeDocuments';
 import { EmployeeCourseEnrollments } from '@/components/employees/EmployeeCourseEnrollments';
 import { StatusChangeDialog } from '@/components/employees/StatusChangeDialog';
 import { MASTER_DATA } from '@/lib/masterData';
-import { DEPARTMENTS, DESIGNATIONS } from '@/lib/employeeConstants';
 import { CourseEnrollmentDialog } from '@/components/employees/CourseEnrollmentDialog';
 import { DocumentUploadDialog } from '@/components/employees/DocumentUploadDialog';
 import { RequiredLabel } from '@/components/forms/RequiredLabel';
@@ -440,7 +439,7 @@ export default function EmployeeDetailEnhanced() {
                       <SelectValue placeholder="Select designation" />
                     </SelectTrigger>
                     <SelectContent>
-                      {DESIGNATIONS.map(designation => (
+                      {MASTER_DATA.designations.map(designation => (
                         <SelectItem key={designation} value={designation}>
                           {designation}
                         </SelectItem>
@@ -465,7 +464,7 @@ export default function EmployeeDetailEnhanced() {
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
                     <SelectContent>
-                      {DEPARTMENTS.map(department => (
+                      {MASTER_DATA.departments.map(department => (
                         <SelectItem key={department} value={department}>
                           {department}
                         </SelectItem>

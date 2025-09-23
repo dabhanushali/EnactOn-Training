@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserRoleType } from '@/lib/enums';
-import { DEPARTMENTS, DESIGNATIONS } from '@/lib/employeeConstants';
+import { MASTER_DATA } from '@/lib/masterData';
 
 interface AddEmployeeDialogProps {
   open: boolean;
@@ -254,7 +254,7 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
-                  {DEPARTMENTS.map((dept) => (
+                  {MASTER_DATA.departments.map((dept) => (
                     <SelectItem key={dept} value={dept}>
                       {dept}
                     </SelectItem>
@@ -269,7 +269,7 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
                   <SelectValue placeholder="Select designation" />
                 </SelectTrigger>
                 <SelectContent>
-                  {DESIGNATIONS.map((designation) => (
+                  {MASTER_DATA.designations.map((designation) => (
                     <SelectItem key={designation} value={designation}>
                       {designation}
                     </SelectItem>
