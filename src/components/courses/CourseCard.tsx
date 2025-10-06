@@ -17,7 +17,9 @@ import {
   Target,
   TrendingUp,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  UserPlus,
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -44,6 +46,7 @@ interface CourseCardProps {
   estimatedTime?: string;
   skillTags?: string[];
   isNew?: boolean;
+  userRole?: string;
   onEnroll?: (courseId: string) => void;
   onViewDetails?: (courseId: string) => void;
   onEdit?: (courseId: string) => void;
@@ -70,6 +73,7 @@ export const CourseCard = ({
   estimatedTime,
   skillTags = [],
   isNew = false,
+  userRole = 'Trainee',
   onEnroll,
   onViewDetails,
   onEdit,
@@ -120,6 +124,7 @@ export const CourseCard = ({
 
   const isOverdue = dueDate && new Date(dueDate) < new Date();
   const progressColor = progress && progress >= 80 ? 'text-green-600' : progress && progress >= 50 ? 'text-yellow-600' : 'text-red-600';
+  const isTrainee = userRole === 'Trainee';
 
   return (
     <TooltipProvider>
@@ -232,8 +237,8 @@ export const CourseCard = ({
             </div>
           )}
 
-          {/* Progress Section */}
-          {isEnrolled && progress !== undefined && (
+          {/* Progress Section - Only for enrolled trainees */}
+          {isEnrolled && progress !== undefined && isTrainee && (
             <div className="space-y-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-gray-700">Progress</span>
@@ -254,8 +259,8 @@ export const CourseCard = ({
             </div>
           )}
 
-          {/* Due Date Warning */}
-          {dueDate && !isEnrolled && (
+          {/* Due Date Warning - Only for trainees */}
+          {dueDate && !isEnrolled && isTrainee && (
             <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 rounded-lg p-2">
               <Calendar className="w-4 h-4" />
               <span>Due: {new Date(dueDate).toLocaleDateString()}</span>
@@ -273,8 +278,8 @@ export const CourseCard = ({
             </div>
           )}
 
-          {/* Risk Indicator */}
-          {isOverdue && isEnrolled && (
+          {/* Risk Indicator - Only for enrolled trainees */}
+          {isOverdue && isEnrolled && isTrainee && (
             <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 rounded-lg p-2">
               <AlertTriangle className="w-4 h-4" />
               <span>Course overdue - complete soon!</span>
@@ -285,7 +290,8 @@ export const CourseCard = ({
         <CardFooter className="relative z-10 pt-4 space-y-3">
           {/* Primary Action Button */}
           <div className="w-full">
-            {!isEnrolled && !isAdmin ? (
+            {/* For Trainees */}
+            {isTrainee && !isEnrolled ? (
               <Button
                 className={cn(
                   "w-full h-10 font-semibold text-white border-0 shadow-lg transition-all duration-300",
@@ -296,7 +302,7 @@ export const CourseCard = ({
                 <Play className="w-4 h-4 mr-2" />
                 {isMandatory ? 'Start Required Course' : 'Enroll Now'}
               </Button>
-            ) : isEnrolled ? (
+            ) : isTrainee && isEnrolled ? (
               <Button
                 className="w-full h-10 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold border-0 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
                 onClick={() => onViewDetails?.(id)}
@@ -314,12 +320,13 @@ export const CourseCard = ({
                 )}
               </Button>
             ) : (
+              /* For Admins/HR/Management */
               <Button
                 className="w-full h-10 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold border-0 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
                 onClick={() => onViewDetails?.(id)}
               >
-                <Users className="w-4 h-4 mr-2" />
-                Manage Course
+                <UserPlus className="w-4 h-4 mr-2" />
+                Assign to Employees
               </Button>
             )}
           </div>
@@ -333,7 +340,7 @@ export const CourseCard = ({
               onClick={() => onViewDetails?.(id)}
             >
               <BookOpen className="w-4 h-4 mr-1" />
-              Details
+              {isAdmin ? 'Manage' : 'Details'}
             </Button>
             
             {isAdmin && (
@@ -346,7 +353,7 @@ export const CourseCard = ({
                       className="border-blue-200 hover:bg-blue-50 text-blue-600"
                       onClick={() => onEdit?.(id)}
                     >
-                      <Edit3 className="w-4 w-4" />
+                      <Edit3 className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>

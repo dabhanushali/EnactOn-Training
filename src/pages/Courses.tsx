@@ -46,7 +46,7 @@ export default function Courses() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [useEnhancedCards, setUseEnhancedCards] = useState(true);
+  const [useEnhancedCards, setUseEnhancedCards] = useState(false); // Default to false
   const [filters, setFilters] = useState<CourseFilters>({
     courseType: 'all',
     targetRole: 'all',
@@ -385,6 +385,7 @@ export default function Courses() {
                   isNew={isNewCourse}
                   skillTags={course.skills_gained || []}
                   instructor={instructors.get(course.instructor_id)}
+                  userRole={profile?.role?.role_name || 'Trainee'}
                   enrolledCount={Math.floor(Math.random() * 50) + 10} // Mock data
                   rating={4.2 + Math.random() * 0.8} // Mock data
                   progress={enrollments.has(course.id) ? Math.floor(Math.random() * 100) : undefined}
