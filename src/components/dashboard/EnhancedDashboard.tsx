@@ -436,7 +436,7 @@ export const EnhancedDashboard = () => {
 
   const renderManagementDashboard = () => (
     <div className="space-y-8">
-      {/* Stats Grid */}
+      {/* Enhanced Stats Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Employees"
@@ -456,8 +456,8 @@ export const EnhancedDashboard = () => {
         <StatCard
           title="Completion Rate"
           value={stats.loading ? "..." : `${stats.completionRate.toFixed(0)}%`}
-          description="Average course completion"
-          icon={CheckCircle}
+          description="Organization average"
+          icon={TrendingUp}
           trend={{ value: 8.2, isPositive: true }}
         />
         <StatCard
@@ -469,32 +469,104 @@ export const EnhancedDashboard = () => {
         />
       </div>
 
-      {/* Charts and Analytics */}
+      {/* Quick Actions Panel */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Employee Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Button onClick={() => navigate('/employees')} variant="outline" className="w-full justify-start" size="sm">
+              <Users className="h-4 w-4 mr-2" />
+              View All Employees
+            </Button>
+            <Button onClick={() => navigate('/employees')} variant="outline" className="w-full justify-start" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Add New Employee
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-secondary/5 to-secondary/10 border-secondary/20">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <BookOpen className="h-4 w-4" />
+              Course Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Button onClick={() => navigate('/courses')} variant="outline" className="w-full justify-start" size="sm">
+              <BookOpen className="h-4 w-4 mr-2" />
+              Browse Courses
+            </Button>
+            <Button onClick={() => navigate('/courses/create')} variant="outline" className="w-full justify-start" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Course
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-accent/5 to-accent/10 border-accent/20">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Training Sessions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Button onClick={() => navigate('/training-sessions')} variant="outline" className="w-full justify-start" size="sm">
+              <Calendar className="h-4 w-4 mr-2" />
+              View Sessions
+            </Button>
+            <Button onClick={() => navigate('/training-sessions')} variant="outline" className="w-full justify-start" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Schedule Session
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Analytics Section */}
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Department Performance
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Department Performance
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/employees')}>
+                View Details
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {stats.departmentStats.map((dept, index) => (
-                <div key={dept.name} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">{dept.name}</span>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {dept.employees} employees
-                      </Badge>
-                      <span className="text-sm font-bold">{dept.completionRate}%</span>
+            {stats.departmentStats.length > 0 ? (
+              <div className="space-y-4">
+                {stats.departmentStats.slice(0, 5).map((dept) => (
+                  <div key={dept.name} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">{dept.name}</span>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {dept.employees} employees
+                        </Badge>
+                        <span className="text-sm font-bold">{dept.completionRate}%</span>
+                      </div>
                     </div>
+                    <Progress value={dept.completionRate} className="h-2" />
                   </div>
-                  <Progress value={dept.completionRate} className="h-2" />
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No department data available</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -506,28 +578,74 @@ export const EnhancedDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {stats.recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-3 pb-3 border-b border-border last:border-0">
-                  <div className={`p-2 rounded-full ${
-                    activity.type === 'completion' ? 'bg-success/10' :
-                    activity.type === 'enrollment' ? 'bg-primary/10' : 'bg-warning/10'
-                  }`}>
-                    {activity.type === 'completion' && <CheckCircle className="h-3 w-3 text-success" />}
-                    {activity.type === 'enrollment' && <BookOpen className="h-3 w-3 text-primary" />}
-                    {activity.type === 'assignment' && <Target className="h-3 w-3 text-warning" />}
+            {stats.recentActivity.length > 0 ? (
+              <div className="space-y-4">
+                {stats.recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-start gap-3 pb-3 border-b border-border last:border-0">
+                    <div className={`p-2 rounded-full ${
+                      activity.type === 'completion' ? 'bg-success/10' :
+                      activity.type === 'enrollment' ? 'bg-primary/10' : 'bg-warning/10'
+                    }`}>
+                      {activity.type === 'completion' && <CheckCircle className="h-3 w-3 text-success" />}
+                      {activity.type === 'enrollment' && <BookOpen className="h-3 w-3 text-primary" />}
+                      {activity.type === 'assignment' && <Target className="h-3 w-3 text-warning" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground font-medium">{activity.user}</p>
+                      <p className="text-sm text-foreground truncate">{activity.description}</p>
+                      <p className="text-xs text-muted-foreground">{activity.time}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-muted-foreground font-medium">{activity.user}</p>
-                    <p className="text-sm text-foreground">{activity.description}</p>
-                    <p className="text-xs text-muted-foreground">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Activity className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No recent activity</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Key Insights */}
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-background to-secondary/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Star className="h-5 w-5 text-primary" />
+            Key Insights & Recommendations
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {stats.completionRate < 70 && (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
+                <ArrowDown className="h-5 w-5 text-warning mt-0.5" />
+                <div>
+                  <p className="font-medium text-sm">Completion rate needs attention</p>
+                  <p className="text-xs text-muted-foreground">Consider reviewing course difficulty and providing additional support to employees.</p>
+                </div>
+              </div>
+            )}
+            {stats.completionRate >= 70 && (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-success/10 border border-success/20">
+                <ArrowUp className="h-5 w-5 text-success mt-0.5" />
+                <div>
+                  <p className="font-medium text-sm">Great completion rate!</p>
+                  <p className="text-xs text-muted-foreground">Your organization is performing well. Keep up the good work!</p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20">
+              <Target className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <p className="font-medium text-sm">Schedule regular training sessions</p>
+                <p className="text-xs text-muted-foreground">Regular check-ins and training sessions improve engagement and retention.</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 

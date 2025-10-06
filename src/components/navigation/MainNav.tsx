@@ -17,7 +17,6 @@ import {
   Users,
   FolderOpen,
   Calendar,
-  Bell,
   Settings,
   LogOut,
   Menu,
@@ -25,6 +24,7 @@ import {
   User
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { NotificationCenter } from '@/components/common/NotificationCenter';
 
 interface NavItem {
   label: string;
@@ -134,10 +134,7 @@ export const MainNav = () => {
           {/* Right Side */}
           <div className="flex items-center space-x-2">
             {/* Notifications */}
-            <Button variant="ghost" size="sm" className="relative">
-              <Bell className="h-4 w-4" />
-              <span className="absolute -top-1 -right-1 h-2 w-2 bg-error rounded-full"></span>
-            </Button>
+            <NotificationCenter />
 
             {/* User Menu */}
             <DropdownMenu>
