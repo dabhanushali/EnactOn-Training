@@ -22,6 +22,7 @@ import {
   Star,
   ArrowUp,
   ArrowDown,
+  Plus,
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -45,6 +46,11 @@ interface DashboardStats {
     completionRate: number;
   }>;
   loading: boolean;
+  // Team Lead specific stats
+  myTeamSize?: number;
+  pendingEvaluations?: number;
+  upcomingSessions?: number;
+  teamCompletionRate?: number;
 }
 
 export const EnhancedDashboard = () => {
@@ -139,6 +145,101 @@ export const EnhancedDashboard = () => {
           loading: false
         };
 
+      } else if (userRoleName === UserRoles.TEAM_LEAD) {
+        // Team Lead Dashboard - Focus on their team
+        const [teamMembersResult, createdCoursesResult, assignedProjectsResult, upcomingSessionsResult] = await Promise.all([
+          supabase.from('profiles').select('id, first_name, last_name').eq('manager_id', userId),
+          supabase.from('courses').select('*', { count: 'exact', head: true }).eq('created_by', userId),
+          supabase.from('project_assignments').select('*', { count: 'exact', head: true }).eq('assigned_by', userId),
+          supabase.from('training_sessions').select('*').eq('trainer_id', userId).gte('start_datetime', new Date().toISOString()).limit(5)
+        ]);
+
+        const teamMembers = teamMembersResult.data || [];
+        const myTeamSize = teamMembers.length;
+        const totalCourses = createdCoursesResult.count || 0;
+        const totalProjects = assignedProjectsResult.count || 0;
+        const upcomingSessions = upcomingSessionsResult.data?.length || 0;
+
+        // Get team's course completion rate
+        const teamMemberIds = teamMembers.map(m => m.id);
+        if (teamMemberIds.length > 0) {
+          const { data: teamEnrollments } = await supabase
+            .from('course_enrollments')
+            .select('status')
+            .in('employee_id', teamMemberIds);
+
+          const teamCompleted = teamEnrollments?.filter(e => e.status === 'completed').length || 0;
+          const teamCompletionRate = teamEnrollments && teamEnrollments.length > 0 
+            ? (teamCompleted / teamEnrollments.length) * 100 
+            : 0;
+
+          // Get pending evaluations
+          const { data: pendingEvals } = await supabase
+            .from('project_assignments')
+            .select('*')
+            .eq('assigned_by', userId)
+            .eq('status', 'Submitted');
+
+          const pendingEvaluations = pendingEvals?.length || 0;
+
+          // Get recent team activity
+          const { data: recentTeamEnrollments } = await supabase
+            .from('course_enrollments')
+            .select(`
+              created_at,
+              status,
+              profiles!inner(first_name, last_name),
+              courses!inner(course_name)
+            `)
+            .in('employee_id', teamMemberIds)
+            .order('created_at', { ascending: false })
+            .limit(5);
+
+          const recentActivity = (recentTeamEnrollments || []).map((enrollment, index) => ({
+            id: String(index),
+            type: enrollment.status === 'completed' ? 'completion' as const : 'enrollment' as const,
+            description: enrollment.status === 'completed' 
+              ? `Course completed: ${enrollment.courses.course_name}`
+              : `Enrolled in: ${enrollment.courses.course_name}`,
+            time: new Date(enrollment.created_at).toLocaleDateString(),
+            user: `${enrollment.profiles.first_name} ${enrollment.profiles.last_name}`
+          }));
+
+          data = {
+            myTeamSize,
+            totalCourses,
+            totalProjects,
+            teamCompletionRate,
+            pendingEvaluations,
+            upcomingSessions,
+            recentActivity,
+            departmentStats: [],
+            totalEmployees: myTeamSize,
+            activeCourses: 0,
+            completedCourses: 0,
+            completionRate: teamCompletionRate,
+            monthlyGrowth: 0,
+            loading: false
+          };
+        } else {
+          data = {
+            myTeamSize: 0,
+            totalCourses,
+            totalProjects,
+            teamCompletionRate: 0,
+            pendingEvaluations: 0,
+            upcomingSessions,
+            recentActivity: [],
+            departmentStats: [],
+            totalEmployees: 0,
+            activeCourses: 0,
+            completedCourses: 0,
+            completionRate: 0,
+            monthlyGrowth: 0,
+            loading: false
+          };
+        }
+
       } else if (userRoleName === UserRoles.TRAINEE) {
         // Trainee Dashboard
         const { data: enrollments } = await supabase
@@ -205,6 +306,132 @@ export const EnhancedDashboard = () => {
       </CardContent>
       <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent" />
     </Card>
+  );
+
+  const renderTeamLeadDashboard = () => (
+    <div className="space-y-8">
+      {/* Team Stats Grid */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="My Team Size"
+          value={stats.loading ? "..." : stats.myTeamSize || 0}
+          description="Direct reports"
+          icon={Users}
+          onClick={() => navigate('/employees')}
+        />
+        <StatCard
+          title="Pending Evaluations"
+          value={stats.loading ? "..." : stats.pendingEvaluations || 0}
+          description="Awaiting review"
+          icon={CheckCircle}
+          onClick={() => navigate('/projects')}
+          trend={stats.pendingEvaluations && stats.pendingEvaluations > 0 ? { value: stats.pendingEvaluations, isPositive: false } : undefined}
+        />
+        <StatCard
+          title="Team Completion"
+          value={stats.loading ? "..." : `${(stats.teamCompletionRate || 0).toFixed(0)}%`}
+          description="Average progress"
+          icon={TrendingUp}
+          trend={{ value: stats.teamCompletionRate || 0, isPositive: (stats.teamCompletionRate || 0) > 70 }}
+        />
+        <StatCard
+          title="Upcoming Sessions"
+          value={stats.loading ? "..." : stats.upcomingSessions || 0}
+          description="Scheduled trainings"
+          icon={Calendar}
+          onClick={() => navigate('/training-sessions')}
+        />
+      </div>
+
+      {/* Action Cards */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              Course Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-background/50">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-full bg-primary/10">
+                  <BookOpen className="h-4 w-4 text-primary" />
+                </div>
+                <span className="font-medium">Created Courses</span>
+              </div>
+              <Badge variant="secondary">{stats.totalCourses}</Badge>
+            </div>
+            <Button onClick={() => navigate('/courses/create')} className="w-full" size="lg">
+              <Plus className="h-4 w-4 mr-2" />
+              Create New Course
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-secondary/5 to-secondary/10 border-secondary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Project Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-background/50">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-full bg-secondary/10">
+                  <FolderOpen className="h-4 w-4 text-secondary" />
+                </div>
+                <span className="font-medium">Active Projects</span>
+              </div>
+              <Badge variant="secondary">{stats.totalProjects}</Badge>
+            </div>
+            <Button onClick={() => navigate('/projects')} variant="outline" className="w-full" size="lg">
+              <FolderOpen className="h-4 w-4 mr-2" />
+              Manage Projects
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Team Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Team Activity
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {stats.recentActivity.length > 0 ? (
+            <div className="space-y-4">
+              {stats.recentActivity.map((activity) => (
+                <div key={activity.id} className="flex items-start gap-3 pb-3 border-b border-border last:border-0">
+                  <div className={`p-2 rounded-full ${
+                    activity.type === 'completion' ? 'bg-success/10' :
+                    activity.type === 'enrollment' ? 'bg-primary/10' : 'bg-warning/10'
+                  }`}>
+                    {activity.type === 'completion' && <CheckCircle className="h-3 w-3 text-success" />}
+                    {activity.type === 'enrollment' && <BookOpen className="h-3 w-3 text-primary" />}
+                    {activity.type === 'assignment' && <Target className="h-3 w-3 text-warning" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground font-medium">{activity.user}</p>
+                    <p className="text-sm text-foreground">{activity.description}</p>
+                    <p className="text-xs text-muted-foreground">{activity.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Activity className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No recent team activity</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 
   const renderManagementDashboard = () => (
@@ -458,8 +685,9 @@ export const EnhancedDashboard = () => {
 
       {/* Role-specific Dashboard Content */}
       {userRole === UserRoles.MANAGEMENT && renderManagementDashboard()}
+      {userRole === UserRoles.HR && renderManagementDashboard()}
+      {userRole === UserRoles.TEAM_LEAD && renderTeamLeadDashboard()}
       {userRole === UserRoles.TRAINEE && renderTraineeDashboard()}
-      {(userRole === UserRoles.HR || userRole === UserRoles.TEAM_LEAD) && renderManagementDashboard()}
 
       {/* Quick Actions */}
       <Card className="bg-gradient-to-r from-primary/5 to-secondary/5">
