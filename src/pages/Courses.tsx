@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { MainNav } from '@/components/navigation/MainNav';
 import { CourseCard } from '@/components/courses/CourseCard';
 import { CourseFiltersComponent, type CourseFilters } from '@/components/courses/CourseFilters';
+import { CourseQuickActions } from '@/components/courses/CourseQuickActions';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Plus, Search } from 'lucide-react';
@@ -199,7 +200,7 @@ export default function Courses() {
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <div className="flex justify-between items-start mb-4">
+          <div className="flex justify-between items-start mb-6">
             <div>
               <h1 className="text-3xl font-bold text-foreground mb-2">Courses</h1>
               <p className="text-muted-foreground">
@@ -214,7 +215,15 @@ export default function Courses() {
             )}
           </div>
           
-          <div className="relative">
+          {/* Course Quick Actions Stats */}
+          <CourseQuickActions
+            totalCourses={courses.length}
+            activeCourses={Array.from(enrollments.values()).filter(s => s === 'enrolled').length}
+            completedCourses={Array.from(enrollments.values()).filter(s => s === 'completed').length}
+            userRole={profile?.role?.role_name || 'Trainee'}
+          />
+          
+          <div className="relative mb-6">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search courses..."

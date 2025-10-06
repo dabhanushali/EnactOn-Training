@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { ProjectQuickActions } from '@/components/projects/ProjectQuickActions';
 import { 
   FolderOpen, Calendar, Trash2, Plus, Clock, Users, 
   Target, TrendingUp, CheckCircle, PlayCircle, PauseCircle 
@@ -195,81 +196,14 @@ export default function Projects() {
             {isManager && <CreateProjectDialog onProjectCreated={fetchProjects} />}
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">
-                      {isManager ? 'Total Projects' : 'My Assignments'}
-                    </p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {isManager ? totalProjects : myAssignments}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-full bg-indigo-500/10">
-                    <FolderOpen className="w-6 h-6 text-indigo-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">
-                      {isManager ? 'Active' : 'In Progress'}
-                    </p>
-                    <p className="text-2xl font-bold text-blue-600">
-                      {isManager ? activeProjects : inProgress}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-full bg-blue-500/10">
-                    <PlayCircle className="w-6 h-6 text-blue-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">
-                      {isManager ? 'Completed' : 'Submitted'}
-                    </p>
-                    <p className="text-2xl font-bold text-success">
-                      {isManager ? completedProjects : submitted}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-full bg-success/10">
-                    <CheckCircle className="w-6 h-6 text-success" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">Success Rate</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {isManager 
-                        ? totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0
-                        : myAssignments > 0 ? Math.round((submitted / myAssignments) * 100) : 0
-                      }%
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-full bg-green-500/10">
-                    <TrendingUp className="w-6 h-6 text-green-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Enhanced Project Quick Actions */}
+          <ProjectQuickActions
+            totalProjects={isManager ? totalProjects : myAssignments}
+            activeProjects={isManager ? activeProjects : inProgress}
+            completedProjects={isManager ? completedProjects : submitted}
+            pendingEvaluations={isManager ? (projects as Project[]).filter((p: Project) => p.status === 'Submitted').length : 0}
+            userRole={profile?.role?.role_name || 'Trainee'}
+          />
         </div>
 
         {/* Projects Grid */}

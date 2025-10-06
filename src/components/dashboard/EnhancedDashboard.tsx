@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useNavigate } from 'react-router-dom';
+import { DepartmentPerformanceCard } from '@/components/dashboard/DepartmentPerformanceCard';
 import {
   BookOpen,
   Users,
@@ -44,6 +45,11 @@ interface DashboardStats {
     name: string;
     employees: number;
     completionRate: number;
+    active?: number;
+    progress?: number;
+    completed?: number;
+    total?: number;
+    topPerformer?: string;
   }>;
   loading: boolean;
   // Team Lead specific stats
@@ -317,7 +323,7 @@ export const EnhancedDashboard = () => {
           value={stats.loading ? "..." : stats.myTeamSize || 0}
           description="Direct reports"
           icon={Users}
-          onClick={() => navigate('/employees')}
+          onClick={() => navigate('/my-team')}
         />
         <StatCard
           title="Pending Evaluations"
@@ -529,47 +535,18 @@ export const EnhancedDashboard = () => {
         </Card>
       </div>
 
-      {/* Analytics Section */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Department Performance
-              </CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/employees')}>
-                View Details
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {stats.departmentStats.length > 0 ? (
-              <div className="space-y-4">
-                {stats.departmentStats.slice(0, 5).map((dept) => (
-                  <div key={dept.name} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">{dept.name}</span>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {dept.employees} employees
-                        </Badge>
-                        <span className="text-sm font-bold">{dept.completionRate}%</span>
-                      </div>
-                    </div>
-                    <Progress value={dept.completionRate} className="h-2" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No department data available</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Analytics Section - Enhanced Department Performance */}
+      <DepartmentPerformanceCard departments={stats.departmentStats.map(dept => ({
+        department: dept.name,
+        totalEmployees: dept.employees || 0,
+        activeEmployees: dept.active || 0,
+        avgProgress: dept.progress || 0,
+        completedCourses: dept.completed || 0,
+        totalCourses: dept.total || 0,
+        topPerformer: dept.topPerformer
+      }))} />
 
+      <div className="grid gap-6 lg:grid-cols-1">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
