@@ -10,6 +10,7 @@ import { Dashboard } from "./pages/Dashboard";
 import Index from "./pages/Index";
 import AuthPage from "./pages/Auth";
 import Employees from "./pages/Employees";
+import MyTeam from "./pages/MyTeam";
 import EmployeeDetailEnhanced from "./pages/EmployeeDetailEnhanced";
 import Courses from "./pages/Courses";
 import CourseDetails from "./pages/CourseDetails";
@@ -61,6 +62,7 @@ const AuthenticatedApp = () => {
       <Route path="/" element={<Dashboard />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/employees" element={<Employees />} />
+      <Route path="/my-team" element={<MyTeam />} />
       <Route path="/employees/:employeeId" element={<EmployeeDetailEnhanced />} />
       <Route path="/courses" element={<Courses />} />
       <Route path="/courses/create" element={<CreateCourse />} />

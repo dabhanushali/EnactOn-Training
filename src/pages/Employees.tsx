@@ -15,6 +15,8 @@ import {
 import { toast } from 'sonner';
 import { UserRoleType } from '@/lib/enums';
 import { AddEmployeeDialog } from '@/components/employees/AddEmployeeDialog';
+import { BulkEmployeeUpload } from '@/components/employees/BulkEmployeeUpload';
+import { EmailManagement } from '@/components/employees/EmailManagement';
 import { Link } from 'react-router-dom';
 import {
   AlertDialog,
@@ -38,6 +40,7 @@ interface Employee {
   created_at: string;
   phone: string | null;
   date_of_joining: string | null;
+  email: string | null;
   role: {
     id: string;
     role_name: string;
@@ -261,6 +264,7 @@ export default function Employees() {
               >
                 Export CSV
               </Button>
+              <BulkEmployeeUpload onSuccess={fetchEmployees} />
               <AddEmployeeDialog 
                 open={isAddDialogOpen} 
                 onOpenChange={setIsAddDialogOpen} 
@@ -479,6 +483,22 @@ export default function Employees() {
                             <span>Joined {new Date(employee.date_of_joining).toLocaleDateString()}</span>
                           </div>
                         )}
+                        
+                        <div className="flex items-center space-x-2 text-sm w-full">
+                          <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            {employee.email ? (
+                              <EmailManagement
+                                employeeId={employee.id}
+                                currentEmail={employee.email}
+                                employeeName={`${employee.first_name} ${employee.last_name}`}
+                                onUpdate={fetchEmployees}
+                              />
+                            ) : (
+                              <span className="text-muted-foreground text-xs">N/A</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
                       <Separator className="mb-4" />

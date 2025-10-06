@@ -53,6 +53,12 @@ const navigationItems: NavItem[] = [
     roles: [UserRoles.MANAGEMENT, UserRoles.HR],
   },
   {
+    label: 'My Team',
+    icon: Users,
+    href: '/my-team',
+    roles: [UserRoles.TEAM_LEAD],
+  },
+  {
     label: 'Projects',
     icon: FolderOpen,
     href: '/projects',
@@ -66,7 +72,7 @@ const navigationItems: NavItem[] = [
   },
   {
     label: 'Readiness Report',
-    icon: BarChart3, // Using an existing icon
+    icon: BarChart3,
     href: '/reports/readiness',
     roles: [UserRoles.MANAGEMENT],
   },
