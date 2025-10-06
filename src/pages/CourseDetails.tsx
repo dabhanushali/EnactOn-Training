@@ -250,37 +250,31 @@ export default function CourseDetails() {
         </Button>
 
         {/* Course Header */}
-        <Card className="mb-8 shadow-xl border-2 overflow-hidden">
-          <div className="bg-gradient-to-r from-primary via-primary/90 to-primary/80 text-primary-foreground p-6">
+        <Card className="mb-8 shadow-lg bg-gradient-to-r from-primary to-primary/90 text-primary-foreground animate-fade-in">
+          <CardHeader>
             <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <CardTitle className="text-3xl font-bold mb-3">{course.course_name}</CardTitle>
-                <div className="flex items-center gap-2 mb-4 flex-wrap">
-                  <Badge className={course.is_mandatory ? 'bg-error text-error-foreground' : 'bg-secondary text-secondary-foreground'}>
-                    {course.is_mandatory ? 'MANDATORY' : 'OPTIONAL'}
+              <div>
+                <CardTitle className="text-3xl mb-2">{course.course_name}</CardTitle>
+                <div className="flex items-center gap-2 mb-4">
+                  <Badge variant={course.is_mandatory ? 'destructive' : 'secondary'}>
+                    {course.is_mandatory ? 'Mandatory' : 'Optional'}
                   </Badge>
-                  <Badge className="bg-background/20 text-primary-foreground border-0">
-                    {course.difficulty_level}
-                  </Badge>
+                  <Badge variant="secondary">{course.difficulty_level}</Badge>
                   {course.course_type && (
-                    <Badge className="bg-background/20 text-primary-foreground border-0">
-                      {course.course_type}
-                    </Badge>
+                    <Badge variant="secondary">{course.course_type}</Badge>
                   )}
                 </div>
               </div>
               
-              <div className="flex items-center gap-2 flex-wrap justify-end">
+              <div className="flex items-center space-x-2">
+                {/* Only show trainee-specific actions for trainees */}
                 {enrollment && isTrainee && (
-                  <Button 
-                    onClick={handleMarkCourseComplete} 
-                    disabled={isCompleted}
-                    className="bg-success hover:bg-success/90 text-success-foreground"
-                  >
+                  <Button onClick={handleMarkCourseComplete} disabled={isCompleted} variant="secondary">
                     <CheckCircle className="w-4 h-4 mr-2" />
-                    {isCompleted ? 'Completed' : 'Complete'}
+                    {isCompleted ? 'Completed' : 'Mark as Complete'}
                   </Button>
                 )}
+                {/* Management actions for admins */}
                 {canManageCourses && (
                   <>
                     <Button
@@ -289,7 +283,7 @@ export default function CourseDetails() {
                       onClick={() => navigate(`/courses/${courseId}/edit`)}
                     >
                       <Edit className="h-4 w-4 mr-2" />
-                      Edit
+                      Edit Course
                     </Button>
                     <Button
                       variant="secondary"
@@ -297,52 +291,51 @@ export default function CourseDetails() {
                       onClick={() => setShowAssignmentDialog(true)}
                     >
                       <UserPlus className="h-4 w-4 mr-2" />
-                      Assign
+                      Assign to Employees
                     </Button>
                   </>
                 )}
+                <BookOpen className="h-8 w-8 text-secondary" />
               </div>
             </div>
-          </div>
-          
-          <CardContent className="p-6">
-            <p className="text-muted-foreground mb-6 text-base leading-relaxed">{course.course_description}</p>
+          </CardHeader>
+          <CardContent className="bg-background text-foreground">
+            <p className="text-muted-foreground mb-6">{course.course_description}</p>
             
             {course.learning_objectives && (
-              <div className="mb-6 p-4 bg-muted/30 rounded-lg border-l-4 border-primary">
-                <h3 className="font-semibold mb-2 flex items-center text-foreground">
-                  <Target className="w-5 h-5 mr-2 text-primary"/>
-                  Learning Objectives
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{course.learning_objectives}</p>
+              <div className="mb-6">
+                <h3 className="font-semibold mb-2 flex items-center"><Target className="w-5 h-5 mr-2 text-primary"/>Learning Objectives</h3>
+                <p className="text-sm text-muted-foreground">{course.learning_objectives}</p>
               </div>
             )}
 
+            {/* Show different actions based on role */}
             {!enrollment && isTrainee ? (
-              <Button onClick={handleEnroll} size="lg" className="w-full sm:w-auto">
-                <BookOpen className="w-4 h-4 mr-2" />
+              <Button onClick={handleEnroll} size="lg">
                 Enroll in Course
               </Button>
             ) : !enrollment && canManageCourses ? (
               <Button 
                 onClick={() => setShowAssignmentDialog(true)} 
                 size="lg"
-                className="w-full sm:w-auto"
+                variant="default"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
                 Assign to Employees
               </Button>
             ) : enrollment && isTrainee && (
-              <CourseEnrollment
-                course={course}
-                completedAssessments={assessments.filter(a => a.status === 'completed').length}
-                totalAssessments={assessments.length}
-                isCompleted={enrollment[0]?.status === 'completed'}
-                isEnrolled={true}
-                onViewModules={() => {}}
-                onTakeAssessment={() => {}}
-                onMarkComplete={handleMarkCourseComplete}
-              />
+              <div className="space-y-4">
+                  <CourseEnrollment
+                    course={course}
+                    completedAssessments={assessments.filter(a => a.status === 'completed').length}
+                    totalAssessments={assessments.length}
+                    isCompleted={enrollment[0]?.status === 'completed'}
+                    isEnrolled={true}
+                    onViewModules={() => {}} // Scroll to modules section
+                    onTakeAssessment={() => {}} // Handle assessment
+                    onMarkComplete={handleMarkCourseComplete}
+                  />
+              </div>
             )}
           </CardContent>
         </Card>
@@ -351,27 +344,22 @@ export default function CourseDetails() {
         {enrollment && isTrainee ? (
           <>
             {/* Modules Section */}
-            <Card className="mb-8 border-2 hover:border-primary/50 transition-all">
-              <CardHeader className="border-b bg-muted/30">
-                <CardTitle className="flex items-center text-xl font-bold">
-                  <Clock className="h-5 w-5 mr-2 text-primary" />
+            <Card className="mb-8 bg-muted/20 border-l-4 border-primary transition-all hover:shadow-md animate-fade-in-delay-1">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Clock className="h-5 w-5 mr-2" />
                   Course Modules
-                  {modules.length > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {modules.length}
-                    </Badge>
-                  )}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-3">
+              <CardContent className="space-y-4">
                 {modules.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-12">
-                    <FileText className="w-16 h-16 mx-auto mb-4 text-primary/30" />
-                    <p className="font-semibold text-lg">No modules yet</p>
+                  <div className="text-center text-muted-foreground py-8">
+                    <FileText className="w-12 h-12 mx-auto mb-4 text-primary/50" />
+                    <p className="font-semibold">No modules yet</p>
                     <p className="text-sm">Modules for this course will appear here.</p>
                   </div>
                 ) : (
-                  modules.map((module, index) => (
+                  modules.map((module) => (
                     <CourseModule
                       key={module.id}
                       id={module.id}
@@ -391,55 +379,51 @@ export default function CourseDetails() {
             </Card>
 
             {/* Assessments Section */}
-            <Card className="border-2 hover:border-primary/50 transition-all">
-              <CardHeader className="border-b bg-muted/30">
-                <CardTitle className="flex items-center text-xl font-bold">
-                  <Award className="h-5 w-5 mr-2 text-primary" />
+            <Card className="bg-muted/20 border-l-4 border-primary transition-all hover:shadow-md animate-fade-in-delay-2">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Award className="h-5 w-5 mr-2" />
                   Assessments
-                  {assessmentTemplates.length > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {assessmentTemplates.length}
-                    </Badge>
-                  )}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-3">
-                {assessmentTemplates.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-12">
-                    <Award className="w-16 h-16 mx-auto mb-4 text-primary/30" />
-                    <p className="font-semibold text-lg">No assessments yet</p>
-                    <p className="text-sm">Assessments for this course will appear here.</p>
-                  </div>
-                ) : (
-                  assessmentTemplates.map((template) => {
-                    const userAssessment = assessments.find(a => a.assessment_template_id === template.id);
-                    
-                    return (
-                      <CourseAssessment
-                        key={template.id}
-                        id={template.id}
-                        courseId={courseId!}
-                        employeeId={profile?.id}
-                        assessmentType={template.assessment_type}
-                        status={userAssessment?.status}
-                        totalScore={userAssessment?.total_score}
-                        percentage={userAssessment?.percentage}
-                        passingScore={template.passing_score}
-                        isMandatory={template.is_mandatory}
-                        grade={userAssessment?.grade}
-                        feedback={userAssessment?.feedback}
-                        certificateUrl={userAssessment?.certificate_url}
-                        completionDate={userAssessment?.completion_date}
-                        title={template.title}
-                        description={template.description}
-                        instructions={template.instructions}
-                        timeLimit={template.time_limit_minutes}
-                        onRetakeAssessment={isTrainee ? handleTakeAssessment : undefined}
-                        onMarkAsComplete={isTrainee ? handleMarkAsComplete : undefined}
-                      />
-                    );
-                  })
-                )}
+              <CardContent className="space-y-4">
+                  {assessmentTemplates.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8">
+                      <Award className="w-12 h-12 mx-auto mb-4 text-primary/50" />
+                      <p className="font-semibold">No assessments yet</p>
+                      <p className="text-sm">Assessments for this course will appear here.</p>
+                    </div>
+                  ) : (
+                    assessmentTemplates.map((template) => {
+                      // Find user's assessment result for this template
+                      const userAssessment = assessments.find(a => a.assessment_template_id === template.id);
+                      
+                      return (
+                        <CourseAssessment
+                          key={template.id}
+                          id={template.id}
+                          courseId={courseId!}
+                          employeeId={profile?.id}
+                          assessmentType={template.assessment_type}
+                          status={userAssessment?.status}
+                          totalScore={userAssessment?.total_score}
+                          percentage={userAssessment?.percentage}
+                          passingScore={template.passing_score}
+                          isMandatory={template.is_mandatory}
+                          grade={userAssessment?.grade}
+                          feedback={userAssessment?.feedback}
+                          certificateUrl={userAssessment?.certificate_url}
+                          completionDate={userAssessment?.completion_date}
+                          title={template.title}
+                          description={template.description}
+                          instructions={template.instructions}
+                          timeLimit={template.time_limit_minutes}
+                          onRetakeAssessment={isTrainee ? handleTakeAssessment : undefined}
+                          onMarkAsComplete={isTrainee ? handleMarkAsComplete : undefined}
+                        />
+                      );
+                    })
+                  )}
               </CardContent>
             </Card>
           </>
