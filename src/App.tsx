@@ -16,7 +16,6 @@ import Courses from "./pages/Courses";
 import CourseDetails from "./pages/CourseDetails";
 import ModuleViewer from "./pages/ModuleViewer";
 import CreateCourse from "./pages/CreateCourse";
-import EditCourse from "./pages/EditCourse";
 import CourseBuilder from "./pages/CourseBuilder";
 import AssessmentTaker from "./pages/AssessmentTaker";
 import Projects from "./pages/Projects";
@@ -68,8 +67,7 @@ const AuthenticatedApp = () => {
       <Route path="/courses" element={<Courses />} />
       <Route path="/courses/create" element={<CreateCourse />} />
       <Route path="/courses/:courseId" element={<CourseDetails />} />
-      <Route path="/courses/:courseId/edit" element={<EditCourse />} />
-      <Route path="/courses/:courseId/builder" element={<CourseBuilder />} />
+      <Route path="/courses/:courseId/edit" element={<CourseBuilder />} />
       <Route path="/courses/:courseId/modules/:moduleId" element={<ModuleViewer />} />
       <Route path="/courses/:courseId/assessments/:assessmentId" element={<AssessmentTaker />} />
       <Route path="/projects" element={<Projects />} />
