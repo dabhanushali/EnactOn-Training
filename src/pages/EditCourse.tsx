@@ -22,7 +22,7 @@ import {
   Settings,
   Upload,
   X,
-  DragHandleDots2Icon,
+  GripVertical,
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
@@ -605,7 +605,7 @@ export default function EditCourse() {
                             <div className="flex-1">
                               <div className="flex items-center gap-3 mb-2">
                                 <div className="flex items-center gap-2">
-                                  <DragHandleDots2Icon className="h-4 w-4 text-muted-foreground" />
+                                  <GripVertical className="h-4 w-4 text-muted-foreground" />
                                   <Badge variant="outline">Module {index + 1}</Badge>
                                 </div>
                                 <h4 className="font-medium">{module.module_name}</h4>
