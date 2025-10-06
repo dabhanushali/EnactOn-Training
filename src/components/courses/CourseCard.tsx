@@ -2,21 +2,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  Clock, 
-  Users, 
-  BookOpen, 
-  Trash2, 
-  Edit3, 
-  Play, 
-  Calendar,
-  Award,
-  CheckCircle2,
-  UserPlus,
-  Eye
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Clock, Users, BookOpen, Star, Trash2 } from 'lucide-react';
 
 interface CourseCardProps {
   id: string;
@@ -26,24 +12,13 @@ interface CourseCardProps {
   difficulty: string;
   duration?: string;
   enrolledCount?: number;
+  rating?: number;
   progress?: number;
   isEnrolled?: boolean;
   isMandatory?: boolean;
   isAdmin?: boolean;
-  instructor?: {
-    name: string;
-    avatar?: string;
-  };
-  completionRate?: number;
-  dueDate?: string;
-  moduleCount?: number;
-  estimatedTime?: string;
-  skillTags?: string[];
-  isNew?: boolean;
-  userRole?: string;
   onEnroll?: (courseId: string) => void;
   onViewDetails?: (courseId: string) => void;
-  onEdit?: (courseId: string) => void;
   onDelete?: (courseId: string) => void;
 }
 
@@ -55,258 +30,156 @@ export const CourseCard = ({
   difficulty,
   duration,
   enrolledCount = 0,
+  rating,
   progress,
   isEnrolled = false,
   isMandatory = false,
   isAdmin = false,
-  instructor,
-  completionRate,
-  dueDate,
-  moduleCount,
-  estimatedTime,
-  skillTags = [],
-  isNew = false,
-  userRole = 'Trainee',
   onEnroll,
   onViewDetails,
-  onEdit,
   onDelete,
 }: CourseCardProps) => {
   const getDifficultyColor = (level: string) => {
     switch (level.toLowerCase()) {
       case 'beginner':
-        return 'bg-green-100 text-green-800';
+        return 'bg-success/10 text-success border-success/30';
       case 'intermediate':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-warning/10 text-warning border-warning/30';
       case 'advanced':
-        return 'bg-red-100 text-red-800';
+        return 'bg-error/10 text-error border-error/30';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted/10 text-muted-foreground border-border';
     }
   };
 
   const getTypeColor = (courseType: string) => {
     switch (courseType.toLowerCase()) {
       case 'pre-joining':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-primary/10 text-primary border-primary/20';
       case 'onboarding':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-secondary/10 text-secondary-foreground border-secondary/20';
       case 'technical':
-        return 'bg-green-100 text-green-800';
-      case 'soft-skills':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-accent/10 text-accent-foreground border-accent/20';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted/10 text-muted-foreground border-border';
     }
   };
 
-  const isOverdue = dueDate && new Date(dueDate) < new Date();
-  const isTrainee = userRole === 'Trainee';
-
   return (
-    <Card className={cn(
-      "group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1",
-      isMandatory && "ring-2 ring-red-200",
-      isNew && "ring-2 ring-blue-200"
-    )}>
-      {/* Status Indicators */}
-      <div className="absolute top-3 right-3 flex flex-col gap-1 z-10">
-        {isNew && (
-          <Badge className="bg-blue-500 text-white text-xs">
-            New
-          </Badge>
-        )}
-        {isMandatory && (
-          <Badge className="bg-red-500 text-white text-xs">
-            Required
-          </Badge>
-        )}
-        {isOverdue && (
-          <Badge className="bg-orange-500 text-white text-xs">
-            Overdue
-          </Badge>
-        )}
-      </div>
-
-      <CardHeader className="pb-3">
-        {/* Course Type Badge */}
-        <div className="flex justify-between items-start mb-2">
-          <Badge variant="outline" className={getTypeColor(type)}>
+    <Card className="group relative overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-xl h-full flex flex-col">
+      {/* Decorative gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      
+      {/* Mandatory indicator */}
+      {isMandatory && (
+        <div className="absolute top-0 right-0 z-10">
+          <div className="bg-error text-error-foreground px-3 py-1 text-xs font-semibold rounded-bl-lg shadow-md">
+            MANDATORY
+          </div>
+        </div>
+      )}
+      
+      <CardHeader className="pb-3 relative z-10">
+        <div className="flex gap-2 mb-3 flex-wrap">
+          <Badge variant="outline" className={`${getTypeColor(type)} border`}>
             {type}
           </Badge>
-        </div>
-        
-        <CardTitle className="text-lg font-semibold leading-tight group-hover:text-primary transition-colors">
-          {title}
-        </CardTitle>
-        
-        <CardDescription className="text-sm line-clamp-2">
-          {description}
-        </CardDescription>
-
-        {/* Instructor Info */}
-        {instructor && (
-          <div className="flex items-center gap-2 mt-2">
-            <Avatar className="w-5 h-5">
-              <AvatarImage src={instructor.avatar} />
-              <AvatarFallback className="text-xs">
-                {instructor.name.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-xs text-muted-foreground">{instructor.name}</span>
-          </div>
-        )}
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* Course Metrics */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted rounded p-2">
-            <Clock className="w-3 h-3" />
-            <span>{estimatedTime || duration || 'Self-paced'}</span>
-          </div>
-          
-          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted rounded p-2">
-            <BookOpen className="w-3 h-3" />
-            <span>{moduleCount || 0} modules</span>
-          </div>
-          
-          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted rounded p-2">
-            <Users className="w-3 h-3" />
-            <span>{enrolledCount} enrolled</span>
-          </div>
-          
-          <Badge variant="outline" className={getDifficultyColor(difficulty)}>
+          <Badge variant="outline" className={`${getDifficultyColor(difficulty)} border`}>
             {difficulty}
           </Badge>
         </div>
+        
+        <CardTitle className="text-xl font-bold leading-tight group-hover:text-primary transition-colors line-clamp-2 min-h-[3rem]">
+          {title}
+        </CardTitle>
+        
+        <CardDescription className="text-sm text-muted-foreground line-clamp-3 min-h-[4rem] mt-2">
+          {description}
+        </CardDescription>
+      </CardHeader>
 
-        {/* Skill Tags */}
-        {skillTags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {skillTags.slice(0, 3).map((tag, index) => (
-              <Badge key={index} variant="secondary" className="text-xs">
-                {tag}
-              </Badge>
-            ))}
-            {skillTags.length > 3 && (
-              <Badge variant="secondary" className="text-xs">
-                +{skillTags.length - 3}
-              </Badge>
-            )}
-          </div>
-        )}
-
-        {/* Progress Section - Only for enrolled trainees */}
-        {isEnrolled && progress !== undefined && isTrainee && (
-          <div className="space-y-2 p-3 bg-muted/50 rounded">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">Progress</span>
-              <div className="flex items-center gap-1">
-                {progress >= 100 ? (
-                  <CheckCircle2 className="w-4 h-4 text-green-500" />
-                ) : null}
-                <span className="font-bold text-sm">
-                  {Math.round(progress || 0)}%
-                </span>
-              </div>
+      <CardContent className="space-y-4 flex-grow relative z-10">
+        {/* Course Meta */}
+        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+          {duration && (
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-primary" />
+              <span className="font-medium">{duration}</span>
             </div>
-            <Progress value={progress || 0} className="h-2" />
+          )}
+          
+          <div className="flex items-center gap-1.5">
+            <Users className="w-4 h-4 text-primary" />
+            <span className="font-medium">{enrolledCount}</span>
           </div>
-        )}
-
-        {/* Due Date Warning - Only for trainees */}
-        {dueDate && !isEnrolled && isTrainee && (
-          <div className="flex items-center gap-2 text-xs text-orange-600 bg-orange-50 rounded p-2">
-            <Calendar className="w-3 h-3" />
-            <span>Due: {new Date(dueDate).toLocaleDateString()}</span>
-          </div>
-        )}
-
-        {/* Completion Rate for Admins */}
-        {isAdmin && completionRate !== undefined && (
-          <div className="flex items-center justify-between text-xs bg-green-50 rounded p-2">
-            <div className="flex items-center gap-2">
-              <Award className="w-3 h-3 text-green-500" />
-              <span className="text-green-700">Completion Rate</span>
+          
+          {rating && (
+            <div className="flex items-center gap-1.5">
+              <Star className="w-4 h-4 fill-warning text-warning" />
+              <span className="font-medium">{rating.toFixed(1)}</span>
             </div>
-            <span className="font-bold text-green-600">{completionRate.toFixed(1)}%</span>
+          )}
+        </div>
+
+        {/* Progress bar for enrolled courses */}
+        {isEnrolled && progress !== undefined && (
+          <div className="space-y-2 pt-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground font-medium">Progress</span>
+              <span className="font-bold text-primary">{Math.round(progress)}%</span>
+            </div>
+            <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-muted">
+              <div 
+                className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500 ease-out rounded-full"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
         )}
       </CardContent>
 
-      <CardFooter className="pt-4 space-y-3">
-        {/* Primary Action Button */}
-        <div className="w-full">
-          {/* For Trainees */}
-          {isTrainee && !isEnrolled ? (
-            <Button
-              className="w-full"
-              onClick={() => onEnroll?.(id)}
-            >
-              <Play className="w-4 h-4 mr-2" />
-              {isMandatory ? 'Start Required Course' : 'Enroll Now'}
-            </Button>
-          ) : isTrainee && isEnrolled ? (
-            <Button
-              className="w-full"
-              onClick={() => onViewDetails?.(id)}
-            >
-              {progress && progress >= 100 ? (
-                <>
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  View Certificate
-                </>
-              ) : (
-                <>
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  Continue Learning
-                </>
-              )}
-            </Button>
-          ) : (
-            /* For Admins/HR/Management */
-            <Button
-              className="w-full"
-              onClick={() => onViewDetails?.(id)}
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              Assign to Employees
-            </Button>
-          )}
-        </div>
-
-        {/* Secondary Actions */}
+      <CardFooter className="pt-4 border-t bg-muted/30 relative z-10">
         <div className="flex w-full gap-2">
           <Button
             variant="outline"
             size="sm"
-            className="flex-1"
+            className="flex-1 hover:bg-primary hover:text-primary-foreground transition-colors"
             onClick={() => onViewDetails?.(id)}
           >
-            <Eye className="w-4 h-4 mr-1" />
-            {isAdmin ? 'Manage' : 'Details'}
+            <BookOpen className="w-4 h-4 mr-2" />
+            {isEnrolled ? 'Continue' : 'View'}
           </Button>
           
+          {!isEnrolled && !isAdmin && (
+            <Button
+              size="sm"
+              className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+              onClick={() => onEnroll?.(id)}
+            >
+              Enroll Now
+            </Button>
+          )}
+          
+          {!isEnrolled && isAdmin && (
+            <Button
+              size="sm"
+              className="flex-1"
+              onClick={() => onViewDetails?.(id)}
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Manage
+            </Button>
+          )}
+          
           {isAdmin && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onEdit?.(id)}
-              >
-                <Edit3 className="w-4 h-4" />
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onDelete?.(id)}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </>
+            <Button 
+              variant="destructive" 
+              size="icon" 
+              className="shrink-0"
+              onClick={() => onDelete?.(id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           )}
         </div>
       </CardFooter>

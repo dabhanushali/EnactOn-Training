@@ -1,12 +1,7 @@
-// DEPRECATED: This component has been replaced by EnhancedDepartmentPerformance.tsx
-// The new component provides better analytics, interactive charts, and improved UX
-// Please use EnhancedDepartmentPerformance instead for new implementations
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, TrendingUp, Award, Target, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Users, TrendingUp, Award, Target, CheckCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
 
 interface DepartmentStats {
   department: string;
@@ -22,10 +17,6 @@ interface DepartmentPerformanceCardProps {
   departments: DepartmentStats[];
 }
 
-/**
- * @deprecated This component has been replaced by EnhancedDepartmentPerformance
- * Use EnhancedDepartmentPerformance for better analytics and user experience
- */
 export const DepartmentPerformanceCard = ({ departments }: DepartmentPerformanceCardProps) => {
   const getPerformanceColor = (progress: number) => {
     if (progress >= 80) return 'text-success';
@@ -51,35 +42,12 @@ export const DepartmentPerformanceCard = ({ departments }: DepartmentPerformance
   return (
     <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Users className="h-5 w-5 text-primary" />
-            </div>
-            Department Performance Overview
-          </CardTitle>
-          <div className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm font-medium">
-            ⚠️ Legacy Component
+        <CardTitle className="flex items-center gap-2 text-xl">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Users className="h-5 w-5 text-primary" />
           </div>
-        </div>
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-blue-600 mt-0.5" />
-            <div>
-              <h4 className="font-medium text-blue-900 mb-1">Enhanced Version Available</h4>
-              <p className="text-sm text-blue-700">
-                This component has been replaced with <code className="bg-blue-100 px-1 rounded">EnhancedDepartmentPerformance</code> which provides:
-              </p>
-              <ul className="text-sm text-blue-700 mt-2 ml-4 list-disc">
-                <li>Interactive charts and analytics</li>
-                <li>Advanced filtering and sorting</li>
-                <li>Real-time performance tracking</li>
-                <li>Export capabilities</li>
-                <li>Better visual design and UX</li>
-              </ul>
-            </div>
-          </div>
-        </div>
+          Department Performance Overview
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {departments.length === 0 ? (

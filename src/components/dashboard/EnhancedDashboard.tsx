@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useNavigate } from 'react-router-dom';
-import { DepartmentPerformanceCard } from '@/components/dashboard/DepartmentPerformanceCard';
+import { TeamOverviewCard } from '@/components/dashboard/TeamOverviewCard';
 import {
   BookOpen,
   Users,
@@ -535,16 +535,18 @@ export const EnhancedDashboard = () => {
         </Card>
       </div>
 
-      {/* Analytics Section - Enhanced Department Performance */}
-      <DepartmentPerformanceCard departments={stats.departmentStats.map(dept => ({
-        department: dept.name,
-        totalEmployees: dept.employees || 0,
-        activeEmployees: dept.active || 0,
-        avgProgress: dept.progress || 0,
-        completedCourses: dept.completed || 0,
-        totalCourses: dept.total || 0,
-        topPerformer: dept.topPerformer
-      }))} />
+      {/* Analytics Section - Enhanced Team Overview */}
+      <TeamOverviewCard 
+        departmentStats={stats.departmentStats.map(dept => ({
+          department: dept.name,
+          totalEmployees: dept.employees || 0,
+          activeEmployees: dept.active || 0,
+          coursesCompleted: dept.completed || 0,
+          averageProgress: dept.progress || 0,
+          topPerformers: dept.topPerformer ? 1 : 0
+        }))} 
+        onViewDetails={(dept) => console.log('View details for:', dept)}
+      />
 
       <div className="grid gap-6 lg:grid-cols-1">
         <Card>
