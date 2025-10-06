@@ -5,9 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { 
   ArrowLeft, 
   ArrowRight,
@@ -17,16 +15,9 @@ import {
   Link as LinkIcon, 
   Download,
   Play,
-  Pause,
   BookOpen,
   CheckCircle2,
-  Target,
-  Award,
-  Users,
-  Eye,
-  MessageSquare,
-  Share,
-  Bookmark
+  Eye
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/auth-utils';
@@ -47,7 +38,6 @@ export default function ModuleViewer() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [readingTime, setReadingTime] = useState(0);
   const [startTime, setStartTime] = useState(Date.now());
-  const [activeTab, setActiveTab] = useState('content');
 
   const fetchModuleData = useCallback(async () => {
     if (courseId && moduleId && profile?.id) {
@@ -362,49 +352,152 @@ export default function ModuleViewer() {
             </CardContent>
           </Card>
         )}
+      </div>
+    );
+  };
 
-        {/* Module Navigation and Completion */}
-        <div className="sticky bottom-0 bg-background/80 backdrop-blur-sm border-t p-4 mt-8">
-          <Card className="border-0 shadow-xl">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  {/* Module Navigation */}
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handlePreviousModule}
-                      disabled={currentModuleIndex <= 0}
-                    >
-                      <ArrowLeft className="w-4 h-4 mr-2" />
-                      Previous
-                    </Button>
-                    <div className="px-3 py-2 bg-muted rounded-lg">
-                      <span className="text-sm font-medium">
-                        Module {currentModuleIndex + 1} of {allModules.length}
-                      </span>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <MainNav />
+        <main className="max-w-6xl mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-muted rounded w-1/3"></div>
+            <div className="h-64 bg-muted rounded-lg"></div>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="h-48 bg-muted rounded-lg"></div>
+              <div className="h-48 bg-muted rounded-lg"></div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!module || !course) {
+    return (
+      <div className="min-h-screen bg-background">
+        <MainNav />
+        <main className="max-w-6xl mx-auto px-4 py-8">
+          <Button variant="ghost" onClick={() => navigate(`/courses/${courseId}`)} className="mb-6">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Course
+          </Button>
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">Module not found</p>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  const ContentIcon = getContentIcon(module.content_type);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
+      <MainNav />
+      
+      <main className="max-w-6xl mx-auto px-4 py-8">
+        <Button variant="ghost" onClick={() => navigate(`/courses/${courseId}`)} className="mb-6 hover:bg-muted/50">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to {course.course_name}
+        </Button>
+
+        <div className="grid gap-8 lg:grid-cols-4">
+          {/* Main Content Area */}
+          <div className="lg:col-span-3 space-y-8">
+            {/* Module Header */}
+            <Card className="border-0 shadow-lg overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm">
+                        <ContentIcon className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-2xl font-bold">{module.module_name}</CardTitle>
+                        <div className="flex items-center gap-3 mt-2">
+                          <Badge variant="secondary" className="bg-white/20 border-white/30 text-white">
+                            Module {module.module_order}
+                          </Badge>
+                          <Badge variant="secondary" className="bg-white/20 border-white/30 text-white">
+                            {module.content_type}
+                          </Badge>
+                          {module.estimated_duration_minutes && (
+                            <Badge variant="secondary" className="bg-white/20 border-white/30 text-white">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {module.estimated_duration_minutes} min
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleNextModule}
-                      disabled={currentModuleIndex >= allModules.length - 1}
-                    >
-                      Next
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
+                    {module.module_description && (
+                      <p className="text-white/90 leading-relaxed">{module.module_description}</p>
+                    )}
                   </div>
-
-                  {/* Reading Time */}
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="w-4 h-4" />
-                    <span>Time spent: {formatTime(readingTime)}</span>
+                  
+                  {/* Reading Stats */}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 min-w-[200px] text-center">
+                    <div className="text-2xl font-bold text-white mb-1">
+                      {formatTime(readingTime)}
+                    </div>
+                    <p className="text-white/80 text-sm">Time Spent</p>
                   </div>
                 </div>
+              </CardHeader>
+            </Card>
 
-                {/* Completion Button */}
-                <div className="flex items-center gap-3">
+            {/* Module Content */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center text-xl">
+                  <ContentIcon className="h-6 w-6 mr-3 text-primary" />
+                  Module Content
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-8">
+                {renderContent()}
+              </CardContent>
+            </Card>
+
+            {/* Module Navigation and Completion */}
+            <Card className="border-0 shadow-xl sticky bottom-4">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    {/* Module Navigation */}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePreviousModule}
+                        disabled={currentModuleIndex <= 0}
+                      >
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Previous
+                      </Button>
+                      <div className="px-3 py-2 bg-muted rounded-lg">
+                        <span className="text-sm font-medium">
+                          Module {currentModuleIndex + 1} of {allModules.length}
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleNextModule}
+                        disabled={currentModuleIndex >= allModules.length - 1}
+                      >
+                        Next
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Completion Button */}
                   <Button
                     onClick={handleMarkComplete}
                     disabled={isCompleted}
@@ -419,72 +512,72 @@ export default function ModuleViewer() {
                     {isCompleted ? 'Completed ✓' : 'Mark as Complete'}
                   </Button>
                 </div>
-              </div>
 
-              {/* Module Progress Bar */}
-              <div className="mt-4">
-                <div className="flex justify-between text-sm text-muted-foreground mb-2">
-                  <span>Course Progress</span>
-                  <span>{currentModuleIndex + 1} / {allModules.length} modules</span>
-                </div>
-                <Progress value={((currentModuleIndex + 1) / allModules.length) * 100} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Module List Sidebar */}
-        <div className="fixed right-4 top-1/2 transform -translate-y-1/2 z-50 hidden xl:block">
-          <Card className="w-80 max-h-96 overflow-hidden border-0 shadow-2xl">
-            <CardHeader className="bg-gradient-to-r from-primary to-primary/80 text-white">
-              <CardTitle className="flex items-center text-lg">
-                <BookOpen className="w-5 h-5 mr-2" />
-                Course Modules
-              </CardTitle>
-            </CardHeader>
-            <ScrollArea className="h-80">
-              <CardContent className="p-0">
-                <div className="space-y-1 p-2">
-                  {allModules.map((mod, index) => {
-                    const ContentIcon = getContentIcon(mod.module_type);
-                    const isCurrent = mod.id === moduleId;
-                    
-                    return (
-                      <Button
-                        key={mod.id}
-                        variant={isCurrent ? "default" : "ghost"}
-                        size="sm"
-                        className={cn(
-                          "w-full justify-start h-auto p-3 transition-all duration-200",
-                          isCurrent && "bg-primary text-white shadow-md"
-                        )}
-                        onClick={() => navigate(`/courses/${courseId}/modules/${mod.id}`)}
-                      >
-                        <div className="flex items-start gap-3 w-full">
-                          <div className={cn(
-                            "p-1.5 rounded-md flex-shrink-0",
-                            isCurrent ? "bg-white/20" : "bg-muted"
-                          )}>
-                            <ContentIcon className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1 text-left">
-                            <div className="font-medium text-sm truncate">
-                              {index + 1}. {mod.module_name}
-                            </div>
-                            {mod.estimated_duration_minutes && (
-                              <div className="text-xs opacity-70 mt-1">
-                                {mod.estimated_duration_minutes} min
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </Button>
-                    );
-                  })}
+                {/* Module Progress Bar */}
+                <div>
+                  <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                    <span>Course Progress</span>
+                    <span>{currentModuleIndex + 1} / {allModules.length} modules</span>
+                  </div>
+                  <Progress value={((currentModuleIndex + 1) / allModules.length) * 100} className="h-2" />
                 </div>
               </CardContent>
-            </ScrollArea>
-          </Card>
+            </Card>
+          </div>
+
+          {/* Module Sidebar */}
+          <div className="lg:col-span-1">
+            <Card className="border-0 shadow-lg sticky top-8">
+              <CardHeader className="bg-gradient-to-r from-primary to-primary/80 text-white">
+                <CardTitle className="flex items-center text-lg">
+                  <BookOpen className="w-5 h-5 mr-2" />
+                  Course Modules
+                </CardTitle>
+              </CardHeader>
+              <ScrollArea className="h-96">
+                <CardContent className="p-0">
+                  <div className="space-y-1 p-2">
+                    {allModules.map((mod, index) => {
+                      const ModuleIcon = getContentIcon(mod.module_type);
+                      const isCurrent = mod.id === moduleId;
+                      
+                      return (
+                        <Button
+                          key={mod.id}
+                          variant={isCurrent ? "default" : "ghost"}
+                          size="sm"
+                          className={cn(
+                            "w-full justify-start h-auto p-3 transition-all duration-200",
+                            isCurrent && "bg-primary text-white shadow-md"
+                          )}
+                          onClick={() => navigate(`/courses/${courseId}/modules/${mod.id}`)}
+                        >
+                          <div className="flex items-start gap-3 w-full">
+                            <div className={cn(
+                              "p-1.5 rounded-md flex-shrink-0",
+                              isCurrent ? "bg-white/20" : "bg-muted"
+                            )}>
+                              <ModuleIcon className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1 text-left">
+                              <div className="font-medium text-sm truncate">
+                                {index + 1}. {mod.module_name}
+                              </div>
+                              {mod.estimated_duration_minutes && (
+                                <div className="text-xs opacity-70 mt-1">
+                                  {mod.estimated_duration_minutes} min
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </ScrollArea>
+            </Card>
+          </div>
         </div>
       </main>
     </div>
