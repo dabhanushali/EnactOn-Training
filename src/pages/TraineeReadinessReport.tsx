@@ -18,6 +18,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/auth-utils';
 import { AccessDenied } from '@/components/common/AccessDenied';
+import { UserRoleOptions } from '@/lib/enums';
 
 interface ReadinessSummary {
     overall_readiness_score: number;
@@ -80,6 +81,9 @@ interface Employee {
     last_name: string;
     department: string;
     designation: string;
+    role: {
+        role_name: string;
+    } | null;
 }
 
 const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -88,23 +92,44 @@ export default function TraineeReadinessReport() {
     const { profile } = useAuth();
     const [selectedTraineeId, setSelectedTraineeId] = useState<string>('');
     const [open, setOpen] = useState(false);
+    const [selectedDepartment, setSelectedDepartment] = useState<string>('');
+    const [selectedRole, setSelectedRole] = useState<string>('');
 
     const canViewReports = ['Management', 'HR', 'Team Lead'].includes(profile?.role?.role_name || '');
 
     // Fetch all employees for selection
     const { data: employees = [], isLoading: employeesLoading } = useQuery({
-        queryKey: ['employees'],
+        queryKey: ['employees', profile?.department], // Re-run if department changes for Team Lead
         queryFn: async () => {
             if (!canViewReports) return [];
-            const { data, error } = await supabase
+
+            let query = supabase
                 .from('profiles')
-                .select('id, first_name, last_name, department, designation')
-                .order('first_name');
+                .select('id, first_name, last_name, department, designation, role:roles(role_name)');
+
+            if (profile?.role?.role_name === 'Team Lead') {
+                query = query.eq('department', profile.department);
+            }
+
+            const { data, error } = await query.order('first_name');
+            
             if (error) throw error;
             return data as Employee[];
         },
         enabled: canViewReports,
     });
+
+    const departments = useMemo(() => 
+        [...new Set(employees.map(e => e.department).filter(Boolean))].sort(), 
+        [employees]
+    );
+
+    const filteredEmployees = useMemo(() => {
+        return employees.filter(emp => 
+            (selectedDepartment ? emp.department === selectedDepartment : true) &&
+            (selectedRole ? emp.role?.role_name === selectedRole : true)
+        );
+    }, [employees, selectedDepartment, selectedRole]);
 
     // Fetch readiness data for selected trainee
     const { data: readinessData, isLoading: readinessLoading, error } = useQuery({
@@ -190,6 +215,68 @@ export default function TraineeReadinessReport() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                {/* Department Filter */}
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" className="w-full justify-between">
+                                            {selectedDepartment || "Select Department"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Search department..." />
+                                            <CommandEmpty>No department found.</CommandEmpty>
+                                            <CommandGroup>
+                                                <CommandItem onSelect={() => setSelectedDepartment('')}>All Departments</CommandItem>
+                                                {departments.map((dept) => (
+                                                    <CommandItem
+                                                        key={dept}
+                                                        value={dept}
+                                                        onSelect={(currentValue) => {
+                                                            setSelectedDepartment(currentValue === selectedDepartment ? '' : currentValue);
+                                                        }}
+                                                    >
+                                                        {dept}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+
+                                {/* Role Filter */}
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" className="w-full justify-between">
+                                            {selectedRole || "Select Role"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Search role..." />
+                                            <CommandEmpty>No role found.</CommandEmpty>
+                                            <CommandGroup>
+                                                <CommandItem onSelect={() => setSelectedRole('')}>All Roles</CommandItem>
+                                                {UserRoleOptions.map((role) => (
+                                                    <CommandItem
+                                                        key={role}
+                                                        value={role}
+                                                        onSelect={(currentValue) => {
+                                                            setSelectedRole(currentValue === selectedRole ? '' : currentValue);
+                                                        }}
+                                                    >
+                                                        {role}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+
                             <Popover open={open} onOpenChange={setOpen}>
                                 <PopoverTrigger asChild>
                                     <Button
@@ -199,18 +286,27 @@ export default function TraineeReadinessReport() {
                                         className="w-full justify-between bg-white/50"
                                     >
                                         {selectedTraineeId
-                                            ? employees.find((emp) => emp.id === selectedTraineeId)?.first_name + ' ' + 
-                                              employees.find((emp) => emp.id === selectedTraineeId)?.last_name
+                                            ? filteredEmployees.find((emp) => emp.id === selectedTraineeId)?.first_name + ' ' + 
+                                              filteredEmployees.find((emp) => emp.id === selectedTraineeId)?.last_name
                                             : "Select trainee..."}
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-full p-0">
-                                    <Command>
+                                    <Command
+                                        filter={(value, search) => {
+                                            const employee = filteredEmployees.find((emp) => emp.id === value);
+                                            if (!employee) return 0;
+
+                                            const searchableContent = 
+                                                `${employee.first_name} ${employee.last_name} ${employee.designation} ${employee.department}`.toLowerCase();
+                                            
+                                            return searchableContent.includes(search.toLowerCase()) ? 1 : 0;
+                                        }}>
                                         <CommandInput placeholder="Search trainee..." />
                                         <CommandEmpty>No trainee found.</CommandEmpty>
                                         <CommandGroup>
-                                            {employees.map((employee) => (
+                                            {filteredEmployees.map((employee) => (
                                                 <CommandItem
                                                     key={employee.id}
                                                     value={employee.id}

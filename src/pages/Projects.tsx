@@ -210,6 +210,7 @@ export default function Projects() {
             completedProjects={isManager ? completedProjects : submitted}
             pendingEvaluations={isManager ? (projects as Project[]).filter((p: Project) => p.status === 'Submitted').length : 0}
             userRole={profile?.role?.role_name || 'Trainee'}
+            onProjectCreated={fetchProjects}
           />
         </div>
 
@@ -237,10 +238,16 @@ export default function Projects() {
                   {isManager ? 'No projects created yet' : 'No projects assigned'}
                 </h3>
                 <p className="text-muted-foreground">
-                  {isManager 
-                    ? 'Create your first project to get started.' 
-                    : 'Check back later for new project assignments.'
-                  }
+                  {isManager ? (
+                    <CreateProjectDialog onProjectCreated={fetchProjects}>
+                      <Button variant="outline" className="mt-4 gap-2">
+                        <Plus className="h-5 w-5" />
+                        Create your first project
+                      </Button>
+                    </CreateProjectDialog>
+                  ) : (
+                    'Check back later for new project assignments.'
+                  )}
                 </p>
               </div>
             ) : (

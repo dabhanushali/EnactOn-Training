@@ -6,6 +6,7 @@ import {
   Clock, AlertCircle, TrendingUp 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { CreateProjectDialog } from './CreateProjectDialog';
 
 interface ProjectQuickActionsProps {
   totalProjects: number;
@@ -13,6 +14,7 @@ interface ProjectQuickActionsProps {
   completedProjects: number;
   pendingEvaluations?: number;
   userRole: string;
+  onProjectCreated: () => void;
 }
 
 export const ProjectQuickActions = ({ 
@@ -20,7 +22,8 @@ export const ProjectQuickActions = ({
   activeProjects, 
   completedProjects,
   pendingEvaluations = 0,
-  userRole 
+  userRole, 
+  onProjectCreated
 }: ProjectQuickActionsProps) => {
   const navigate = useNavigate();
   const canManage = ['Management', 'HR', 'Team Lead'].includes(userRole);
@@ -107,8 +110,7 @@ export const ProjectQuickActions = ({
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-0 shadow-md bg-gradient-to-br from-violet-50 to-white hover:shadow-lg transition-all cursor-pointer"
-                onClick={() => navigate('/projects')}>
+          <Card className="border-0 shadow-md bg-gradient-to-br from-violet-50 to-white hover:shadow-lg transition-all">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 rounded-xl bg-primary/10">
@@ -119,13 +121,15 @@ export const ProjectQuickActions = ({
                 </Badge>
               </div>
               <div className="space-y-2">
-                <Button 
-                  className="w-full bg-primary hover:bg-primary/90" 
-                  size="lg"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Project
-                </Button>
+                <CreateProjectDialog onProjectCreated={onProjectCreated}>
+                  <Button 
+                    className="w-full bg-primary hover:bg-primary/90" 
+                    size="lg"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Project
+                  </Button>
+                </CreateProjectDialog>
               </div>
             </CardContent>
           </Card>

@@ -10,6 +10,18 @@ import { CourseEnrollment } from '@/components/courses/CourseEnrollment';
 import { CourseAssessment } from '@/components/courses/CourseAssessment';
 import { ArrowLeft, Clock, Users, BookOpen, Award, Edit, UserPlus, Settings, CheckCircle, Target, FileText } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/auth-utils';
 import { useToast } from '@/hooks/use-toast';
@@ -275,15 +287,30 @@ export default function CourseDetails() {
               
               <div className="flex flex-col gap-2">
                 {enrollment && isTrainee && (
-                  <Button 
-                    onClick={handleMarkCourseComplete} 
-                    disabled={isCompleted} 
-                    size="lg"
-                    className="gap-2"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    {isCompleted ? 'Completed' : 'Mark Complete'}
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        disabled={isCompleted} 
+                        size="lg"
+                        className="gap-2"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        {isCompleted ? 'Completed' : 'Mark Complete'}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Marking this course as complete is final. You may not be able to take the assessments again.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleMarkCourseComplete}>Continue</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
                 {canManageCourses && (
                   <div className="flex gap-2">
@@ -449,6 +476,7 @@ export default function CourseDetails() {
                           timeLimit={template.time_limit_minutes}
                           onRetakeAssessment={isTrainee ? handleTakeAssessment : undefined}
                           onMarkAsComplete={isTrainee ? handleMarkAsComplete : undefined}
+                          isCourseCompleted={isCompleted}
                         />
                       );
                     })

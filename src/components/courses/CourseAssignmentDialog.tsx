@@ -29,13 +29,14 @@ interface CourseAssignmentDialogProps {
 }
 
 export function CourseAssignmentDialog({ courseId, courseName, onClose }: CourseAssignmentDialogProps) {
-  const { user } = useAuth();
+  const { user, profile: userProfile } = useAuth();
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState(false);
+  const [unassigning, setUnassigning] = useState<{[key: string]: boolean}>({});
   const [enrolledEmployees, setEnrolledEmployees] = useState<string[]>([]);
 
   const fetchEmployees = useCallback(async () => {
@@ -161,6 +162,34 @@ export function CourseAssignmentDialog({ courseId, courseName, onClose }: Course
     }
   };
 
+  const handleUnassign = async (employeeId: string) => {
+    setUnassigning(prev => ({ ...prev, [employeeId]: true }));
+    try {
+      const { error } = await supabase
+        .from('course_enrollments')
+        .delete()
+        .match({ course_id: courseId, employee_id: employeeId });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Course unassigned successfully.",
+      });
+
+      setEnrolledEmployees(prev => prev.filter(id => id !== employeeId));
+    } catch (error) {
+      console.error('Error unassigning course:', error);
+      toast({
+        title: "Error",
+        description: "Failed to unassign course. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUnassigning(prev => ({ ...prev, [employeeId]: false }));
+    }
+  };
+
   const availableEmployees = filteredEmployees.filter(emp => !enrolledEmployees.includes(emp.id));
 
   return (
@@ -236,9 +265,21 @@ export function CourseAssignmentDialog({ courseId, courseName, onClose }: Course
                           {employee.first_name} {employee.last_name}
                         </h4>
                         {isEnrolled && (
-                          <Badge variant="outline" className="text-xs">
-                            Already Enrolled
-                          </Badge>
+                          userProfile && userProfile.role && ['Management', 'HR', 'Team Lead'].includes(userProfile.role.role_name) ? (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleUnassign(employee.id)}
+                              disabled={unassigning[employee.id]}
+                              className="text-xs"
+                            >
+                              {unassigning[employee.id] ? 'Unassigning...' : 'Unassign'}
+                            </Button>
+                          ) : (
+                            <Badge variant="outline" className="text-xs">
+                              Already Enrolled
+                            </Badge>
+                          )
                         )}
                       </div>
                       

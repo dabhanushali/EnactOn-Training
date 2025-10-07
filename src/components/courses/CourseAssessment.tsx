@@ -25,6 +25,7 @@ interface CourseAssessmentProps {
   onViewCertificate?: (certificateUrl: string) => void;
   onMarkAsComplete?: (assessmentId: string) => void;
   instructions?: string;
+  isCourseCompleted?: boolean;
 }
 
 export const CourseAssessment = ({
@@ -46,6 +47,7 @@ export const CourseAssessment = ({
   onViewCertificate,
   onMarkAsComplete,
   instructions,
+  isCourseCompleted,
 }: CourseAssessmentProps) => {
   const isPassed = percentage >= passingScore;
   const isCompleted = status === 'Completed';
@@ -208,6 +210,7 @@ export const CourseAssessment = ({
             size="sm"
             className="flex-1"
             onClick={() => onRetakeAssessment?.(id)}
+            disabled={isCourseCompleted}
           >
             Start Assessment
           </Button>
@@ -218,6 +221,7 @@ export const CourseAssessment = ({
               variant="outline" 
               className="flex-1"
               onClick={() => onRetakeAssessment?.(id)}
+              disabled={isCourseCompleted}
             >
               Retake Assessment
             </Button>
