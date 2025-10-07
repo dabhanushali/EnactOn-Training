@@ -153,31 +153,47 @@ export const EnhancedDashboard = () => {
 
       } else if (userRoleName === UserRoles.TEAM_LEAD) {
         // Team Lead Dashboard - Focus on their team
-        const [teamMembersResult, createdCoursesResult, assignedProjectsResult, upcomingSessionsResult] = await Promise.all([
+        const [teamMembersResult, upcomingSessionsResult] = await Promise.all([
           supabase.from('profiles').select('id, first_name, last_name').eq('manager_id', userId),
-          supabase.from('courses').select('*', { count: 'exact', head: true }).eq('created_by', userId),
-          supabase.from('project_assignments').select('*', { count: 'exact', head: true }).eq('assigned_by', userId),
           supabase.from('training_sessions').select('*').eq('trainer_id', userId).gte('start_datetime', new Date().toISOString()).limit(5)
         ]);
 
         const teamMembers = teamMembersResult.data || [];
         const myTeamSize = teamMembers.length;
-        const totalCourses = createdCoursesResult.count || 0;
-        const totalProjects = assignedProjectsResult.count || 0;
         const upcomingSessions = upcomingSessionsResult.data?.length || 0;
 
-        // Get team's course completion rate
+        // Get team's course completion rate and active courses
         const teamMemberIds = teamMembers.map(m => m.id);
+        let totalCourses = 0;
+        let totalProjects = 0;
+        let teamCompletionRate = 0;
+        
         if (teamMemberIds.length > 0) {
+          // Get team enrollments
           const { data: teamEnrollments } = await supabase
             .from('course_enrollments')
-            .select('status')
+            .select('status, course_id')
             .in('employee_id', teamMemberIds);
 
           const teamCompleted = teamEnrollments?.filter(e => e.status === 'completed').length || 0;
-          const teamCompletionRate = teamEnrollments && teamEnrollments.length > 0 
+          teamCompletionRate = teamEnrollments && teamEnrollments.length > 0 
             ? (teamCompleted / teamEnrollments.length) * 100 
             : 0;
+          
+          // Count unique courses team is enrolled in
+          const uniqueCourseIds = new Set(teamEnrollments?.map(e => e.course_id) || []);
+          totalCourses = uniqueCourseIds.size;
+
+          // Get active projects for team members
+          const { data: teamProjects } = await supabase
+            .from('project_assignments')
+            .select('project_id, status')
+            .in('assignee_id', teamMemberIds)
+            .in('status', ['Not_Started', 'In_Progress', 'Submitted']);
+
+          // Count unique active projects
+          const uniqueProjectIds = new Set(teamProjects?.map(p => p.project_id) || []);
+          totalProjects = uniqueProjectIds.size;
 
           // Get pending evaluations
           const { data: pendingEvals } = await supabase
@@ -364,7 +380,7 @@ export const EnhancedDashboard = () => {
                 <div className="p-2 rounded-full bg-primary/10">
                   <BookOpen className="h-4 w-4 text-primary" />
                 </div>
-                <span className="font-medium">Created Courses</span>
+                <span className="font-medium">Team Courses</span>
               </div>
               <Badge variant="secondary">{stats.totalCourses}</Badge>
             </div>
