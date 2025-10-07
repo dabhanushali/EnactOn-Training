@@ -250,56 +250,80 @@ export default function CourseDetails() {
         </Button>
 
         {/* Course Header */}
-        <Card className="mb-8 shadow-lg bg-gradient-to-r from-primary to-primary/90 text-primary-foreground animate-fade-in">
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="text-3xl mb-2">{course.course_name}</CardTitle>
-                <div className="flex items-center gap-2 mb-4">
-                  <Badge variant={course.is_mandatory ? 'destructive' : 'secondary'}>
-                    {course.is_mandatory ? 'Mandatory' : 'Optional'}
-                  </Badge>
-                  <Badge variant="secondary">{course.difficulty_level}</Badge>
-                  {course.course_type && (
-                    <Badge variant="secondary">{course.course_type}</Badge>
-                  )}
+        <Card className="mb-8 shadow-lg border-none overflow-hidden">
+          <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8">
+            <div className="flex items-start justify-between mb-6">
+              <div className="space-y-4 flex-1">
+                <div>
+                  <CardTitle className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                    {course.course_name}
+                  </CardTitle>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge 
+                      variant={course.is_mandatory ? 'destructive' : 'secondary'}
+                      className="text-xs px-3 py-1"
+                    >
+                      {course.is_mandatory ? 'Mandatory' : 'Optional'}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs px-3 py-1">{course.difficulty_level}</Badge>
+                    {course.course_type && (
+                      <Badge variant="outline" className="text-xs px-3 py-1">{course.course_type}</Badge>
+                    )}
+                  </div>
                 </div>
               </div>
               
-              <div className="flex items-center space-x-2">
-                {/* Only show trainee-specific actions for trainees */}
+              <div className="flex flex-col gap-2">
                 {enrollment && isTrainee && (
-                  <Button onClick={handleMarkCourseComplete} disabled={isCompleted} variant="secondary">
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    {isCompleted ? 'Completed' : 'Mark as Complete'}
+                  <Button 
+                    onClick={handleMarkCourseComplete} 
+                    disabled={isCompleted} 
+                    size="lg"
+                    className="gap-2"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    {isCompleted ? 'Completed' : 'Mark Complete'}
                   </Button>
                 )}
-                {/* Management actions for admins */}
                 {canManageCourses && (
-                  <>
+                  <div className="flex gap-2">
                     <Button
-                      variant="secondary"
+                      variant="outline"
                       size="sm"
                       onClick={() => navigate(`/courses/${courseId}/edit`)}
+                      className="gap-2"
                     >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Course
+                      <Edit className="h-4 w-4" />
+                      Edit
                     </Button>
                     <Button
-                      variant="secondary"
+                      variant="default"
                       size="sm"
                       onClick={() => setShowAssignmentDialog(true)}
+                      className="gap-2"
                     >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Assign to Employees
+                      <UserPlus className="h-4 w-4" />
+                      Assign
                     </Button>
-                  </>
+                  </div>
                 )}
-                <BookOpen className="h-8 w-8 text-secondary" />
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="bg-background text-foreground">
+
+            <p className="text-muted-foreground leading-relaxed mb-6">{course.course_description}</p>
+            
+            {course.learning_objectives && (
+              <div className="bg-background/80 backdrop-blur-sm rounded-lg p-4 border">
+                <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm">
+                  <Target className="w-4 h-4 text-primary"/>
+                  Learning Objectives
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{course.learning_objectives}</p>
+              </div>
+            )}
+          </div>
+
+          <CardContent className="pt-6">
             <p className="text-muted-foreground mb-6">{course.course_description}</p>
             
             {course.learning_objectives && (
@@ -344,36 +368,41 @@ export default function CourseDetails() {
         {enrollment && isTrainee ? (
           <>
             {/* Modules Section */}
-            <Card className="mb-8 bg-muted/20 border-l-4 border-primary transition-all hover:shadow-md animate-fade-in-delay-1">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Clock className="h-5 w-5 mr-2" />
+            <Card className="mb-8 border-l-4 border-l-primary">
+              <CardHeader className="bg-primary/5">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <BookOpen className="h-5 w-5 text-primary" />
+                  </div>
                   Course Modules
+                  <Badge variant="secondary" className="ml-2">{modules.length}</Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="pt-6">
                 {modules.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-8">
-                    <FileText className="w-12 h-12 mx-auto mb-4 text-primary/50" />
-                    <p className="font-semibold">No modules yet</p>
-                    <p className="text-sm">Modules for this course will appear here.</p>
+                  <div className="text-center text-muted-foreground py-12 bg-muted/30 rounded-lg">
+                    <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
+                    <p className="font-semibold text-lg mb-1">No modules yet</p>
+                    <p className="text-sm">Course modules will appear here once added.</p>
                   </div>
                 ) : (
-                  modules.map((module) => (
-                    <CourseModule
-                      key={module.id}
-                      id={module.id}
-                      name={module.module_name}
-                      description={module.module_description}
-                      order={module.module_order}
-                      contentType={module.content_type}
-                      contentUrl={module.content_url}
-                      contentPath={module.content_path}
-                      estimatedDuration={module.estimated_duration_minutes}
-                      onStartModule={isTrainee ? handleStartModule : handleViewContent}
-                      onViewContent={handleViewContent}
-                    />
-                  ))
+                  <div className="grid gap-4">
+                    {modules.map((module, index) => (
+                      <CourseModule
+                        key={module.id}
+                        id={module.id}
+                        name={module.module_name}
+                        description={module.module_description}
+                        order={module.module_order}
+                        contentType={module.content_type}
+                        contentUrl={module.content_url}
+                        contentPath={module.content_path}
+                        estimatedDuration={module.estimated_duration_minutes}
+                        onStartModule={isTrainee ? handleStartModule : handleViewContent}
+                        onViewContent={handleViewContent}
+                      />
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>

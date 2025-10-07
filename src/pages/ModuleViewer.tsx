@@ -119,37 +119,55 @@ export default function ModuleViewer() {
     return (
       <div className="space-y-6">
         {primaryUrl ? (
-          <div className="rounded-lg border p-4 bg-muted/30">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <LinkIcon className="w-4 h-4 text-primary" />
-                <span className="font-medium">Primary Content</span>
+          <Card className="border-2 border-primary/20 bg-primary/5">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <LinkIcon className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-lg">Primary Content</span>
+                    <p className="text-sm text-muted-foreground">Click to access the main learning material</p>
+                  </div>
+                </div>
+                <Button asChild size="lg" className="gap-2">
+                  <a href={primaryUrl} target="_blank" rel="noopener noreferrer">
+                    <LinkIcon className="w-4 h-4" />
+                    Open Content
+                  </a>
+                </Button>
               </div>
-              <Button asChild>
-                <a href={primaryUrl} target="_blank" rel="noopener noreferrer">Open Link</a>
-              </Button>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         ) : (
-          <div className="text-center py-12 bg-muted/50 rounded-lg">
-            <p className="text-muted-foreground">No primary content for this module.</p>
+          <div className="text-center py-16 bg-muted/50 rounded-lg border-2 border-dashed">
+            <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
+            <p className="text-muted-foreground text-lg font-medium">No primary content available</p>
+            <p className="text-sm text-muted-foreground/70">Content will be added soon</p>
           </div>
         )}
 
         {additionalLinks.length > 0 && (
           <div>
-            <h3 className="text-lg font-semibold mb-3">Additional Resources</h3>
-            <div className="space-y-2">
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <LinkIcon className="w-5 h-5 text-primary" />
+              Additional Resources
+            </h3>
+            <div className="grid gap-3">
               {additionalLinks.map((link, index) => (
-                <Card key={index}>
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <LinkIcon className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-medium">{link.name}</span>
+                <Card key={index} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-5 flex items-center justify-between gap-4">
+                    <div className="flex items-center space-x-3 flex-1">
+                      <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                        <LinkIcon className="w-4 h-4 text-primary" />
+                      </div>
+                      <span className="font-medium text-base">{link.name}</span>
                     </div>
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline" size="sm" className="gap-2">
                       <a href={link.url} target="_blank" rel="noopener noreferrer">
-                        Open Link
+                        <LinkIcon className="w-3 h-3" />
+                        Open
                       </a>
                     </Button>
                   </CardContent>
@@ -225,55 +243,64 @@ export default function ModuleViewer() {
   const ContentIcon = getContentIcon(module.content_type);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background">
       <MainNav />
       
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate(`/courses/${courseId}`)} className="mb-6">
-          <ArrowLeft className="h-4 w-4 mr-2" />
+      <main className="max-w-5xl mx-auto px-4 py-8">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate(`/courses/${courseId}`)} 
+          className="mb-6 gap-2 hover:gap-3 transition-all"
+        >
+          <ArrowLeft className="h-4 w-4" />
           Back to {course.course_name}
         </Button>
 
         {/* Module Header */}
-        <Card className="mb-8">
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="text-2xl mb-2">{module.module_name}</CardTitle>
+        <Card className="mb-8 border-none shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8">
+            <div className="flex items-start justify-between gap-6 mb-4">
+              <div className="flex-1">
                 <div className="flex items-center gap-2 mb-4">
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="text-sm px-3 py-1">
                     Module {module.module_order}
                   </Badge>
-                  <Badge variant="secondary">
-                    <ContentIcon className="h-3 w-3 mr-1" />
+                  <Badge variant="secondary" className="text-sm gap-1 px-3 py-1">
+                    <ContentIcon className="h-3 w-3" />
                     {module.content_type}
                   </Badge>
                   {module.estimated_duration_minutes && (
-                    <Badge variant="outline">
-                      <Clock className="h-3 w-3 mr-1" />
+                    <Badge variant="outline" className="text-sm gap-1 px-3 py-1">
+                      <Clock className="h-3 w-3" />
                       {module.estimated_duration_minutes} min
                     </Badge>
                   )}
                 </div>
+                <CardTitle className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                  {module.module_name}
+                </CardTitle>
+                {module.module_description && (
+                  <p className="text-muted-foreground text-lg leading-relaxed">{module.module_description}</p>
+                )}
+              </div>
+              <div className="p-4 rounded-2xl bg-primary/10 shrink-0">
+                <ContentIcon className="h-10 w-10 text-primary" />
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            {module.module_description && (
-              <p className="text-muted-foreground mb-6">{module.module_description}</p>
-            )}
-          </CardContent>
+          </div>
         </Card>
 
         {/* Module Content */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <ContentIcon className="h-5 w-5 mr-2" />
+        <Card className="shadow-lg">
+          <CardHeader className="bg-primary/5 border-b">
+            <CardTitle className="flex items-center gap-2 text-2xl">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <ContentIcon className="h-6 w-6 text-primary" />
+              </div>
               Module Content
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-8">
             {renderContent()}
           </CardContent>
         </Card>

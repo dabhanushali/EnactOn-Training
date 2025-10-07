@@ -41,22 +41,34 @@ export const CourseModule = ({
   };
 
   return (
-    <Card className="hover:shadow-md transition-all duration-200">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between mb-2">
-          <Badge variant="secondary" className="text-xs">Module {order}</Badge>
-          {estimatedDuration && (
-            <div className="flex items-center text-xs text-muted-foreground">
-              <Clock className="w-3 h-3 mr-1" />
-              <span>{estimatedDuration} min</span>
+    <Card className="hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary/50 hover:border-l-primary bg-gradient-to-r from-primary/5 to-transparent">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-3">
+              <Badge variant="outline" className="text-xs font-semibold">
+                Module {order}
+              </Badge>
+              {estimatedDuration && (
+                <Badge variant="secondary" className="text-xs gap-1">
+                  <Clock className="w-3 h-3" />
+                  {estimatedDuration} min
+                </Badge>
+              )}
             </div>
-          )}
+            <CardTitle className="text-xl font-bold leading-tight mb-2">{name}</CardTitle>
+            {description && (
+              <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{description}</p>
+            )}
+          </div>
+          <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+            {getContentIcon(contentType)}
+          </div>
         </div>
-        <CardTitle className="text-lg font-semibold leading-tight">{name}</CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        {description && (
+      <CardContent className="space-y-4 pt-0">
+        <div className="space-y-3 border-t pt-4">{description && (
           <p className="text-sm text-muted-foreground line-clamp-3">{description}</p>
         )}
 
@@ -130,12 +142,14 @@ export const CourseModule = ({
           })()}
         </div>
 
-        <div className="flex space-x-2 pt-2 border-t">
+        </div>
+        <div className="flex space-x-2 pt-4 border-t">
           <Button
-            size="sm"
-            className="flex-1"
+            size="lg"
+            className="flex-1 font-semibold gap-2"
             onClick={() => onStartModule?.(id)}
           >
+            <FileText className="w-4 h-4" />
             Start Module
           </Button>
         </div>

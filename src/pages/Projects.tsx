@@ -193,7 +193,14 @@ export default function Projects() {
                 }
               </p>
             </div>
-            {isManager && <CreateProjectDialog onProjectCreated={fetchProjects} />}
+            {isManager && (
+              <CreateProjectDialog onProjectCreated={fetchProjects}>
+                <Button size="lg" className="gap-2 shadow-lg">
+                  <Plus className="h-5 w-5" />
+                  Create Project
+                </Button>
+              </CreateProjectDialog>
+            )}
           </div>
 
           {/* Enhanced Project Quick Actions */}

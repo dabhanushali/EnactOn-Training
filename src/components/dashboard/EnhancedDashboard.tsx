@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useNavigate } from 'react-router-dom';
-import { DepartmentPerformanceCard } from '@/components/dashboard/DepartmentPerformanceCard';
 import {
   BookOpen,
   Users,
@@ -24,6 +23,7 @@ import {
   ArrowUp,
   ArrowDown,
   Plus,
+  Briefcase,
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -535,16 +535,39 @@ export const EnhancedDashboard = () => {
         </Card>
       </div>
 
-      {/* Analytics Section - Enhanced Department Performance */}
-      <DepartmentPerformanceCard departments={stats.departmentStats.map(dept => ({
-        department: dept.name,
-        totalEmployees: dept.employees || 0,
-        activeEmployees: dept.active || 0,
-        avgProgress: dept.progress || 0,
-        completedCourses: dept.completed || 0,
-        totalCourses: dept.total || 0,
-        topPerformer: dept.topPerformer
-      }))} />
+      {/* Department Overview */}
+      {stats.departmentStats.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5" />
+              Department Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {stats.departmentStats.map((dept, index) => (
+                <div 
+                  key={index} 
+                  className="p-4 rounded-lg border bg-card hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => navigate('/employees')}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Briefcase className="h-4 w-4 text-primary" />
+                    <Badge variant="secondary" className="text-xs">
+                      {dept.employees}
+                    </Badge>
+                  </div>
+                  <h4 className="font-semibold text-sm mb-1 truncate">{dept.name}</h4>
+                  <p className="text-xs text-muted-foreground">
+                    {dept.employees} {dept.employees === 1 ? 'employee' : 'employees'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-1">
         <Card>

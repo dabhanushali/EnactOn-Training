@@ -21,9 +21,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 interface CreateProjectDialogProps {
   onProjectCreated: (projectId: string) => void;
+  children?: React.ReactNode;
 }
 
-export function CreateProjectDialog({ onProjectCreated }: CreateProjectDialogProps) {
+export function CreateProjectDialog({ onProjectCreated, children }: CreateProjectDialogProps) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
@@ -100,7 +101,7 @@ export function CreateProjectDialog({ onProjectCreated }: CreateProjectDialogPro
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>Create Project</Button>
+        {children || <Button>Create Project</Button>}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
