@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BulkModuleCreator } from './BulkModuleCreator';
 import { AIModuleGenerator } from './AIModuleGenerator';
+import { SmartBulkModuleCreator } from './SmartBulkModuleCreator';
 import { ModuleDialog } from './ModuleDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -219,14 +220,18 @@ export const EnhancedModuleCreator = ({ courseId }: EnhancedModuleCreatorProps) 
 
       {/* Module Creation Tabs */}
       <Tabs defaultValue="single" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="single" className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
-            Single Module
+            Single
+          </TabsTrigger>
+          <TabsTrigger value="smart" className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            Smart Extract
           </TabsTrigger>
           <TabsTrigger value="bulk" className="flex items-center gap-2">
             <Upload className="h-4 w-4" />
-            Bulk Creation
+            CSV Bulk
           </TabsTrigger>
           <TabsTrigger value="ai" className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
@@ -246,6 +251,13 @@ export const EnhancedModuleCreator = ({ courseId }: EnhancedModuleCreatorProps) 
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="smart" className="mt-6">
+          <SmartBulkModuleCreator 
+            courseId={courseId} 
+            onModulesCreated={fetchModules}
+          />
         </TabsContent>
 
         <TabsContent value="bulk" className="mt-6">

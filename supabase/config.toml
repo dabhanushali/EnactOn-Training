@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.notify-training-session]
 verify_jwt = true
+
+[functions.extract-modules-from-content]
+verify_jwt = true
