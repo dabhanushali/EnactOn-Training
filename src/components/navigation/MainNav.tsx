@@ -74,7 +74,7 @@ const navigationItems: NavItem[] = [
     label: 'Readiness Report',
     icon: BarChart3,
     href: '/reports/readiness',
-    roles: [UserRoles.MANAGEMENT],
+    roles: [UserRoles.MANAGEMENT, UserRoles.HR, UserRoles.TEAM_LEAD],
   },
 ];
 

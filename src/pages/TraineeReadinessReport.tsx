@@ -108,7 +108,7 @@ export default function TraineeReadinessReport() {
                 .select('id, first_name, last_name, department, designation, role:roles(role_name)');
 
             if (profile?.role?.role_name === 'Team Lead') {
-                query = query.eq('department', profile.department);
+                query = query.eq('manager_id', profile.id);
             }
 
             const { data, error } = await query.order('first_name');

@@ -34,6 +34,7 @@ interface Employee {
   role: {
     role_name: UserRoleType;
   } | null;
+  role_id: string | null;
   manager: {
     first_name: string | null;
     last_name: string | null;
@@ -49,6 +50,11 @@ interface PotentialManager {
   } | null;
 }
 
+interface Role {
+  id: string;
+  role_name: string;
+}
+
 // --- COMPONENT ---
 
 export default function EmployeeDetail() {
@@ -59,9 +65,10 @@ export default function EmployeeDetail() {
   const [allUsers, setAllUsers] = useState<PotentialManager[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState<Partial<Employee>>({});
+  const [editData, setEditData] = useState<Partial<Employee & { role_id: string | null }>>({});
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [showDocumentDialog, setShowDocumentDialog] = useState(false);
+  const [roles, setRoles] = useState<Role[]>([]);
 
   const canManage = profile?.role?.role_name === 'HR' || profile?.role?.role_name === 'Management';
 
@@ -72,7 +79,7 @@ export default function EmployeeDetail() {
         .from('profiles')
         .select(`
           id, first_name, last_name, employee_code, department, designation,
-          current_status, phone, date_of_joining, manager_id,
+          current_status, phone, date_of_joining, manager_id, role_id,
           role:roles(role_name),
           manager:manager_id(first_name, last_name)
         `)
@@ -104,6 +111,18 @@ export default function EmployeeDetail() {
       toast.error(`Failed to load users list: ${(error as Error).message}`);
     }
   }, [canManage, employeeId, toast]);
+
+  const fetchRoles = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from('roles').select('id, role_name');
+      if (error) throw error;
+      setRoles(data || []);
+      console.log('Fetched roles:', data);
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+      toast.error(`Failed to load roles: ${(error as Error).message}`);
+    }
+  }, []);
 
   const handleManagerSelection = async (selectedUserId: string) => {
     if (!employeeId || !canManage) return;
@@ -153,6 +172,7 @@ export default function EmployeeDetail() {
       phone: editData.phone,
       date_of_joining: editData.date_of_joining,
       current_status: editData.current_status,
+      role_id: editData.role_id,
     };
 
     try {
@@ -173,12 +193,11 @@ export default function EmployeeDetail() {
   useEffect(() => {
     const loadAllData = async () => {
       setLoading(true);
-      await fetchEmployeeDetails();
-      await fetchAllUsers();
+      await Promise.all([fetchEmployeeDetails(), fetchAllUsers(), fetchRoles()]);
       setLoading(false);
     };
     loadAllData();
-  }, [employeeId, canManage, fetchEmployeeDetails, fetchAllUsers]);
+  }, [employeeId, canManage, fetchEmployeeDetails, fetchAllUsers, fetchRoles]);
 
   if (loading) {
     return <div className="flex justify-center items-center min-h-screen">Loading Employee Details...</div>;
@@ -329,7 +348,25 @@ export default function EmployeeDetail() {
             <CardContent className="space-y-4">
               <div>
                 <Label>Role</Label>
-                <p className="text-lg font-medium">{employee.role?.role_name || 'N/A'}</p>
+                {isEditing ? (
+                  <Select
+                    value={editData.role_id || ''}
+                    onValueChange={value => handleInputChange('role_id', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map(role => (
+                        <SelectItem key={role.id} value={role.id}>
+                          {role.role_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-lg font-medium">{employee.role?.role_name || 'N/A'}</p>
+                )}
               </div>
               <div>
                 <Label>Designation</Label>

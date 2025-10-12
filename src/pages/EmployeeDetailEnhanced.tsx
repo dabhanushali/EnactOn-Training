@@ -38,6 +38,7 @@ interface Employee {
   role: {
     role_name: UserRoleType;
   } | null;
+  role_id: string | null;
   manager: {
     first_name: string | null;
     last_name: string | null;
@@ -53,6 +54,11 @@ interface PotentialManager {
   } | null;
 }
 
+interface Role {
+  id: string;
+  role_name: string;
+}
+
 export default function EmployeeDetailEnhanced() {
   const { employeeId } = useParams<{ employeeId: string }>();
   const { profile } = useAuth();
@@ -61,10 +67,11 @@ export default function EmployeeDetailEnhanced() {
   const [allUsers, setAllUsers] = useState<PotentialManager[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState<Partial<Employee>>({});
+  const [editData, setEditData] = useState<Partial<Employee & { role_id: string | null }>>({});
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [showDocumentDialog, setShowDocumentDialog] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [roles, setRoles] = useState<Role[]>([]);
 
   const canManage = profile?.role?.role_name === 'HR' || profile?.role?.role_name === 'Management';
 
@@ -75,7 +82,7 @@ export default function EmployeeDetailEnhanced() {
         .from('profiles')
         .select(`
           id, first_name, last_name, employee_code, department, designation,
-          current_status, phone, date_of_joining, manager_id,
+          current_status, phone, date_of_joining, manager_id, role_id,
           role:roles(role_name),
           manager:manager_id(first_name, last_name)
         `)
@@ -107,6 +114,17 @@ export default function EmployeeDetailEnhanced() {
       toast.error(`Failed to load users list: ${(error as Error).message}`);
     }
   }, [canManage, employeeId]);
+
+  const fetchRoles = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from('roles').select('id, role_name');
+      if (error) throw error;
+      setRoles(data || []);
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+      toast.error(`Failed to load roles: ${(error as Error).message}`);
+    }
+  }, []);
 
   const handleManagerSelection = async (selectedUserId: string) => {
     if (!employeeId || !canManage) return;
@@ -176,7 +194,7 @@ export default function EmployeeDetailEnhanced() {
       designation: editData.designation,
       phone: editData.phone,
       date_of_joining: editData.date_of_joining,
-      current_status: editData.current_status,
+      role_id: (editData as any).role_id,
     };
 
     try {
@@ -197,12 +215,11 @@ export default function EmployeeDetailEnhanced() {
   useEffect(() => {
     const loadAllData = async () => {
       setLoading(true);
-      await fetchEmployeeDetails();
-      await fetchAllUsers();
+      await Promise.all([fetchEmployeeDetails(), fetchAllUsers(), fetchRoles()]);
       setLoading(false);
     };
     loadAllData();
-  }, [employeeId, canManage, fetchEmployeeDetails, fetchAllUsers]);
+  }, [employeeId, canManage, fetchEmployeeDetails, fetchAllUsers, fetchRoles]);
 
   if (loading) {
     return (
@@ -423,9 +440,27 @@ export default function EmployeeDetailEnhanced() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Role</Label>
-                <div className="py-2 px-3 bg-primary/10 text-primary rounded-md font-medium">
-                  {employee.role?.role_name || 'N/A'}
-                </div>
+                {isEditing ? (
+                  <Select
+                    value={editData.role_id || ''}
+                    onValueChange={value => handleInputChange('role_id', value)}
+                  >
+                    <SelectTrigger className="bg-white/50">
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map(role => (
+                        <SelectItem key={role.id} value={role.id}>
+                          {role.role_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="py-2 px-3 bg-primary/10 text-primary rounded-md font-medium">
+                    {employee.role?.role_name || 'N/A'}
+                  </div>
+                )}
               </div>
               
               <div className="space-y-2">

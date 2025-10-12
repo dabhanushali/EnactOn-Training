@@ -51,7 +51,15 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
         .order('role_name');
 
       if (error) throw error;
-      setRoles(data as Role[]);
+      
+      const rolesData = data as Role[];
+      setRoles(rolesData);
+
+      // Set default role to Trainee
+      const traineeRole = rolesData.find(role => role.role_name === 'Trainee');
+      if (traineeRole) {
+        setFormData(prev => ({ ...prev, roleId: traineeRole.id }));
+      }
     } catch (error) {
       console.error('Error fetching roles:', error);
       toast.error('Failed to load roles');
