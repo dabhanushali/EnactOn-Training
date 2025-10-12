@@ -1,1 +1,10 @@
 project_id = "mdmhvlngucgbppwkzwcd"
+
+[functions.send-periodic-hr-emails]
+verify_jwt = false
+
+[functions.notify-project-submission]
+verify_jwt = true
+
+[functions.notify-training-session]
+verify_jwt = true

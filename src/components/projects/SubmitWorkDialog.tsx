@@ -17,11 +17,12 @@ import { toast } from 'sonner';
 
 interface SubmitWorkDialogProps {
   assignmentId: string;
+  projectId: string;
   onSubmited: () => void;
   assignmentStatus?: string;
 }
 
-export function SubmitWorkDialog({ assignmentId, onSubmited, assignmentStatus }: SubmitWorkDialogProps) {
+export function SubmitWorkDialog({ assignmentId, projectId, onSubmited, assignmentStatus }: SubmitWorkDialogProps) {
   const { user } = useAuth();
   const [submissionLink, setSubmissionLink] = useState("");
   const [comments, setComments] = useState("");
@@ -54,6 +55,21 @@ export function SubmitWorkDialog({ assignmentId, onSubmited, assignmentStatus }:
       toast.success("Work submitted successfully!");
       // Also update the assignment status
       await supabase.from('project_assignments' as any).update({ status: 'Submitted' }).eq('id', assignmentId);
+      
+      // Send notification emails
+      try {
+        await supabase.functions.invoke('notify-project-submission', {
+          body: { 
+            assignmentId,
+            traineeId: user.id,
+            projectId
+          }
+        });
+      } catch (emailError) {
+        console.error("Error sending notification emails:", emailError);
+        // Don't fail the submission if email fails
+      }
+      
       onSubmited();
     }
 

@@ -101,6 +101,17 @@ export function CreateSessionDialog({ onSessionCreated }: CreateSessionDialogPro
       toast.error(`Failed to create session: ${error.message}`);
     } else {
       toast.success("Session created! Now assign trainees.");
+      
+      // Send notification emails
+      try {
+        await supabase.functions.invoke('notify-training-session', {
+          body: { sessionId: data.id }
+        });
+      } catch (emailError) {
+        console.error("Error sending notification emails:", emailError);
+        // Don't fail the creation if email fails
+      }
+      
       onSessionCreated(data.id);
       setOpen(false);
     }
