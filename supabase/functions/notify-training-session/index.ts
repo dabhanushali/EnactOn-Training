@@ -1,10 +1,19 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
-import { Resend } from "npm:resend@4.0.0";
+import nodemailer from "npm:nodemailer@6.9.16";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const transporter = nodemailer.createTransport({
+  host: Deno.env.get("EMAIL_HOST"),
+  port: parseInt(Deno.env.get("EMAIL_PORT") || "587"),
+  secure: Deno.env.get("EMAIL_PORT") === "465",
+  auth: {
+    user: Deno.env.get("EMAIL_USER"),
+    pass: Deno.env.get("EMAIL_APP_PASSWORD"),
+  },
+});
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -68,9 +77,9 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResults = [];
 
     for (const recipient of recipients) {
-      const emailResult = await resend.emails.send({
-        from: "GrowPro Suite <onboarding@resend.dev>",
-        to: [recipient as string],
+      const emailResult = await transporter.sendMail({
+        from: `GrowPro Suite <${Deno.env.get("EMAIL_USER")}>`,
+        to: recipient as string,
         subject: `Training Session Scheduled: ${session.session_name}`,
         html: `
           <h2>Training Session Scheduled</h2>

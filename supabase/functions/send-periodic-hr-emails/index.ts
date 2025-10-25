@@ -1,10 +1,19 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
-import { Resend } from "npm:resend@4.0.0";
+import nodemailer from "npm:nodemailer@6.9.16";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const transporter = nodemailer.createTransport({
+  host: Deno.env.get("EMAIL_HOST"),
+  port: parseInt(Deno.env.get("EMAIL_PORT") || "587"),
+  secure: Deno.env.get("EMAIL_PORT") === "465",
+  auth: {
+    user: Deno.env.get("EMAIL_USER"),
+    pass: Deno.env.get("EMAIL_APP_PASSWORD"),
+  },
+});
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -72,9 +81,9 @@ const handler = async (req: Request): Promise<Response> => {
 
       for (const trainee of trainees || []) {
         for (const hrEmail of hrEmails.filter(Boolean)) {
-          const emailResult = await resend.emails.send({
-            from: "GrowPro Suite <onboarding@resend.dev>",
-            to: [hrEmail as string],
+          const emailResult = await transporter.sendMail({
+            from: `GrowPro Suite <${Deno.env.get("EMAIL_USER")}>`,
+            to: hrEmail as string,
             subject: `${checkDate.days}-Day Review Meeting Required for ${trainee.first_name} ${trainee.last_name}`,
             html: `
               <h2>Trainee Review Meeting Reminder</h2>
