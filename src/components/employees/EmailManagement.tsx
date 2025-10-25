@@ -51,23 +51,27 @@ export const EmailManagement = ({
     setUpdating(true);
 
     try {
-      // Note: Email updates require service role key which is only available server-side
-      // For security, this should be done via an edge function
-      // For now, we'll update via a backend call or inform user to contact admin
+      const { data: { session } } = await supabase.auth.getSession();
       
-      toast.warning('Email update requires admin privileges. Please contact system administrator.');
-      setUpdating(false);
-      setOpen(false);
-      return;
+      if (!session) {
+        toast.error('You must be logged in to update email');
+        return;
+      }
 
-      // The code below would work with proper service role configuration:
-      // const { error: authError } = await supabase.auth.admin.updateUserById(
-      //   employeeId,
-      //   { email: newEmail }
-      // );
-      // if (authError) throw authError;
+      const { data, error } = await supabase.functions.invoke('update-user-email', {
+        body: { 
+          userId: employeeId,
+          newEmail: newEmail 
+        },
+      });
 
-      toast.success('Email updated successfully');
+      if (error) throw error;
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update email');
+      }
+
+      toast.success('Email updated successfully. User will receive a confirmation email.');
       setOpen(false);
       onUpdate();
       setNewEmail(newEmail);
