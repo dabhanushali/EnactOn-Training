@@ -22,6 +22,7 @@ const corsHeaders = {
 
 interface SessionNotificationRequest {
   sessionId: string;
+  attendeeIds?: string[]; // Optional: specific attendees to notify
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -30,7 +31,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { sessionId }: SessionNotificationRequest = await req.json();
+    const { sessionId, attendeeIds }: SessionNotificationRequest = await req.json();
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get session details
@@ -51,22 +52,31 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("id", session.trainer_id)
       .single();
 
-    // Get attendee emails
-    const attendeeIds = session.attendees || [];
+    // Determine which attendees to notify
+    let attendeesToNotify: string[];
+    if (attendeeIds && attendeeIds.length > 0) {
+      // Only notify specific attendees (newly added)
+      attendeesToNotify = attendeeIds;
+    } else {
+      // Notify all attendees (original behavior for backward compatibility)
+      attendeesToNotify = (session.attendees || []) as string[];
+    }
+
+    // Get attendee emails only for attendees to notify
     const attendeeEmails = await Promise.all(
-      attendeeIds.map(async (id: string) => {
+      attendeesToNotify.map(async (id: string) => {
         const email = await supabase.rpc("get_user_email", { user_id: id });
         return email.data;
       })
     );
 
-    // Get trainer email
-    const trainerEmail = session.trainer_id
-      ? (await supabase.rpc("get_user_email", { user_id: session.trainer_id })).data
-      : null;
-
+    // Get trainer email if trainer exists and we're notifying all (initial creation)
     const recipients = [...attendeeEmails.filter(Boolean)];
-    if (trainerEmail) recipients.push(trainerEmail);
+    if (session.trainer_id && (!attendeeIds || attendeeIds.length === 0)) {
+      // Only add trainer to recipients if we're doing full notification (not just newly added attendees)
+      const trainerEmail = (await supabase.rpc("get_user_email", { user_id: session.trainer_id })).data;
+      if (trainerEmail) recipients.push(trainerEmail);
+    }
 
     const startDate = new Date(session.start_datetime);
     const endDate = new Date(session.end_datetime);
@@ -80,7 +90,7 @@ const handler = async (req: Request): Promise<Response> => {
       const emailResult = await transporter.sendMail({
         from: `GrowPro Suite <${Deno.env.get("EMAIL_USER")}>`,
         to: recipient as string,
-        subject: `Training Session Scheduled: ${session.session_name}`,
+        subject: `Training Session ${attendeeIds && attendeeIds.length > 0 ? 'Assigned' : 'Scheduled'}: ${session.session_name}`,
         html: `
           <h2>Training Session Scheduled</h2>
           <p>Hello,</p>

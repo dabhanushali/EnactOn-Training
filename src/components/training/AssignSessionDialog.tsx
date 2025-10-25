@@ -30,12 +30,13 @@ interface AssignSessionDialogProps {
 export function AssignSessionDialog({ sessionId, open, onOpenChange, onSessionAssigned }: AssignSessionDialogProps) {
   const [trainees, setTrainees] = useState<Profile[]>([]);
   const [selectedTrainees, setSelectedTrainees] = useState<string[]>([]);
+  const [originalAttendees, setOriginalAttendees] = useState<string[]>([]);
   const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      const fetchTrainees = async () => {
-        // In a real app, you might want to filter out trainees already assigned.
+    if (open && sessionId) {
+      const fetchData = async () => {
+        // Fetch trainees
         const { data: roleData, error: roleError } = await supabase
           .from('roles')
           .select('id')
@@ -46,7 +47,7 @@ export function AssignSessionDialog({ sessionId, open, onOpenChange, onSessionAs
           return toast.error("Could not fetch list of trainees.");
         }
 
-        const { data, error } = await supabase
+        const { data: traineesData, error } = await supabase
           .from('profiles')
           .select('id, first_name, last_name')
           .eq('role_id', roleData.id);
@@ -54,13 +55,28 @@ export function AssignSessionDialog({ sessionId, open, onOpenChange, onSessionAs
         if (error) {
           toast.error("Could not fetch list of trainees.");
         } else {
-          setTrainees(data as Profile[]);
+          setTrainees(traineesData as Profile[]);
+        }
+
+        // Fetch current session attendees to pre-populate
+        const { data: sessionData, error: sessionError } = await supabase
+          .from('training_sessions')
+          .select('attendees')
+          .eq('id', sessionId)
+          .single();
+
+        if (!sessionError && sessionData?.attendees) {
+          const attendees = Array.isArray(sessionData.attendees) 
+            ? sessionData.attendees as string[]
+            : [];
+          setOriginalAttendees(attendees);
+          setSelectedTrainees(attendees); // Pre-select already assigned
         }
       };
 
-      fetchTrainees();
+      fetchData();
     }
-  }, [open]);
+  }, [open, sessionId]);
 
   const handleSelectTrainee = (traineeId: string) => {
     setSelectedTrainees(prev => 
@@ -71,43 +87,59 @@ export function AssignSessionDialog({ sessionId, open, onOpenChange, onSessionAs
   };
 
   const handleSubmit = async () => {
-    if (!sessionId || selectedTrainees.length === 0) {
-        return toast.warning("Please select at least one trainee.");
+    if (!sessionId) {
+      return toast.warning("Session ID is missing.");
     }
 
     setAssigning(true);
 
-    // 1. Fetch the current attendees list
-    const { data: currentSession, error: fetchError } = await supabase
-      .from('training_sessions')
-      .select('attendees')
-      .eq('id', sessionId)
-      .single();
-
-    if (fetchError) {
-      setAssigning(false);
-      return toast.error(`Failed to get current session data: ${fetchError.message}`);
-    }
-
-    // 2. Merge and deduplicate attendees
-    const currentAttendees = Array.isArray(currentSession.attendees) ? currentSession.attendees : [];
-    const newAttendees = [...new Set([...currentAttendees as string[], ...selectedTrainees])];
-
-    // 3. Update the record
+    // Calculate newly added trainees (need email notifications)
+    const newlyAdded = selectedTrainees.filter(id => !originalAttendees.includes(id));
+    const removed = originalAttendees.filter(id => !selectedTrainees.includes(id));
+    
+    // Update the attendees array with currently selected trainees
     const { error: updateError } = await supabase
       .from('training_sessions')
-      .update({ attendees: newAttendees })
+      .update({ attendees: selectedTrainees })
       .eq('id', sessionId);
 
     if (updateError) {
-      toast.error(`Failed to assign trainees: ${updateError.message}`);
-    } else {
-      toast.success("Trainees assigned successfully!");
-      onSessionAssigned();
-      setSelectedTrainees([]);
-      onOpenChange(false);
+      toast.error(`Failed to update participants: ${updateError.message}`);
+      setAssigning(false);
+      return;
     }
 
+    // Send email notifications to newly added trainees ONLY
+    if (newlyAdded.length > 0) {
+      try {
+        await supabase.functions.invoke('notify-training-session', {
+          body: { 
+            sessionId,
+            attendeeIds: newlyAdded
+          }
+        });
+      } catch (error) {
+        console.error('Error sending notifications:', error);
+        // Don't fail the update if email fails
+      }
+    }
+
+    const addedCount = newlyAdded.length;
+    const removedCount = removed.length;
+    let message = "Session participants updated!";
+    if (addedCount > 0 && removedCount > 0) {
+      message = `${addedCount} participant(s) added and ${removedCount} removed. ${addedCount} notified.`;
+    } else if (addedCount > 0) {
+      message = `${addedCount} participant(s) added and notified.`;
+    } else if (removedCount > 0) {
+      message = `${removedCount} participant(s) removed.`;
+    }
+    
+    toast.success(message);
+    onSessionAssigned();
+    setSelectedTrainees([]);
+    setOriginalAttendees([]);
+    onOpenChange(false);
     setAssigning(false);
   };
 
@@ -115,9 +147,9 @@ export function AssignSessionDialog({ sessionId, open, onOpenChange, onSessionAs
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Assign Session to Trainees</DialogTitle>
+          <DialogTitle>Manage Session Participants</DialogTitle>
           <DialogDescription>
-            Select the trainees you want to assign this session to.
+            Select or deselect trainees for this session. Only newly added participants will receive email notifications.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4 max-h-[400px] overflow-y-auto">
@@ -135,8 +167,8 @@ export function AssignSessionDialog({ sessionId, open, onOpenChange, onSessionAs
             )) : <p>No trainees found.</p>}
         </div>
         <DialogFooter>
-          <Button onClick={handleSubmit} disabled={assigning || selectedTrainees.length === 0}>
-            {assigning ? "Assigning..." : `Assign to ${selectedTrainees.length} Trainee(s)`}
+          <Button onClick={handleSubmit} disabled={assigning}>
+            {assigning ? "Updating..." : "Update Participants"}
           </Button>
         </DialogFooter>
       </DialogContent>
