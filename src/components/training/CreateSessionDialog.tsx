@@ -40,9 +40,13 @@ export function CreateSessionDialog({ onSessionCreated }: CreateSessionDialogPro
   const [trainerId, setTrainerId] = useState("");
   const [trainers, setTrainers] = useState<TrainerProfile[]>([]);
   const [startDate, setStartDate] = useState<Date>();
-  const [startTime, setStartTime] = useState("09:00");
+  const [startHour, setStartHour] = useState("09");
+  const [startMinute, setStartMinute] = useState("00");
+  const [startPeriod, setStartPeriod] = useState<"AM" | "PM">("AM");
   const [endDate, setEndDate] = useState<Date>();
-  const [endTime, setEndTime] = useState("10:00");
+  const [endHour, setEndHour] = useState("10");
+  const [endMinute, setEndMinute] = useState("00");
+  const [endPeriod, setEndPeriod] = useState<"AM" | "PM">("AM");
   const [platform, setPlatform] = useState("");
   const [link, setLink] = useState("");
   const [creating, setCreating] = useState(false);
@@ -78,20 +82,25 @@ export function CreateSessionDialog({ onSessionCreated }: CreateSessionDialogPro
 
   const handleSubmit = async () => {
     if (!user) return toast.error("You must be logged in.");
-    if (!sessionName || !sessionType || !trainerId || !startDate || !startTime || !endDate || !endTime || !link) {
+    if (!sessionName || !sessionType || !trainerId || !startDate || !endDate || !link) {
         return toast.warning("Please fill out all required fields.");
     }
     setCreating(true);
 
-    // Combine date and time to create full datetime
-    const [startHours, startMinutes] = startTime.split(':').map(Number);
-    const [endHours, endMinutes] = endTime.split(':').map(Number);
+    // Convert 12-hour to 24-hour format
+    let startHours24 = parseInt(startHour);
+    if (startPeriod === "PM" && startHours24 !== 12) startHours24 += 12;
+    if (startPeriod === "AM" && startHours24 === 12) startHours24 = 0;
+    
+    let endHours24 = parseInt(endHour);
+    if (endPeriod === "PM" && endHours24 !== 12) endHours24 += 12;
+    if (endPeriod === "AM" && endHours24 === 12) endHours24 = 0;
     
     const startDateTime = new Date(startDate);
-    startDateTime.setHours(startHours, startMinutes, 0, 0);
+    startDateTime.setHours(startHours24, parseInt(startMinute), 0, 0);
     
     const endDateTime = new Date(endDate);
-    endDateTime.setHours(endHours, endMinutes, 0, 0);
+    endDateTime.setHours(endHours24, parseInt(endMinute), 0, 0);
 
     const utcStart = startDateTime.toISOString();
     const utcEnd = endDateTime.toISOString();
@@ -209,14 +218,39 @@ export function CreateSessionDialog({ onSessionCreated }: CreateSessionDialogPro
                       />
                     </PopoverContent>
                   </Popover>
-                  <div className="relative flex-1">
-                    <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      className="pl-10"
-                    />
+                  <div className="flex items-center gap-1 flex-1">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <Select value={startHour} onValueChange={setStartHour}>
+                      <SelectTrigger className="w-[70px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 12 }, (_, i) => {
+                          const hour = (i + 1).toString().padStart(2, '0');
+                          return <SelectItem key={hour} value={hour}>{hour}</SelectItem>;
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-muted-foreground">:</span>
+                    <Select value={startMinute} onValueChange={setStartMinute}>
+                      <SelectTrigger className="w-[70px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["00", "15", "30", "45"].map(min => (
+                          <SelectItem key={min} value={min}>{min}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={startPeriod} onValueChange={(v) => setStartPeriod(v as "AM" | "PM")}>
+                      <SelectTrigger className="w-[70px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AM">AM</SelectItem>
+                        <SelectItem value="PM">PM</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
             </div>
@@ -246,14 +280,39 @@ export function CreateSessionDialog({ onSessionCreated }: CreateSessionDialogPro
                       />
                     </PopoverContent>
                   </Popover>
-                  <div className="relative flex-1">
-                    <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      type="time"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      className="pl-10"
-                    />
+                  <div className="flex items-center gap-1 flex-1">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <Select value={endHour} onValueChange={setEndHour}>
+                      <SelectTrigger className="w-[70px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 12 }, (_, i) => {
+                          const hour = (i + 1).toString().padStart(2, '0');
+                          return <SelectItem key={hour} value={hour}>{hour}</SelectItem>;
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-muted-foreground">:</span>
+                    <Select value={endMinute} onValueChange={setEndMinute}>
+                      <SelectTrigger className="w-[70px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["00", "15", "30", "45"].map(min => (
+                          <SelectItem key={min} value={min}>{min}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={endPeriod} onValueChange={(v) => setEndPeriod(v as "AM" | "PM")}>
+                      <SelectTrigger className="w-[70px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AM">AM</SelectItem>
+                        <SelectItem value="PM">PM</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
             </div>
