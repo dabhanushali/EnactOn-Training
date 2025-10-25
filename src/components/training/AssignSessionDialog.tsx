@@ -10,9 +10,13 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Search, Users } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -32,6 +36,7 @@ export function AssignSessionDialog({ sessionId, open, onOpenChange, onSessionAs
   const [selectedTrainees, setSelectedTrainees] = useState<string[]>([]);
   const [originalAttendees, setOriginalAttendees] = useState<string[]>([]);
   const [assigning, setAssigning] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (open && sessionId) {
@@ -78,12 +83,27 @@ export function AssignSessionDialog({ sessionId, open, onOpenChange, onSessionAs
     }
   }, [open, sessionId]);
 
+  const filteredTrainees = trainees.filter(trainee => {
+    const searchLower = searchTerm.toLowerCase();
+    const fullName = `${trainee.first_name} ${trainee.last_name}`.toLowerCase();
+    return fullName.includes(searchLower);
+  });
+
   const handleSelectTrainee = (traineeId: string) => {
     setSelectedTrainees(prev => 
       prev.includes(traineeId) 
         ? prev.filter(id => id !== traineeId) 
         : [...prev, traineeId]
     );
+  };
+
+  const handleSelectAll = () => {
+    const allTraineeIds = filteredTrainees.map(t => t.id);
+    if (selectedTrainees.length === allTraineeIds.length) {
+      setSelectedTrainees([]);
+    } else {
+      setSelectedTrainees(allTraineeIds);
+    }
   };
 
   const handleSubmit = async () => {
@@ -152,24 +172,100 @@ export function AssignSessionDialog({ sessionId, open, onOpenChange, onSessionAs
             Select or deselect trainees for this session. Only newly added participants will receive email notifications.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4 max-h-[400px] overflow-y-auto">
-            {trainees.length > 0 ? trainees.map(trainee => (
-                <div key={trainee.id} className="flex items-center space-x-2">
-                    <Checkbox 
-                        id={`trainee-${trainee.id}`}
-                        onCheckedChange={() => handleSelectTrainee(trainee.id)}
-                        checked={selectedTrainees.includes(trainee.id)}
-                    />
-                    <Label htmlFor={`trainee-${trainee.id}`} className="font-normal">
-                        {trainee.first_name} {trainee.last_name}
-                    </Label>
-                </div>
-            )) : <p>No trainees found.</p>}
+
+        <div className="space-y-4 py-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search trainees by name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Select All */}
+          {filteredTrainees.length > 0 && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="select-all-trainees"
+                  checked={selectedTrainees.length === filteredTrainees.length && filteredTrainees.length > 0}
+                  onCheckedChange={handleSelectAll}
+                />
+                <Label htmlFor="select-all-trainees" className="text-sm font-normal">
+                  Select All ({filteredTrainees.length})
+                </Label>
+              </div>
+              
+              {selectedTrainees.length > 0 && (
+                <Badge variant="secondary">
+                  {selectedTrainees.length} selected
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Trainee List */}
+          <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2">
+            {filteredTrainees.length > 0 ? (
+              filteredTrainees.map(trainee => {
+                const isSelected = selectedTrainees.includes(trainee.id);
+                const isOriginallyAssigned = originalAttendees.includes(trainee.id);
+                
+                return (
+                  <Card 
+                    key={trainee.id} 
+                    className={`transition-colors ${
+                      isSelected ? 'bg-primary/5 border-primary' : ''
+                    }`}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-center space-x-3">
+                        <Checkbox 
+                          id={`trainee-${trainee.id}`}
+                          onCheckedChange={() => handleSelectTrainee(trainee.id)}
+                          checked={isSelected}
+                        />
+                        <Label 
+                          htmlFor={`trainee-${trainee.id}`} 
+                          className="flex-1 font-normal cursor-pointer"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span>{trainee.first_name} {trainee.last_name}</span>
+                            {isOriginallyAssigned && (
+                              <Badge variant="outline" className="text-xs">
+                                Currently Assigned
+                              </Badge>
+                            )}
+                          </div>
+                        </Label>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            ) : (
+              <p className="text-center text-muted-foreground py-8">
+                {trainees.length === 0 ? "No trainees found." : "No trainees match your search."}
+              </p>
+            )}
+          </div>
         </div>
-        <DialogFooter>
-          <Button onClick={handleSubmit} disabled={assigning}>
-            {assigning ? "Updating..." : "Update Participants"}
-          </Button>
+        <DialogFooter className="flex justify-between items-center">
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+            <Users className="h-4 w-4" />
+            <span>{filteredTrainees.length} trainees</span>
+          </div>
+          <div className="flex space-x-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} disabled={assigning}>
+              {assigning ? "Updating..." : `Update Participants (${selectedTrainees.length})`}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -28,8 +28,8 @@ const setMeta = (title: string, description: string, canonical?: string) => {
 const AuthPage = () => {
   useEffect(() => {
     setMeta(
-      "Login & Sign Up - GrowPro LMS",
-      "Access GrowPro LMS: log in to your account or create a new one in seconds.",
+      "Access Your Account - GrowPro Suite",
+      "Access GrowPro Suite: sign in to your account or create a new one in seconds.",
       window.location.href
     );
   }, []);
@@ -56,8 +56,8 @@ const AuthPage = () => {
           <div className="bg-card p-8 rounded-lg shadow-lg" aria-label="Authentication">
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsTrigger value="login">Sign In</TabsTrigger>
+                <TabsTrigger value="signup">Create Account</TabsTrigger>
               </TabsList>
               <TabsContent value="login" className="mt-6">
                 <LoginForm />
