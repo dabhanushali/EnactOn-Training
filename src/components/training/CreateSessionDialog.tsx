@@ -11,11 +11,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { RequiredLabel } from "@/components/forms/RequiredLabel";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/auth-utils";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { CalendarIcon, Clock } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface TrainerProfile {
     id: string;
@@ -34,8 +39,10 @@ export function CreateSessionDialog({ onSessionCreated }: CreateSessionDialogPro
   const [sessionType, setSessionType] = useState("");
   const [trainerId, setTrainerId] = useState("");
   const [trainers, setTrainers] = useState<TrainerProfile[]>([]);
-  const [startDateTime, setStartDateTime] = useState("");
-  const [endDateTime, setEndDateTime] = useState("");
+  const [startDate, setStartDate] = useState<Date>();
+  const [startTime, setStartTime] = useState("09:00");
+  const [endDate, setEndDate] = useState<Date>();
+  const [endTime, setEndTime] = useState("10:00");
   const [platform, setPlatform] = useState("");
   const [link, setLink] = useState("");
   const [creating, setCreating] = useState(false);
@@ -71,14 +78,23 @@ export function CreateSessionDialog({ onSessionCreated }: CreateSessionDialogPro
 
   const handleSubmit = async () => {
     if (!user) return toast.error("You must be logged in.");
-    if (!sessionName || !sessionType || !trainerId || !startDateTime || !endDateTime || !link) {
+    if (!sessionName || !sessionType || !trainerId || !startDate || !startTime || !endDate || !endTime || !link) {
         return toast.warning("Please fill out all required fields.");
     }
     setCreating(true);
 
-    // Convert local datetime string to full ISO string (UTC)
-    const utcStart = new Date(startDateTime).toISOString();
-    const utcEnd = new Date(endDateTime).toISOString();
+    // Combine date and time to create full datetime
+    const [startHours, startMinutes] = startTime.split(':').map(Number);
+    const [endHours, endMinutes] = endTime.split(':').map(Number);
+    
+    const startDateTime = new Date(startDate);
+    startDateTime.setHours(startHours, startMinutes, 0, 0);
+    
+    const endDateTime = new Date(endDate);
+    endDateTime.setHours(endHours, endMinutes, 0, 0);
+
+    const utcStart = startDateTime.toISOString();
+    const utcEnd = endDateTime.toISOString();
 
     const { data, error } = await supabase
       .from('training_sessions')
@@ -168,12 +184,78 @@ export function CreateSessionDialog({ onSessionCreated }: CreateSessionDialogPro
                 </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-                <RequiredLabel htmlFor="start" className="text-right">Start Time</RequiredLabel>
-                <Input id="start" type="datetime-local" value={startDateTime} onChange={e => setStartDateTime(e.target.value)} className="col-span-3" required />
+                <RequiredLabel htmlFor="start" className="text-right">Start Date & Time</RequiredLabel>
+                <div className="col-span-3 flex gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "flex-1 justify-start text-left font-normal",
+                          !startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <div className="relative flex-1">
+                    <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-                <RequiredLabel htmlFor="end" className="text-right">End Time</RequiredLabel>
-                <Input id="end" type="datetime-local" value={endDateTime} onChange={e => setEndDateTime(e.target.value)} className="col-span-3" required />
+                <RequiredLabel htmlFor="end" className="text-right">End Date & Time</RequiredLabel>
+                <div className="col-span-3 flex gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "flex-1 justify-start text-left font-normal",
+                          !endDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <div className="relative flex-1">
+                    <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="platform" className="text-right">Platform</Label>
