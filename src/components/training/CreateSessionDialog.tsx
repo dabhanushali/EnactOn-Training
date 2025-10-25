@@ -224,7 +224,7 @@ export function CreateSessionDialog({ onSessionCreated }: CreateSessionDialogPro
                       <SelectTrigger className="w-[70px]">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-h-[200px] overflow-y-auto">
                         {Array.from({ length: 12 }, (_, i) => {
                           const hour = (i + 1).toString().padStart(2, '0');
                           return <SelectItem key={hour} value={hour}>{hour}</SelectItem>;
@@ -286,7 +286,7 @@ export function CreateSessionDialog({ onSessionCreated }: CreateSessionDialogPro
                       <SelectTrigger className="w-[70px]">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-h-[200px] overflow-y-auto">
                         {Array.from({ length: 12 }, (_, i) => {
                           const hour = (i + 1).toString().padStart(2, '0');
                           return <SelectItem key={hour} value={hour}>{hour}</SelectItem>;
