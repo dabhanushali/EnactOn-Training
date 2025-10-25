@@ -122,13 +122,21 @@ export const MainNav = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             <div className="bg-gradient-to-r from-primary to-secondary p-2 rounded-lg">
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
-            <div className="hidden sm:block">
-              <h1 className="text-xl font-bold text-foreground">GrowPro LMS</h1>
-              <p className="text-xs text-muted-foreground -mt-1">Learning Management System</p>
+            <div className="hidden sm:flex items-center gap-3">
+              <div>
+                <h1 className="text-xl font-bold text-foreground">GrowPro LMS</h1>
+                <p className="text-xs text-muted-foreground -mt-1">Learning Management System</p>
+              </div>
+              {userRole && (
+                <div className="flex items-center gap-2 pl-3 border-l">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">{userRole}</span>
+                </div>
+              )}
             </div>
           </div>
 
