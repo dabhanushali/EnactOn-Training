@@ -47,17 +47,18 @@ serve(async (req) => {
     }
 
     // Check if user has HR or Management role
-    const { data: profile, error: profileError } = await supabaseClient
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('role:roles(role_name)')
+      .select('id, roles(role_name)')
       .eq('id', user.id)
       .single();
 
     if (profileError || !profile) {
+      console.error('Profile query error:', profileError);
       throw new Error('Unable to verify user role');
     }
 
-    const userRole = (profile.role as any)?.role_name;
+    const userRole = (profile as any)?.roles?.role_name;
     if (!['HR', 'Management'].includes(userRole)) {
       throw new Error('Insufficient privileges. Only HR and Management can update user emails.');
     }
