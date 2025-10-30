@@ -150,7 +150,7 @@ export default function Employees() {
     const csvData = employees.map(emp => [
       `${emp.first_name || ''} ${emp.last_name || ''}`.trim(),
       emp.employee_code || '',
-      (emp as any).email || 'N/A',
+      emp.email || 'N/A',
       emp.role?.role_name || '',
       emp.department || '',
       emp.designation || '',
@@ -477,10 +477,15 @@ export default function Employees() {
                           <span>{employee.department || 'No Department'}</span>
                         </div>
 
-                        {employee.date_of_joining && (
+                        {employee.date_of_joining ? (
                           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                             <Calendar className="w-4 h-4" />
                             <span>Joined {new Date(employee.date_of_joining).toLocaleDateString()}</span>
+                          </div>
+                        ): (
+                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                            <Calendar className="w-4 h-4" />
+                            <span>Joining date not added</span>
                           </div>
                         )}
                         

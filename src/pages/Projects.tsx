@@ -273,7 +273,7 @@ export default function Projects() {
                         </div>
 
                         <div className="space-y-3 mb-4">
-                          <div className="flex items-center justify-between">
+                          {profile.role?.role_name === 'Trainee' && <div className="flex items-center justify-between">
                             <Badge className={`${statusConfig.color} font-medium flex items-center gap-1`}>
                               <StatusIcon className="w-3 h-3" />
                               {statusConfig.label}
@@ -284,7 +284,8 @@ export default function Projects() {
                                 {project.duration_days} days
                               </div>
                             )}
-                          </div>
+                          </div>}
+
 
                           <div className="flex items-center text-sm text-muted-foreground">
                             <Calendar className="w-4 h-4 mr-2" />
