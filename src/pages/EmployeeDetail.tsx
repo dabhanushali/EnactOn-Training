@@ -460,7 +460,7 @@ export default function EmployeeDetail() {
         </div>
 
         {/* Team Lead Assignment */}
-        {canManage && (
+        {canManage && employee.role?.role_name !== 'HR' && employee.role?.role_name !== 'Management' && (
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Team Lead Assignment</CardTitle>
