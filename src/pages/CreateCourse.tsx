@@ -27,6 +27,7 @@ export default function CreateCourse() {
 
   const [loading, setLoading] = useState(false);
   const [courseId, setCourseId] = useState<string | null>(null);
+  const [creationMode, setCreationMode] = useState<'select' | 'manual' | 'auto'>('select');
   const [activeTab, setActiveTab] = useState('details');
   const [modules, setModules] = useState([]);
   const [assessments, setAssessments] = useState([]);
@@ -236,8 +237,46 @@ export default function CreateCourse() {
           <CardTitle>Create New Course</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+          {creationMode === 'select' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCreationMode('manual')}>
+                <CardContent className="p-6 text-center space-y-4">
+                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Edit className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold">Manual Creation</h3>
+                  <p className="text-muted-foreground">
+                    Create your course from scratch by entering details, adding modules, and assessments manually.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCreationMode('auto')}>
+                <CardContent className="p-6 text-center space-y-4">
+                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold">Auto-Generate</h3>
+                  <p className="text-muted-foreground">
+                    Extract course content from URLs, ClickUp, Notion, CSV files, or let AI generate modules for you.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {creationMode === 'manual' && (
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Manual Course Creation</h3>
+                <Button variant="outline" onClick={() => setCreationMode('select')}>
+                  Back to Options
+                </Button>
+              </div>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="details">Course Details</TabsTrigger>
               <TabsTrigger value="modules" disabled={!courseId}>Modules {courseId ? '' : '(Save first)'}</TabsTrigger>
               <TabsTrigger value="assessments" disabled={!courseId}>Assessments {courseId ? '' : '(Save first)'}</TabsTrigger>
@@ -433,7 +472,84 @@ export default function CreateCourse() {
                 </Button>
               </div>
             </TabsContent>
-          </Tabs>
+              </Tabs>
+            </>
+          )}
+
+          {creationMode === 'auto' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Auto-Generate Course</h3>
+                <Button variant="outline" onClick={() => setCreationMode('select')}>
+                  Back to Options
+                </Button>
+              </div>
+              
+              {!courseId ? (
+                <div className="space-y-4">
+                  <p className="text-muted-foreground">First, provide basic course details:</p>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <RequiredLabel htmlFor="course_name">Course Name</RequiredLabel>
+                        <Input
+                          id="course_name"
+                          value={formData.course_name}
+                          onChange={(e) => handleInputChange('course_name', e.target.value)}
+                          placeholder="Enter course name"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <RequiredLabel htmlFor="course_description">Course Description</RequiredLabel>
+                        <Textarea
+                          id="course_description"
+                          value={formData.course_description}
+                          onChange={(e) => handleInputChange('course_description', e.target.value)}
+                          placeholder="Describe the course content"
+                          rows={3}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <RequiredLabel htmlFor="course_type">Course Type</RequiredLabel>
+                        <Select 
+                          value={formData.course_type} 
+                          onValueChange={(value) => handleInputChange('course_type', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select course type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MASTER_DATA.courseTypes.map(type => (
+                              <SelectItem key={type} value={type}>
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <Button type="submit" disabled={loading}>
+                      {loading ? 'Creating...' : 'Create Course & Continue'}
+                    </Button>
+                  </form>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Now extract or generate modules from various sources:
+                  </p>
+                  <EnhancedModuleCreator courseId={courseId} />
+                  <div className="flex justify-end mt-6">
+                    <Button onClick={handleFinishCourse}>
+                      Finish & View Course
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
