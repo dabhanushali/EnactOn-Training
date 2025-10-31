@@ -48,6 +48,8 @@ export const EnhancedTrainingSessions = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pre-joining');
+  const [preJoiningSubTab, setPreJoiningSubTab] = useState('today');
+  const [postJoiningSubTab, setPostJoiningSubTab] = useState('today');
   
   // Dialog states
   const [isAssignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -124,18 +126,63 @@ export const EnhancedTrainingSessions = () => {
     };
   }, []);
 
+  const categorizeByTime = useCallback((sessions: Session[]) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const todaySessions: Session[] = [];
+    const scheduledSessions: Session[] = [];
+    const completedSessions: Session[] = [];
+
+    sessions.forEach(session => {
+      const sessionDate = new Date(session.start_datetime);
+      const isCompleted = session.status.toLowerCase() === 'completed';
+      
+      if (isCompleted) {
+        completedSessions.push(session);
+      } else if (sessionDate >= today && sessionDate < tomorrow) {
+        todaySessions.push(session);
+      } else if (sessionDate >= tomorrow) {
+        scheduledSessions.push(session);
+      } else {
+        // Past sessions that aren't marked completed
+        completedSessions.push(session);
+      }
+    });
+
+    return { today: todaySessions, scheduled: scheduledSessions, completed: completedSessions };
+  }, []);
+
   const [categorizedSessions, setCategorizedSessions] = useState<{
     preJoining: Session[];
     postJoining: Session[];
   }>({ preJoining: [], postJoining: [] });
 
+  const [preJoiningByTime, setPreJoiningByTime] = useState<{
+    today: Session[];
+    scheduled: Session[];
+    completed: Session[];
+  }>({ today: [], scheduled: [], completed: [] });
+
+  const [postJoiningByTime, setPostJoiningByTime] = useState<{
+    today: Session[];
+    scheduled: Session[];
+    completed: Session[];
+  }>({ today: [], scheduled: [], completed: [] });
+
   useEffect(() => {
     const categorizeSessions = async () => {
       const categorized = await categorizeSessionsByStatus(sessions);
       setCategorizedSessions(categorized);
+      
+      // Further categorize by time
+      setPreJoiningByTime(categorizeByTime(categorized.preJoining));
+      setPostJoiningByTime(categorizeByTime(categorized.postJoining));
     };
     categorizeSessions();
-  }, [sessions, categorizeSessionsByStatus]);
+  }, [sessions, categorizeSessionsByStatus, categorizeByTime]);
 
   const handleSessionCreated = (sessionId: string) => {
     fetchSessions();
@@ -429,11 +476,11 @@ export const EnhancedTrainingSessions = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Training Sessions</h2>
+          <h2 className="text-2xl font-bold">Review Sessions</h2>
           <p className="text-muted-foreground">
             {profile?.role?.role_name === 'Trainee' 
               ? "Join live sessions and access recordings"
-              : "Manage and schedule training sessions"
+              : "Manage and schedule review sessions"
             }
           </p>
         </div>
@@ -460,17 +507,65 @@ export const EnhancedTrainingSessions = () => {
                 <Card key={i} className="h-64 animate-pulse bg-muted" />
               ))}
             </div>
-          ) : categorizedSessions.preJoining.length > 0 ? (
-            <SessionGrid sessions={categorizedSessions.preJoining} />
           ) : (
-            <Card>
-              <CardContent className="flex items-center justify-center py-12">
-                <div className="text-center">
-                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No pre-joining sessions scheduled</p>
-                </div>
-              </CardContent>
-            </Card>
+            <Tabs value={preJoiningSubTab} onValueChange={setPreJoiningSubTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
+                <TabsTrigger value="today">
+                  Today ({preJoiningByTime.today.length})
+                </TabsTrigger>
+                <TabsTrigger value="scheduled">
+                  Scheduled ({preJoiningByTime.scheduled.length})
+                </TabsTrigger>
+                <TabsTrigger value="completed">
+                  Completed ({preJoiningByTime.completed.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="today">
+                {preJoiningByTime.today.length > 0 ? (
+                  <SessionGrid sessions={preJoiningByTime.today} />
+                ) : (
+                  <Card>
+                    <CardContent className="flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">No sessions today</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="scheduled">
+                {preJoiningByTime.scheduled.length > 0 ? (
+                  <SessionGrid sessions={preJoiningByTime.scheduled} />
+                ) : (
+                  <Card>
+                    <CardContent className="flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">No upcoming scheduled sessions</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="completed">
+                {preJoiningByTime.completed.length > 0 ? (
+                  <SessionGrid sessions={preJoiningByTime.completed} isPast={true} />
+                ) : (
+                  <Card>
+                    <CardContent className="flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">No completed sessions</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+            </Tabs>
           )}
         </TabsContent>
 
@@ -481,17 +576,65 @@ export const EnhancedTrainingSessions = () => {
                 <Card key={i} className="h-64 animate-pulse bg-muted" />
               ))}
             </div>
-          ) : categorizedSessions.postJoining.length > 0 ? (
-            <SessionGrid sessions={categorizedSessions.postJoining} />
           ) : (
-            <Card>
-              <CardContent className="flex items-center justify-center py-12">
-                <div className="text-center">
-                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No post-joining sessions scheduled</p>
-                </div>
-              </CardContent>
-            </Card>
+            <Tabs value={postJoiningSubTab} onValueChange={setPostJoiningSubTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
+                <TabsTrigger value="today">
+                  Today ({postJoiningByTime.today.length})
+                </TabsTrigger>
+                <TabsTrigger value="scheduled">
+                  Scheduled ({postJoiningByTime.scheduled.length})
+                </TabsTrigger>
+                <TabsTrigger value="completed">
+                  Completed ({postJoiningByTime.completed.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="today">
+                {postJoiningByTime.today.length > 0 ? (
+                  <SessionGrid sessions={postJoiningByTime.today} />
+                ) : (
+                  <Card>
+                    <CardContent className="flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">No sessions today</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="scheduled">
+                {postJoiningByTime.scheduled.length > 0 ? (
+                  <SessionGrid sessions={postJoiningByTime.scheduled} />
+                ) : (
+                  <Card>
+                    <CardContent className="flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">No upcoming scheduled sessions</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="completed">
+                {postJoiningByTime.completed.length > 0 ? (
+                  <SessionGrid sessions={postJoiningByTime.completed} isPast={true} />
+                ) : (
+                  <Card>
+                    <CardContent className="flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">No completed sessions</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+            </Tabs>
           )}
         </TabsContent>
       </Tabs>
