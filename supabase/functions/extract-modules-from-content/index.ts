@@ -136,13 +136,26 @@ Extract 3-10 course modules from this content. Return a JSON array of modules.`;
         const hasUrl = contentUrl.trim().length > 0;
         let contentType = module.content_type;
         
+        // Normalize content type to proper case
+        if (contentType) {
+          const typeMap: { [key: string]: string } = {
+            'link': 'External Link',
+            'external link': 'External Link',
+            'video': 'Video',
+            'pdf': 'PDF',
+            'text': 'Text',
+            'mixed': 'Mixed'
+          };
+          contentType = typeMap[contentType.toLowerCase()] || contentType;
+        }
+        
         // Auto-set to External Link if URL is present
         if (hasUrl && !contentType) {
           contentType = 'External Link';
         }
         
-        // Validate content type
-        const validTypes = ['External Link', 'Video', 'PDF', 'Text', 'Mixed', 'mixed', 'link', 'video', 'pdf', 'text'];
+        // Validate and default content type
+        const validTypes = ['External Link', 'Video', 'PDF', 'Text', 'Mixed'];
         if (!validTypes.includes(contentType)) {
           contentType = hasUrl ? 'External Link' : 'Text';
         }
