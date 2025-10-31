@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import Firecrawl from "npm:@mendable/firecrawl-js@1.10.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,16 +9,6 @@ const corsHeaders = {
 interface ExtractRequest {
   content: string;
   source: string;
-}
-
-interface FirecrawlResponse {
-  success: boolean;
-  data?: Array<{
-    markdown?: string;
-    html?: string;
-    metadata?: any;
-  }>;
-  error?: string;
 }
 
 serve(async (req) => {
@@ -55,42 +46,27 @@ serve(async (req) => {
       
       if (FIRECRAWL_API_KEY) {
         try {
-          console.log('Crawling content with Firecrawl from URL:', content);
+          console.log('Crawling content with Firecrawl SDK from URL:', content);
           
-          const firecrawlResponse = await fetch('https://api.firecrawl.dev/v1/crawl', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              url: content,
-              limit: 10,
-              scrapeOptions: {
-                formats: ['markdown', 'html'],
-              }
-            })
-          });
-
-          if (firecrawlResponse.ok) {
-            const crawlData: FirecrawlResponse = await firecrawlResponse.json();
-            
-            if (crawlData.success && crawlData.data && crawlData.data.length > 0) {
-              // Combine all crawled pages
-              contentToProcess = crawlData.data
-                .map(page => page.markdown || page.html || '')
-                .join('\n\n---\n\n');
-              console.log(`Successfully crawled ${crawlData.data.length} pages with Firecrawl`);
-            } else {
-              console.log('Firecrawl returned no data, falling back to basic fetch');
-              throw new Error('No data from Firecrawl');
+          const firecrawl = new Firecrawl({ apiKey: FIRECRAWL_API_KEY });
+          const crawlData = await firecrawl.crawl(content, { 
+            limit: 10,
+            scrapeOptions: {
+              formats: ['markdown', 'html']
             }
+          });
+          
+          if (crawlData && Array.isArray(crawlData) && crawlData.length > 0) {
+            contentToProcess = crawlData
+              .map((page: any) => page.markdown || page.html || '')
+              .join('\n\n---\n\n');
+            console.log(`Successfully crawled ${crawlData.length} pages with Firecrawl SDK`);
           } else {
-            console.log('Firecrawl API error, falling back to basic fetch');
-            throw new Error('Firecrawl API failed');
+            console.log('Firecrawl returned no data, falling back to basic fetch');
+            throw new Error('No data from Firecrawl');
           }
         } catch (error) {
-          console.log('Firecrawl failed, attempting basic fetch:', error);
+          console.log('Firecrawl SDK failed, attempting basic fetch:', error);
           try {
             const urlResponse = await fetch(content);
             if (urlResponse.ok) {
