@@ -47,13 +47,25 @@ export function AssignProjectDialogEnhanced({
     
     setLoading(true);
     try {
-      // Get all employees
-      const { data: employeesData, error: employeesError } = await supabase
+      // Get all employees - filter by trainee role only
+      const { data: allProfiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, designation, department, current_status')
+        .select('id, first_name, last_name, designation, department, current_status, role_id')
         .eq('current_status', 'Active');
 
-      if (employeesError) throw employeesError;
+      if (profilesError) throw profilesError;
+
+      // Get trainee role ID
+      const { data: traineeRole } = await supabase
+        .from('roles')
+        .select('id')
+        .eq('role_name', 'Trainee')
+        .single();
+
+      // Filter to only trainees
+      const employeesData = (allProfiles || []).filter(
+        emp => emp.role_id === traineeRole?.id
+      );
 
       // Get current assignments for this project
       const { data: assignmentsData, error: assignmentsError } = await supabase

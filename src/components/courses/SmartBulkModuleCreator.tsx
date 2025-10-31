@@ -23,11 +23,13 @@ interface ModuleData {
 interface SmartBulkModuleCreatorProps {
   courseId: string;
   onModulesCreated: () => void;
+  isAutoGeneration?: boolean;
+  onCourseGenerated?: (courseData: any, modulesData: any[]) => void;
 }
 
 const CONTENT_TYPES = ['mixed', 'link', 'video', 'pdf', 'text'];
 
-export const SmartBulkModuleCreator = ({ courseId, onModulesCreated }: SmartBulkModuleCreatorProps) => {
+export const SmartBulkModuleCreator = ({ courseId, onModulesCreated, isAutoGeneration, onCourseGenerated }: SmartBulkModuleCreatorProps) => {
   const [modules, setModules] = useState<ModuleData[]>([]);
   const [nextOrderNumber, setNextOrderNumber] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -121,25 +123,45 @@ export const SmartBulkModuleCreator = ({ courseId, onModulesCreated }: SmartBulk
 
   const processContent = async (content: string, source: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('extract-modules-from-content', {
-        body: {
-          content,
-          source,
-          startingOrder: nextOrderNumber
+      if (isAutoGeneration) {
+        // Use the new function that extracts both course and modules
+        const { data, error } = await supabase.functions.invoke('extract-course-and-modules', {
+          body: { content, source }
+        });
+
+        if (error) throw error;
+
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to extract course data');
         }
-      });
 
-      if (error) throw error;
+        // Call parent callback with course and modules data
+        if (onCourseGenerated) {
+          onCourseGenerated(data.course, data.modules);
+        }
+        toast.success(`Extracted course with ${data.modules?.length || 0} modules from ${source}`);
+      } else {
+        // Original behavior - just extract modules
+        const { data, error } = await supabase.functions.invoke('extract-modules-from-content', {
+          body: {
+            content,
+            source,
+            startingOrder: nextOrderNumber
+          }
+        });
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to extract modules');
+        if (error) throw error;
+
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to extract modules');
+        }
+
+        setModules(data.modules || []);
+        toast.success(`Extracted ${data.modules?.length || 0} modules from ${source}`);
       }
-
-      setModules(data.modules || []);
-      toast.success(`Extracted ${data.modules?.length || 0} modules from ${source}`);
     } catch (error) {
-      console.error('Error extracting modules:', error);
-      toast.error(`Failed to extract modules: ${(error as Error).message}`);
+      console.error('Error extracting content:', error);
+      toast.error(`Failed to extract content: ${(error as Error).message}`);
     } finally {
       setLoading(false);
     }

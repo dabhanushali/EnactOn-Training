@@ -8,6 +8,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth-utils';
 import { AssignProjectDialogEnhanced } from '@/components/projects/AssignProjectDialogEnhanced';
+import { ProjectEvaluationStatus } from '@/components/projects/ProjectEvaluationStatus';
 
 // Interfaces for the new data structure
 interface Project {
@@ -78,17 +79,6 @@ export default function ProjectDetails() {
 
   const userRole = profile?.role?.role_name;
   
-  // Role-based status display logic
-  const getDisplayStatus = (assignment: Assignment) => {
-    if (userRole === 'Trainee') {
-      // Trainees see granular workflow: Not Started → Started → Submitted
-      return assignment.status;
-    } else {
-      // Team Leads, HR, Management see high-level overview
-      return assignment.status === 'Submitted' ? 'Submitted' : 'Not Submitted';
-    }
-  };
-
   const visibleAssignments = userRole === 'Team Lead'
     ? assignments.filter(assignment => assignment.profiles)
     : assignments;
@@ -150,7 +140,13 @@ export default function ProjectDetails() {
                 {visibleAssignments.length > 0 ? visibleAssignments.map((assignment) => (
                   <TableRow key={assignment.id}>
                     <TableCell>{assignment.profiles?.first_name} {assignment.profiles?.last_name || 'N/A'}</TableCell>
-                    <TableCell><Badge variant="secondary">{getDisplayStatus(assignment)}</Badge></TableCell>
+                    <TableCell>
+                      <ProjectEvaluationStatus 
+                        assignmentId={assignment.id}
+                        status={assignment.status}
+                        userRole={userRole}
+                      />
+                    </TableCell>
                     <TableCell className="text-right">
                       <Link to={`/assignments/${assignment.id}/evaluate`}>
                         <Button variant="outline" size="sm">View & Evaluate</Button>

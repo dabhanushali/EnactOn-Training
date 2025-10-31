@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { CourseModule } from '@/components/courses/CourseModule';
 import { CourseEnrollment } from '@/components/courses/CourseEnrollment';
 import { CourseAssessment } from '@/components/courses/CourseAssessment';
+import { CourseProgressTracker } from '@/components/courses/CourseProgressTracker';
 import { ArrowLeft, Clock, Users, BookOpen, Award, Edit, UserPlus, Settings, CheckCircle, Target, FileText } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -376,6 +377,16 @@ export default function CourseDetails() {
               </Button>
             ) : enrollment && isTrainee && (
               <div className="space-y-4">
+                  <CourseProgressTracker
+                    completedModules={modules.filter(m => m.completed).length}
+                    totalModules={modules.length}
+                    completedAssessments={assessments.filter(a => a.status === 'completed').length}
+                    totalAssessments={assessmentTemplates.length}
+                    averageScore={assessments.length > 0 ? assessments.reduce((acc, a) => acc + (a.percentage || 0), 0) / assessments.length : undefined}
+                    status={enrollment[0]?.status === 'completed' ? 'completed' : 'in_progress'}
+                    enrollmentDate={enrollment[0]?.enrolled_date}
+                    completionDate={enrollment[0]?.completion_date}
+                  />
                   <CourseEnrollment
                     course={course}
                     completedAssessments={assessments.filter(a => a.status === 'completed').length}

@@ -16,12 +16,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserRoleType, EmployeeStatusOptions } from '@/lib/enums';
-import { EmployeeDocuments } from '@/components/employees/EmployeeDocuments';
 import { EmployeeCourseEnrollments } from '@/components/employees/EmployeeCourseEnrollments';
 import { StatusChangeDialog } from '@/components/employees/StatusChangeDialog';
 import { MASTER_DATA } from '@/lib/masterData';
 import { CourseEnrollmentDialog } from '@/components/employees/CourseEnrollmentDialog';
-import { DocumentUploadDialog } from '@/components/employees/DocumentUploadDialog';
 import { RequiredLabel } from '@/components/forms/RequiredLabel';
 
 interface Employee {
@@ -69,7 +67,6 @@ export default function EmployeeDetailEnhanced() {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Employee & { role_id: string | null }>>({});
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
-  const [showDocumentDialog, setShowDocumentDialog] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
 
@@ -621,48 +618,20 @@ export default function EmployeeDetailEnhanced() {
           </Card>
         )}
 
-        {/* Documents and Courses Section */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="p-2 rounded-lg bg-orange-500/10 text-orange-600">
-                    <FileText className="h-5 w-5" />
-                  </div>
-                  <span>Employee Documents</span>
-                </div>
-                {canManage && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setShowDocumentDialog(true)}
-                    className="bg-white/50"
-                  >
-                    Upload Document
-                  </Button>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <EmployeeDocuments employeeId={employeeId!} />
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600">
-                  <Award className="h-5 w-5" />
-                </div>
-                <span>Course Enrollments</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <EmployeeCourseEnrollments employeeId={employeeId!} />
-            </CardContent>
-          </Card>
-        </div>
+        {/* Courses Section */}
+        <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600">
+                <Award className="h-5 w-5" />
+              </div>
+              <span>Course Enrollments</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EmployeeCourseEnrollments employeeId={employeeId!} />
+          </CardContent>
+        </Card>
 
         {/* Dialogs */}
         {canManage && (
@@ -674,16 +643,6 @@ export default function EmployeeDetailEnhanced() {
               onSuccess={() => {
                 setShowEnrollDialog(false);
                 toast.success('Course assigned successfully');
-              }}
-            />
-            
-            <DocumentUploadDialog
-              open={showDocumentDialog}
-              onOpenChange={setShowDocumentDialog}
-              employeeId={employeeId!}
-              onSuccess={() => {
-                setShowDocumentDialog(false);
-                // Refresh documents if needed
               }}
             />
             

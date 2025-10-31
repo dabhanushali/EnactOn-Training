@@ -12,10 +12,8 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, Edit, Save, X, User, Calendar, Phone, Building, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserRoleType, EmployeeStatusOptions } from '@/lib/enums';
-import { EmployeeDocuments } from '@/components/employees/EmployeeDocuments';
 import { MASTER_DATA } from '@/lib/masterData';
 import { CourseEnrollmentDialog } from '@/components/employees/CourseEnrollmentDialog';
-import { DocumentUploadDialog } from '@/components/employees/DocumentUploadDialog';
 import { RequiredLabel } from '@/components/forms/RequiredLabel';
 
 // --- TYPE DEFINITIONS ---
@@ -67,7 +65,6 @@ export default function EmployeeDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Employee & { role_id: string | null }>>({});
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
-  const [showDocumentDialog, setShowDocumentDialog] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
 
   const canManage = profile?.role?.role_name === 'HR' || profile?.role?.role_name === 'Management';
@@ -494,13 +491,6 @@ export default function EmployeeDetail() {
               </div>
             </CardContent>
           </Card>
-        )}
-
-        {/* Documents Section */}
-        {employeeId && (
-          <div className="space-y-6">
-            <EmployeeDocuments employeeId={employeeId} />
-          </div>
         )}
 
         {/* Course Enrollment Dialog */}
