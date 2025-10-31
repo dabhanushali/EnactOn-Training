@@ -49,18 +49,18 @@ serve(async (req) => {
           console.log('Crawling content with Firecrawl SDK from URL:', content);
           
           const firecrawl = new Firecrawl({ apiKey: FIRECRAWL_API_KEY });
-          const crawlData = await firecrawl.crawl(content, { 
+          const crawlResponse = await firecrawl.crawl(content, { 
             limit: 10,
             scrapeOptions: {
               formats: ['markdown', 'html']
             }
           });
           
-          if (crawlData && Array.isArray(crawlData) && crawlData.length > 0) {
-            contentToProcess = crawlData
+          if (crawlResponse && crawlResponse.data && Array.isArray(crawlResponse.data) && crawlResponse.data.length > 0) {
+            contentToProcess = crawlResponse.data
               .map((page: any) => page.markdown || page.html || '')
               .join('\n\n---\n\n');
-            console.log(`Successfully crawled ${crawlData.length} pages with Firecrawl SDK`);
+            console.log(`Successfully crawled ${crawlResponse.data.length} pages with Firecrawl SDK (status: ${crawlResponse.status})`);
           } else {
             console.log('Firecrawl returned no data, falling back to basic fetch');
             throw new Error('No data from Firecrawl');
