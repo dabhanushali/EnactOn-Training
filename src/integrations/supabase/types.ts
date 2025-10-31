@@ -886,12 +886,9 @@ export type Database = {
         Args: { p_course_id: string; p_employee_id: string }
         Returns: boolean
       }
-      delete_user: {
-        Args: { user_id: string }
-        Returns: undefined
-      }
+      delete_user: { Args: { user_id: string }; Returns: undefined }
       get_profiles_with_emails: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           current_status: string
@@ -921,18 +918,9 @@ export type Database = {
           trainee_last_name: string
         }[]
       }
-      get_trainee_readiness_data: {
-        Args: { p_user_id: string }
-        Returns: Json
-      }
-      get_user_email: {
-        Args: { user_id: string }
-        Returns: string
-      }
-      get_user_role: {
-        Args: { user_id: string }
-        Returns: string
-      }
+      get_trainee_readiness_data: { Args: { p_user_id: string }; Returns: Json }
+      get_user_email: { Args: { user_id: string }; Returns: string }
+      get_user_role: { Args: { user_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
