@@ -31,6 +31,11 @@ export default function CreateCourse() {
   const [activeTab, setActiveTab] = useState('details');
   const [modules, setModules] = useState([]);
   const [assessments, setAssessments] = useState([]);
+  
+  // Auto-generation states
+  const [extractionUrl, setExtractionUrl] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractedData, setExtractedData] = useState<any>(null);
 
   // Dialog states
   const [showModuleDialog, setShowModuleDialog] = useState(false);
@@ -479,71 +484,287 @@ export default function CreateCourse() {
           {creationMode === 'auto' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Auto-Generate Course</h3>
-                <Button variant="outline" onClick={() => setCreationMode('select')}>
+                <h3 className="text-lg font-semibold">Auto-Generate Course from Link</h3>
+                <Button variant="outline" onClick={() => {
+                  setCreationMode('select');
+                  setExtractionUrl('');
+                  setExtractedData(null);
+                }}>
                   Back to Options
                 </Button>
               </div>
               
-              {!courseId ? (
+              {!extractedData ? (
                 <div className="space-y-4">
-                  <p className="text-muted-foreground">First, provide basic course details:</p>
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <RequiredLabel htmlFor="course_name">Course Name</RequiredLabel>
-                        <Input
-                          id="course_name"
-                          value={formData.course_name}
-                          onChange={(e) => handleInputChange('course_name', e.target.value)}
-                          placeholder="Enter course name"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <RequiredLabel htmlFor="course_description">Course Description</RequiredLabel>
-                        <Textarea
-                          id="course_description"
-                          value={formData.course_description}
-                          onChange={(e) => handleInputChange('course_description', e.target.value)}
-                          placeholder="Describe the course content"
-                          rows={3}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <RequiredLabel htmlFor="course_type">Course Type</RequiredLabel>
-                        <Select 
-                          value={formData.course_type} 
-                          onValueChange={(value) => handleInputChange('course_type', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select course type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {MASTER_DATA.courseTypes.map(type => (
-                              <SelectItem key={type} value={type}>
-                                {type}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <Button type="submit" disabled={loading}>
-                      {loading ? 'Creating...' : 'Create Course & Continue'}
-                    </Button>
-                  </form>
+                  <p className="text-muted-foreground">
+                    Paste a URL from ClickUp, Notion, documentation sites, or any web content to automatically extract course details and modules.
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="extraction_url">Content URL</Label>
+                    <Input
+                      id="extraction_url"
+                      type="url"
+                      value={extractionUrl}
+                      onChange={(e) => setExtractionUrl(e.target.value)}
+                      placeholder="https://example.com/course-content"
+                      disabled={isExtracting}
+                    />
+                  </div>
+                  <Button 
+                    onClick={async () => {
+                      if (!extractionUrl.trim()) {
+                        toast({
+                          title: "URL Required",
+                          description: "Please enter a valid URL",
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+                      
+                      setIsExtracting(true);
+                      try {
+                        const { data, error } = await supabase.functions.invoke('extract-course-and-modules', {
+                          body: { 
+                            content: extractionUrl,
+                            source: 'URL'
+                          }
+                        });
+                        
+                        if (error) throw error;
+                        
+                        if (!data.success) {
+                          throw new Error(data.error || 'Failed to extract course data');
+                        }
+                        
+                        setExtractedData(data);
+                        toast({
+                          title: "Success",
+                          description: `Extracted course with ${data.modules?.length || 0} modules`
+                        });
+                      } catch (error) {
+                        console.error('Error extracting course:', error);
+                        toast({
+                          title: "Extraction Failed",
+                          description: error instanceof Error ? error.message : "Failed to extract course content",
+                          variant: "destructive"
+                        });
+                      } finally {
+                        setIsExtracting(false);
+                      }
+                    }}
+                    disabled={isExtracting || !extractionUrl.trim()}
+                  >
+                    {isExtracting ? (
+                      <span className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Extracting Content...
+                      </span>
+                    ) : (
+                      'Extract Course & Modules'
+                    )}
+                  </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Now extract or generate modules from various sources:
-                  </p>
-                  <EnhancedModuleCreator courseId={courseId} />
-                  <div className="flex justify-end mt-6">
-                    <Button onClick={handleFinishCourse}>
-                      Finish & View Course
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Extracted Course Details</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label>Course Name</Label>
+                          <Input
+                            value={extractedData.course?.course_name || ''}
+                            onChange={(e) => setExtractedData(prev => ({
+                              ...prev,
+                              course: { ...prev.course, course_name: e.target.value }
+                            }))}
+                          />
+                        </div>
+                        <div>
+                          <Label>Course Type</Label>
+                          <Select
+                            value={extractedData.course?.course_type || ''}
+                            onValueChange={(value) => setExtractedData(prev => ({
+                              ...prev,
+                              course: { ...prev.course, course_type: value }
+                            }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MASTER_DATA.courseTypes.map(type => (
+                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Difficulty Level</Label>
+                          <Select
+                            value={extractedData.course?.difficulty_level || 'Intermediate'}
+                            onValueChange={(value) => setExtractedData(prev => ({
+                              ...prev,
+                              course: { ...prev.course, difficulty_level: value }
+                            }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MASTER_DATA.difficultyLevels.map(level => (
+                                <SelectItem key={level} value={level}>{level}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Target Role</Label>
+                          <Select
+                            value={extractedData.course?.target_role || ''}
+                            onValueChange={(value) => setExtractedData(prev => ({
+                              ...prev,
+                              course: { ...prev.course, target_role: value }
+                            }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MASTER_DATA.targetRoles.map(role => (
+                                <SelectItem key={role} value={role}>{role}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label>Description</Label>
+                          <Textarea
+                            value={extractedData.course?.course_description || ''}
+                            onChange={(e) => setExtractedData(prev => ({
+                              ...prev,
+                              course: { ...prev.course, course_description: e.target.value }
+                            }))}
+                            rows={3}
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label>Learning Objectives</Label>
+                          <Textarea
+                            value={extractedData.course?.learning_objectives || ''}
+                            onChange={(e) => setExtractedData(prev => ({
+                              ...prev,
+                              course: { ...prev.course, learning_objectives: e.target.value }
+                            }))}
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Extracted Modules ({extractedData.modules?.length || 0})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3 max-h-96 overflow-y-auto">
+                        {extractedData.modules?.map((module, idx) => (
+                          <Card key={idx}>
+                            <CardContent className="p-4">
+                              <h4 className="font-semibold">{module.module_name}</h4>
+                              <p className="text-sm text-muted-foreground mt-1">{module.module_description}</p>
+                              <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                                <span>Type: {module.content_type}</span>
+                                <span>Duration: {module.estimated_duration_minutes}min</span>
+                                {module.content_url && <span className="truncate">URL: {module.content_url}</span>}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setExtractedData(null);
+                        setExtractionUrl('');
+                      }}
+                    >
+                      Extract Different URL
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        setLoading(true);
+                        try {
+                          // Create course
+                          const { data: courseData, error: courseError } = await supabase
+                            .from('courses')
+                            .insert({
+                              course_name: extractedData.course.course_name,
+                              course_description: extractedData.course.course_description,
+                              course_type: extractedData.course.course_type,
+                              difficulty_level: extractedData.course.difficulty_level || 'Intermediate',
+                              target_role: extractedData.course.target_role || '',
+                              learning_objectives: extractedData.course.learning_objectives || '',
+                              is_mandatory: false,
+                              completion_rule: 'pass_all_assessments',
+                              minimum_passing_percentage: 70,
+                              created_by: profile?.id
+                            })
+                            .select()
+                            .single();
+
+                          if (courseError) throw courseError;
+
+                          // Create modules
+                          if (extractedData.modules?.length > 0) {
+                            const modulesToInsert = extractedData.modules.map((module, idx) => ({
+                              course_id: courseData.id,
+                              module_name: module.module_name,
+                              module_description: module.module_description,
+                              content_type: module.content_type,
+                              content_url: module.content_url || '',
+                              estimated_duration_minutes: module.estimated_duration_minutes,
+                              module_order: idx + 1,
+                              is_mandatory: false
+                            }));
+
+                            const { error: modulesError } = await supabase
+                              .from('course_modules')
+                              .insert(modulesToInsert);
+
+                            if (modulesError) throw modulesError;
+                          }
+
+                          toast({
+                            title: "Success",
+                            description: `Course created with ${extractedData.modules?.length || 0} modules`
+                          });
+                          
+                          navigate(`/courses/${courseData.id}`);
+                        } catch (error) {
+                          console.error('Error saving course:', error);
+                          toast({
+                            title: "Error",
+                            description: "Failed to save course",
+                            variant: "destructive"
+                          });
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading}
+                    >
+                      {loading ? 'Creating Course...' : 'Save Course & Modules'}
                     </Button>
                   </div>
                 </div>
