@@ -734,8 +734,7 @@ export default function CreateCourse() {
                               content_type: module.content_type,
                               content_url: module.content_url || '',
                               estimated_duration_minutes: module.estimated_duration_minutes,
-                              module_order: idx + 1,
-                              is_mandatory: false
+                              module_order: idx + 1
                             }));
 
                             const { error: modulesError } = await supabase
