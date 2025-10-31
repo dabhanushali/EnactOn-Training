@@ -62,7 +62,7 @@ serve(async (req) => {
 Extract logical modules from the content with the following structure:
 - module_name: Clear, concise title (max 100 chars)
 - module_description: Detailed description of what the module covers (100-300 chars)
-- content_type: One of: mixed, link, video, pdf, text
+- content_type: One of: External Link, Video, PDF, Text, Mixed - IMPORTANT: USE 'External Link' when content_url contains a URL
 - content_url: Extract any relevant URLs mentioned, or leave empty
 - estimated_duration_minutes: Realistic estimate based on content (15-180 minutes)
 
@@ -118,7 +118,7 @@ Extract 3-10 course modules from this content. Return a JSON array of modules.`;
       modules = [{
         module_name: `Content from ${source}`,
         module_description: 'Extracted content - please review and edit',
-        content_type: 'mixed',
+        content_type: content.startsWith('http') ? 'External Link' : 'Text',
         content_url: content.startsWith('http') ? content : '',
         estimated_duration_minutes: 60
       }];
@@ -131,16 +131,31 @@ Extract 3-10 course modules from this content. Return a JSON array of modules.`;
     // Validate and clean modules
     const cleanedModules = modules
       .filter(m => m && typeof m === 'object')
-      .map((module, index) => ({
-        module_name: (module.module_name || `Module ${index + 1}`).slice(0, 200),
-        module_description: (module.module_description || 'No description provided').slice(0, 500),
-        content_type: ['mixed', 'link', 'video', 'pdf', 'text'].includes(module.content_type) 
-          ? module.content_type 
-          : 'mixed',
-        content_url: module.content_url || '',
-        estimated_duration_minutes: Math.min(Math.max(module.estimated_duration_minutes || 60, 15), 300),
-        module_order: startingOrder + index
-      }))
+      .map((module, index) => {
+        const contentUrl = module.content_url || '';
+        const hasUrl = contentUrl.trim().length > 0;
+        let contentType = module.content_type;
+        
+        // Auto-set to External Link if URL is present
+        if (hasUrl && !contentType) {
+          contentType = 'External Link';
+        }
+        
+        // Validate content type
+        const validTypes = ['External Link', 'Video', 'PDF', 'Text', 'Mixed', 'mixed', 'link', 'video', 'pdf', 'text'];
+        if (!validTypes.includes(contentType)) {
+          contentType = hasUrl ? 'External Link' : 'Text';
+        }
+        
+        return {
+          module_name: (module.module_name || `Module ${index + 1}`).slice(0, 200),
+          module_description: (module.module_description || 'No description provided').slice(0, 500),
+          content_type: contentType,
+          content_url: contentUrl,
+          estimated_duration_minutes: Math.min(Math.max(module.estimated_duration_minutes || 60, 15), 300),
+          module_order: startingOrder + index
+        };
+      })
       .slice(0, 20); // Max 20 modules
 
     console.log(`Successfully extracted ${cleanedModules.length} modules`);

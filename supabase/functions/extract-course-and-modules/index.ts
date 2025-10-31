@@ -110,7 +110,7 @@ Return ONLY valid JSON with this structure:
     {
       "module_name": "string (max 100 chars)",
       "module_description": "string (100-300 chars)",
-      "content_type": "one of: mixed, link, video, pdf, text",
+      "content_type": "one of: External Link, Video, PDF, Text, Mixed - USE 'External Link' when content_url contains a URL",
       "content_url": "string (URL if available)",
       "estimated_duration_minutes": number (15-180)
     }
@@ -197,7 +197,7 @@ Extract course details and 3-10 modules from this content.`;
         modules: [{
           module_name: `Content from ${source}`,
           module_description: 'Extracted content - please review and edit',
-          content_type: 'mixed',
+          content_type: content.startsWith('http') ? 'External Link' : 'Text',
           content_url: content.startsWith('http') ? content : '',
           estimated_duration_minutes: 60
         }]
@@ -220,16 +220,31 @@ Extract course details and 3-10 modules from this content.`;
       },
       modules: (result.modules || [])
         .filter(m => m && typeof m === 'object')
-        .map((module, index) => ({
-          module_name: (module.module_name || `Module ${index + 1}`).slice(0, 200),
-          module_description: (module.module_description || 'No description').slice(0, 500),
-          content_type: ['mixed', 'link', 'video', 'pdf', 'text'].includes(module.content_type) 
-            ? module.content_type 
-            : 'mixed',
-          content_url: module.content_url || '',
-          estimated_duration_minutes: Math.min(Math.max(module.estimated_duration_minutes || 60, 15), 300),
-          module_order: index + 1
-        }))
+        .map((module, index) => {
+          const contentUrl = module.content_url || '';
+          const hasUrl = contentUrl.trim().length > 0;
+          let contentType = module.content_type;
+          
+          // Auto-set to External Link if URL is present
+          if (hasUrl && !contentType) {
+            contentType = 'External Link';
+          }
+          
+          // Validate content type
+          const validTypes = ['External Link', 'Video', 'PDF', 'Text', 'Mixed', 'mixed', 'link', 'video', 'pdf', 'text'];
+          if (!validTypes.includes(contentType)) {
+            contentType = hasUrl ? 'External Link' : 'Text';
+          }
+          
+          return {
+            module_name: (module.module_name || `Module ${index + 1}`).slice(0, 200),
+            module_description: (module.module_description || 'No description').slice(0, 500),
+            content_type: contentType,
+            content_url: contentUrl,
+            estimated_duration_minutes: Math.min(Math.max(module.estimated_duration_minutes || 60, 15), 300),
+            module_order: index + 1
+          };
+        })
         .slice(0, 20),
       source
     };
