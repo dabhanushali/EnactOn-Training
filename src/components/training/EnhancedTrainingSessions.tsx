@@ -47,7 +47,7 @@ export const EnhancedTrainingSessions = () => {
   const { user, profile } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('today');
+  const [activeTab, setActiveTab] = useState('pre-joining');
   
   // Dialog states
   const [isAssignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -85,33 +85,57 @@ export const EnhancedTrainingSessions = () => {
     fetchSessions();
   }, [fetchSessions]);
 
-  const categorizeSessionsByTime = (sessions: Session[]) => {
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfToday = new Date(startOfToday);
-    endOfToday.setDate(endOfToday.getDate() + 1);
+  const categorizeSessionsByStatus = useCallback(async (sessions: Session[]) => {
+    const preJoiningSessions: Session[] = [];
+    const postJoiningSessions: Session[] = [];
+
+    for (const session of sessions) {
+      if (!session.attendees || session.attendees.length === 0) {
+        postJoiningSessions.push(session);
+        continue;
+      }
+
+      try {
+        const { data: attendeeProfiles, error } = await supabase
+          .from('profiles')
+          .select('current_status')
+          .in('id', session.attendees);
+
+        if (error) throw error;
+
+        const preJoiningCount = attendeeProfiles?.filter(p => p.current_status === 'Pre-Joining').length || 0;
+        const totalAttendees = attendeeProfiles?.length || 0;
+
+        // If majority are pre-joining, categorize as pre-joining
+        if (preJoiningCount > totalAttendees / 2) {
+          preJoiningSessions.push(session);
+        } else {
+          postJoiningSessions.push(session);
+        }
+      } catch (error) {
+        console.error('Error fetching attendee profiles:', error);
+        postJoiningSessions.push(session);
+      }
+    }
 
     return {
-      today: sessions.filter(session => {
-        const start = new Date(session.start_datetime);
-        const end = new Date(session.end_datetime);
-        // Today's sessions: start today and haven't ended yet
-        return start >= startOfToday && start < endOfToday && end > now;
-      }),
-      scheduled: sessions.filter(session => {
-        const start = new Date(session.start_datetime);
-        // Future sessions: start date is after today
-        return start >= endOfToday;
-      }),
-      past: sessions.filter(session => {
-        const end = new Date(session.end_datetime);
-        // Past sessions: session has ended (end time is before now)
-        return end < now;
-      })
+      preJoining: preJoiningSessions,
+      postJoining: postJoiningSessions
     };
-  };
+  }, []);
 
-  const categorizedSessions = categorizeSessionsByTime(sessions);
+  const [categorizedSessions, setCategorizedSessions] = useState<{
+    preJoining: Session[];
+    postJoining: Session[];
+  }>({ preJoining: [], postJoining: [] });
+
+  useEffect(() => {
+    const categorizeSessions = async () => {
+      const categorized = await categorizeSessionsByStatus(sessions);
+      setCategorizedSessions(categorized);
+    };
+    categorizeSessions();
+  }, [sessions, categorizeSessionsByStatus]);
 
   const handleSessionCreated = (sessionId: string) => {
     fetchSessions();
@@ -418,78 +442,53 @@ export const EnhancedTrainingSessions = () => {
 
       {/* Tabbed Interface */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="today" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Today ({categorizedSessions.today.length})
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="pre-joining" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Pre-joining ({categorizedSessions.preJoining.length})
           </TabsTrigger>
-          <TabsTrigger value="scheduled" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Scheduled ({categorizedSessions.scheduled.length})
-          </TabsTrigger>
-          <TabsTrigger value="past" className="flex items-center gap-2">
-            <Video className="h-4 w-4" />
-            Past ({categorizedSessions.past.length})
+          <TabsTrigger value="post-joining" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Post-joining ({categorizedSessions.postJoining.length})
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="today" className="mt-6">
+        <TabsContent value="pre-joining" className="mt-6">
           {loading ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {[...Array(3)].map((_, i) => (
                 <Card key={i} className="h-64 animate-pulse bg-muted" />
               ))}
             </div>
-          ) : categorizedSessions.today.length > 0 ? (
-            <SessionGrid sessions={categorizedSessions.today} />
+          ) : categorizedSessions.preJoining.length > 0 ? (
+            <SessionGrid sessions={categorizedSessions.preJoining} />
           ) : (
             <Card>
               <CardContent className="flex items-center justify-center py-12">
                 <div className="text-center">
-                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No sessions scheduled for today</p>
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No pre-joining sessions scheduled</p>
                 </div>
               </CardContent>
             </Card>
           )}
         </TabsContent>
 
-        <TabsContent value="scheduled" className="mt-6">
+        <TabsContent value="post-joining" className="mt-6">
           {loading ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {[...Array(6)].map((_, i) => (
                 <Card key={i} className="h-64 animate-pulse bg-muted" />
               ))}
             </div>
-          ) : categorizedSessions.scheduled.length > 0 ? (
-            <SessionGrid sessions={categorizedSessions.scheduled} />
+          ) : categorizedSessions.postJoining.length > 0 ? (
+            <SessionGrid sessions={categorizedSessions.postJoining} />
           ) : (
             <Card>
               <CardContent className="flex items-center justify-center py-12">
                 <div className="text-center">
-                  <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No upcoming sessions scheduled</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="past" className="mt-6">
-          {loading ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {[...Array(6)].map((_, i) => (
-                <Card key={i} className="h-64 animate-pulse bg-muted" />
-              ))}
-            </div>
-          ) : categorizedSessions.past.length > 0 ? (
-            <SessionGrid sessions={categorizedSessions.past} isPast={true} />
-          ) : (
-            <Card>
-              <CardContent className="flex items-center justify-center py-12">
-                <div className="text-center">
-                  <Video className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No past sessions found</p>
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No post-joining sessions scheduled</p>
                 </div>
               </CardContent>
             </Card>

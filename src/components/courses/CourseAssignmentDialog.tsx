@@ -50,8 +50,9 @@ export function CourseAssignmentDialog({ courseId, courseName, onClose }: Course
           department,
           designation,
           employee_code,
-          role:roles(role_name)
+          role:roles!inner(role_name)
         `)
+        .eq('role.role_name', 'Trainee')
         .neq('id', user?.id); // Don't include current user
 
       if (error) throw error;

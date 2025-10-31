@@ -65,7 +65,7 @@ const navigationItems: NavItem[] = [
     roles: [UserRoles.MANAGEMENT, UserRoles.HR, UserRoles.TEAM_LEAD, UserRoles.TRAINEE],
   },
   {
-    label: 'Training Sessions',
+    label: 'Review Sessions',
     icon: Calendar,
     href: '/training-sessions',
     roles: [UserRoles.MANAGEMENT, UserRoles.HR, UserRoles.TEAM_LEAD, UserRoles.TRAINEE],

@@ -10,6 +10,16 @@ interface ExtractRequest {
   source: string;
 }
 
+interface FirecrawlResponse {
+  success: boolean;
+  data?: Array<{
+    markdown?: string;
+    html?: string;
+    metadata?: any;
+  }>;
+  error?: string;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -39,17 +49,70 @@ serve(async (req) => {
 
     let contentToProcess = content;
     
-    // If content looks like a URL, fetch it
+    // If content looks like a URL, try Firecrawl first, then fallback to basic fetch
     if (content.startsWith('http://') || content.startsWith('https://')) {
-      try {
-        console.log('Fetching content from URL:', content);
-        const urlResponse = await fetch(content);
-        if (urlResponse.ok) {
-          contentToProcess = await urlResponse.text();
-          console.log('Successfully fetched content from URL');
+      const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
+      
+      if (FIRECRAWL_API_KEY) {
+        try {
+          console.log('Crawling content with Firecrawl from URL:', content);
+          
+          const firecrawlResponse = await fetch('https://api.firecrawl.dev/v1/crawl', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              url: content,
+              limit: 10,
+              scrapeOptions: {
+                formats: ['markdown', 'html'],
+              }
+            })
+          });
+
+          if (firecrawlResponse.ok) {
+            const crawlData: FirecrawlResponse = await firecrawlResponse.json();
+            
+            if (crawlData.success && crawlData.data && crawlData.data.length > 0) {
+              // Combine all crawled pages
+              contentToProcess = crawlData.data
+                .map(page => page.markdown || page.html || '')
+                .join('\n\n---\n\n');
+              console.log(`Successfully crawled ${crawlData.data.length} pages with Firecrawl`);
+            } else {
+              console.log('Firecrawl returned no data, falling back to basic fetch');
+              throw new Error('No data from Firecrawl');
+            }
+          } else {
+            console.log('Firecrawl API error, falling back to basic fetch');
+            throw new Error('Firecrawl API failed');
+          }
+        } catch (error) {
+          console.log('Firecrawl failed, attempting basic fetch:', error);
+          try {
+            const urlResponse = await fetch(content);
+            if (urlResponse.ok) {
+              contentToProcess = await urlResponse.text();
+              console.log('Successfully fetched content with basic fetch');
+            }
+          } catch (fetchError) {
+            console.log('Basic fetch also failed, will process URL as reference:', fetchError);
+          }
         }
-      } catch (error) {
-        console.log('Error fetching URL, will process as reference:', error);
+      } else {
+        // No Firecrawl key, use basic fetch
+        try {
+          console.log('Fetching content from URL (no Firecrawl key):', content);
+          const urlResponse = await fetch(content);
+          if (urlResponse.ok) {
+            contentToProcess = await urlResponse.text();
+            console.log('Successfully fetched content from URL');
+          }
+        } catch (error) {
+          console.log('Error fetching URL, will process as reference:', error);
+        }
       }
     }
 
@@ -85,9 +148,9 @@ ${contentToProcess.slice(0, 8000)}
 
 Extract course details and 3-10 modules from this content.`;
 
-    console.log('Calling Lovable AI to extract course and modules...');
+    console.log('Calling Lovable AI (Gemini) to extract course and modules...');
     
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    let aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
@@ -103,6 +166,27 @@ Extract course details and 3-10 modules from this content.`;
         max_tokens: 3000
       }),
     });
+
+    // If Gemini fails, try GPT-4 as fallback
+    if (!aiResponse.ok) {
+      console.log('Gemini failed, trying GPT-4 as fallback...');
+      aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'openai/gpt-5-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 3000
+        }),
+      });
+    }
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
