@@ -195,14 +195,34 @@ export const EnhancedDashboard = () => {
           const uniqueProjectIds = new Set(teamProjects?.map(p => p.project_id) || []);
           totalProjects = uniqueProjectIds.size;
 
-          // Get pending evaluations
-          const { data: pendingEvals } = await supabase
+          // Get pending evaluations - submissions without evaluations
+          const { data: submittedAssignments } = await supabase
             .from('project_assignments')
-            .select('*')
+            .select('id')
             .eq('assigned_by', userId)
             .eq('status', 'Submitted');
 
-          const pendingEvaluations = pendingEvals?.length || 0;
+          let pendingEvaluations = 0;
+          if (submittedAssignments && submittedAssignments.length > 0) {
+            const assignmentIds = submittedAssignments.map(a => a.id);
+
+            const { data: submissions } = await supabase
+              .from('project_milestone_submissions')
+              .select('id')
+              .in('assignment_id', assignmentIds);
+
+            if (submissions && submissions.length > 0) {
+              const submissionIds = submissions.map(s => s.id);
+
+              const { data: evaluations } = await supabase
+                .from('project_evaluations')
+                .select('submission_id')
+                .in('submission_id', submissionIds);
+
+              const evaluatedSubmissionIds = new Set(evaluations?.map(e => e.submission_id) || []);
+              pendingEvaluations = submissions.filter(s => !evaluatedSubmissionIds.has(s.id)).length;
+            }
+          }
 
           // Get recent team activity
           const { data: recentTeamEnrollments } = await supabase

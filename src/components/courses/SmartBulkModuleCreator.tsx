@@ -194,15 +194,24 @@ export const SmartBulkModuleCreator = ({ courseId, onModulesCreated, isAutoGener
 
     setSaving(true);
     try {
-      const modulesToInsert = validModules.map(module => ({
-        course_id: courseId,
-        module_name: module.module_name.trim(),
-        module_description: module.module_description.trim(),
-        content_type: module.content_type,
-        content_url: module.content_url.trim() || null,
-        estimated_duration_minutes: module.estimated_duration_minutes,
-        module_order: module.module_order
-      }));
+      const modulesToInsert = validModules.map(module => {
+        // Ensure content_type is set to External Link if content_url is present and type is not properly set
+        let contentType = module.content_type;
+        if (module.content_url && module.content_url.trim() && 
+            (!contentType || !['Video', 'Document', 'External Link', 'Assessment'].includes(contentType))) {
+          contentType = 'External Link';
+        }
+        
+        return {
+          course_id: courseId,
+          module_name: module.module_name.trim(),
+          module_description: module.module_description.trim(),
+          content_type: contentType,
+          content_url: module.content_url.trim() || null,
+          estimated_duration_minutes: module.estimated_duration_minutes,
+          module_order: module.module_order
+        };
+      });
 
       const { error } = await supabase
         .from('course_modules')

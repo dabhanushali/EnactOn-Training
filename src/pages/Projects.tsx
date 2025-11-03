@@ -51,6 +51,9 @@ export default function Projects() {
 
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [pendingEvaluations, setPendingEvaluations] = useState(0);
+
+  const isManager = ['Team Lead', 'HR', 'Management'].includes(profile?.role?.role_name || '');
 
   const fetchProjects = useCallback(async () => {
     if (!user || !profile) return;
@@ -88,6 +91,63 @@ export default function Projects() {
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
+
+  // Fetch pending evaluations count for managers
+  useEffect(() => {
+    const fetchPendingEvaluations = async () => {
+      if (!isManager || !user) return;
+
+      try {
+        // Get all submitted assignments
+        const { data: submittedAssignments, error: assignmentsError } = await supabase
+          .from('project_assignments')
+          .select('id')
+          .eq('status', 'Submitted');
+
+        if (assignmentsError) throw assignmentsError;
+
+        if (!submittedAssignments || submittedAssignments.length === 0) {
+          setPendingEvaluations(0);
+          return;
+        }
+
+        const assignmentIds = submittedAssignments.map(a => a.id);
+
+        // Get all submissions for these assignments
+        const { data: submissions, error: submissionsError } = await supabase
+          .from('project_milestone_submissions')
+          .select('id')
+          .in('assignment_id', assignmentIds);
+
+        if (submissionsError) throw submissionsError;
+
+        if (!submissions || submissions.length === 0) {
+          setPendingEvaluations(0);
+          return;
+        }
+
+        const submissionIds = submissions.map(s => s.id);
+
+        // Get all evaluations for these submissions
+        const { data: evaluations, error: evaluationsError } = await supabase
+          .from('project_evaluations')
+          .select('submission_id')
+          .in('submission_id', submissionIds);
+
+        if (evaluationsError) throw evaluationsError;
+
+        // Calculate pending evaluations (submissions without evaluations)
+        const evaluatedSubmissionIds = new Set(evaluations?.map(e => e.submission_id) || []);
+        const pendingCount = submissions.filter(s => !evaluatedSubmissionIds.has(s.id)).length;
+
+        setPendingEvaluations(pendingCount);
+      } catch (error) {
+        console.error('Error fetching pending evaluations:', error);
+      }
+    };
+
+    fetchPendingEvaluations();
+  }, [isManager, user, projects]);
 
   const handleDeleteProject = async () => {
     if (!projectToDelete) return;
@@ -151,8 +211,6 @@ export default function Projects() {
     }
   };
 
-  const isManager = ['Team Lead', 'HR', 'Management'].includes(profile?.role?.role_name || '');
-
   // Stats for managers
   const totalProjects = isManager ? projects.length : 0;
   const activeProjects = isManager 
@@ -208,7 +266,7 @@ export default function Projects() {
             totalProjects={isManager ? totalProjects : myAssignments}
             activeProjects={isManager ? activeProjects : inProgress}
             completedProjects={isManager ? completedProjects : submitted}
-            pendingEvaluations={isManager ? (projects as Project[]).filter((p: Project) => p.status === 'Submitted').length : 0}
+            pendingEvaluations={pendingEvaluations}
             userRole={profile?.role?.role_name || 'Trainee'}
             onProjectCreated={fetchProjects}
           />
