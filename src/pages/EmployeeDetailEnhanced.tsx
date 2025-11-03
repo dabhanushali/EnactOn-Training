@@ -10,6 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+<<<<<<< HEAD
+=======
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+>>>>>>> acecbb8 (changes)
 import { 
   ArrowLeft, Edit, Save, X, User, Calendar, Phone, Building, UserCheck, 
   Mail, MapPin, Users, Briefcase, Award, BookOpen, FileText, Settings
@@ -22,6 +26,124 @@ import { MASTER_DATA } from '@/lib/masterData';
 import { CourseEnrollmentDialog } from '@/components/employees/CourseEnrollmentDialog';
 import { RequiredLabel } from '@/components/forms/RequiredLabel';
 
+<<<<<<< HEAD
+=======
+// Trainee Status Change Dialog Component
+function TraineeStatusChangeDialog({
+  open,
+  onOpenChange,
+  employeeId,
+  currentStatus,
+  onSuccess
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  employeeId: string;
+  currentStatus: string;
+  onSuccess: () => void;
+}) {
+  const [newStatus, setNewStatus] = useState(currentStatus);
+  const [loading, setLoading] = useState(false);
+
+  const handleStatusChange = async () => {
+    if (newStatus === currentStatus) {
+      toast.error('Please select a different status');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ current_status: newStatus })
+        .eq('id', employeeId);
+
+      if (error) throw error;
+
+      toast.success(`Status updated to ${newStatus}`);
+      onSuccess();
+      onOpenChange(false);
+      setNewStatus(currentStatus);
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Failed to update status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Active': return 'bg-green-500 text-white';
+      case 'On-Leave': return 'bg-yellow-500 text-white';
+      default: return 'bg-gray-500 text-white';
+    }
+  };
+
+  // Only allow trainees to change between Active and On-Leave
+  const allowedStatuses = ['Active', 'On-Leave'];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center space-x-2">
+            <UserCheck className="h-5 w-5" />
+            <span>Update Your Status</span>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="text-center p-4 bg-muted/20 rounded-lg">
+            <p className="font-medium">Current Status</p>
+            <div className="flex items-center justify-center space-x-2 mt-2">
+              <Badge className={getStatusColor(currentStatus)}>{currentStatus}</Badge>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="new-status">New Status</Label>
+            <Select value={newStatus} onValueChange={setNewStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select new status" />
+              </SelectTrigger>
+              <SelectContent>
+                {allowedStatuses.map((status) => (
+                  <SelectItem key={status} value={status} disabled={status === currentStatus}>
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-2 h-2 rounded-full ${getStatusColor(status).split(' ')[0]}`}></div>
+                      <span>{status}</span>
+                      {status === currentStatus && <span className="text-xs text-muted-foreground">(Current)</span>}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleStatusChange}
+              disabled={loading || newStatus === currentStatus}
+            >
+              {loading ? 'Updating...' : 'Update Status'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+>>>>>>> acecbb8 (changes)
 interface Employee {
   id: string;
   first_name: string | null;
@@ -71,6 +193,12 @@ export default function EmployeeDetailEnhanced() {
   const [roles, setRoles] = useState<Role[]>([]);
 
   const canManage = profile?.role?.role_name === 'HR' || profile?.role?.role_name === 'Management';
+<<<<<<< HEAD
+=======
+  const isOwnProfile = profile?.id === employeeId;
+  const isTrainee = profile?.role?.role_name === 'Trainee';
+  const canChangeOwnStatus = isOwnProfile && isTrainee;
+>>>>>>> acecbb8 (changes)
 
   const fetchEmployeeDetails = useCallback(async (showToast = false) => {
     if (!employeeId) return;
@@ -513,8 +641,13 @@ export default function EmployeeDetailEnhanced() {
               <div className="space-y-2">
                 <Label>Status</Label>
                 {isEditing ? (
+<<<<<<< HEAD
                   <Select 
                     value={editData.current_status || ''} 
+=======
+                  <Select
+                    value={editData.current_status || ''}
+>>>>>>> acecbb8 (changes)
                     onValueChange={value => handleInputChange('current_status', value)}
                   >
                     <SelectTrigger className="bg-white/50">
@@ -533,10 +666,17 @@ export default function EmployeeDetailEnhanced() {
                     <Badge variant={getStatusBadgeVariant(employee.current_status)} className="font-medium">
                       {employee.current_status}
                     </Badge>
+<<<<<<< HEAD
                     {canManage && (
                       <Button 
                         variant="ghost" 
                         size="sm" 
+=======
+                    {(canManage || canChangeOwnStatus) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+>>>>>>> acecbb8 (changes)
                         onClick={() => setShowStatusDialog(true)}
                         className="h-6 px-2 text-xs"
                       >
@@ -645,7 +785,11 @@ export default function EmployeeDetailEnhanced() {
                 toast.success('Course assigned successfully');
               }}
             />
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> acecbb8 (changes)
             <StatusChangeDialog
               open={showStatusDialog}
               onOpenChange={setShowStatusDialog}
@@ -658,7 +802,27 @@ export default function EmployeeDetailEnhanced() {
             />
           </>
         )}
+<<<<<<< HEAD
       </div>
     </div>
   );
 }
+=======
+
+        {/* Trainee Status Change Dialog */}
+        {canChangeOwnStatus && (
+          <TraineeStatusChangeDialog
+            open={showStatusDialog}
+            onOpenChange={setShowStatusDialog}
+            employeeId={employeeId!}
+            currentStatus={employee.current_status}
+            onSuccess={() => {
+              fetchEmployeeDetails(true);
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+>>>>>>> acecbb8 (changes)

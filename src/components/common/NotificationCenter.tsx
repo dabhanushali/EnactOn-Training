@@ -31,6 +31,28 @@ export const NotificationCenter = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
 
+<<<<<<< HEAD
+=======
+  // Get read notifications from localStorage
+  const getReadNotifications = (userId: string): Set<string> => {
+    try {
+      const stored = localStorage.getItem(`notifications_read_${userId}`);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
+    }
+  };
+
+  // Save read notifications to localStorage
+  const saveReadNotifications = (userId: string, readIds: Set<string>) => {
+    try {
+      localStorage.setItem(`notifications_read_${userId}`, JSON.stringify([...readIds]));
+    } catch (error) {
+      console.error('Error saving read notifications:', error);
+    }
+  };
+
+>>>>>>> acecbb8 (changes)
   useEffect(() => {
     if (profile?.id) {
       fetchNotifications();
@@ -42,6 +64,10 @@ export const NotificationCenter = () => {
 
     const notifs: Notification[] = [];
     const userRole = profile.role?.role_name;
+<<<<<<< HEAD
+=======
+    const readNotifications = getReadNotifications(profile.id);
+>>>>>>> acecbb8 (changes)
 
     try {
       // Course-related notifications for trainees
@@ -53,13 +79,23 @@ export const NotificationCenter = () => {
           .eq('status', 'enrolled');
 
         enrollments?.forEach((enrollment) => {
+<<<<<<< HEAD
           notifs.push({
             id: `course-${enrollment.id}`,
+=======
+          const notificationId = `course-${enrollment.id}`;
+          notifs.push({
+            id: notificationId,
+>>>>>>> acecbb8 (changes)
             type: 'course',
             title: 'Continue Learning',
             message: `You have an active course: ${enrollment.courses.course_name}`,
             timestamp: new Date(enrollment.enrolled_date),
+<<<<<<< HEAD
             read: false,
+=======
+            read: readNotifications.has(notificationId),
+>>>>>>> acecbb8 (changes)
             actionUrl: `/courses/${enrollment.course_id}`,
             priority: 'medium',
           });
@@ -73,13 +109,23 @@ export const NotificationCenter = () => {
           .eq('status', 'Started');
 
         assignments?.forEach((assignment) => {
+<<<<<<< HEAD
           notifs.push({
             id: `project-${assignment.id}`,
+=======
+          const notificationId = `project-${assignment.id}`;
+          notifs.push({
+            id: notificationId,
+>>>>>>> acecbb8 (changes)
             type: 'project',
             title: 'Project In Progress',
             message: `Complete your project: ${assignment.projects.project_name}`,
             timestamp: new Date(assignment.created_at),
+<<<<<<< HEAD
             read: false,
+=======
+            read: readNotifications.has(notificationId),
+>>>>>>> acecbb8 (changes)
             actionUrl: `/assignments/${assignment.id}`,
             priority: 'high',
           });
@@ -95,13 +141,23 @@ export const NotificationCenter = () => {
           .eq('status', 'Submitted');
 
         pendingEvals?.forEach((assignment) => {
+<<<<<<< HEAD
           notifs.push({
             id: `eval-${assignment.id}`,
+=======
+          const notificationId = `eval-${assignment.id}`;
+          notifs.push({
+            id: notificationId,
+>>>>>>> acecbb8 (changes)
             type: 'evaluation',
             title: 'Pending Evaluation',
             message: `${assignment.profiles.first_name} ${assignment.profiles.last_name} submitted ${assignment.projects.project_name}`,
             timestamp: new Date(assignment.updated_at),
+<<<<<<< HEAD
             read: false,
+=======
+            read: readNotifications.has(notificationId),
+>>>>>>> acecbb8 (changes)
             actionUrl: `/projects/${assignment.project_id}`,
             priority: 'high',
           });
@@ -119,14 +175,25 @@ export const NotificationCenter = () => {
       upcomingSessions?.forEach((session) => {
         const startTime = new Date(session.start_datetime);
         const hoursUntil = Math.round((startTime.getTime() - Date.now()) / (1000 * 60 * 60));
+<<<<<<< HEAD
         
         notifs.push({
           id: `session-${session.id}`,
+=======
+        const notificationId = `session-${session.id}`;
+
+        notifs.push({
+          id: notificationId,
+>>>>>>> acecbb8 (changes)
           type: 'session',
           title: 'Upcoming Training Session',
           message: `${session.session_name} starts in ${hoursUntil} hour(s)`,
           timestamp: startTime,
+<<<<<<< HEAD
           read: false,
+=======
+          read: readNotifications.has(notificationId),
+>>>>>>> acecbb8 (changes)
           actionUrl: '/training-sessions',
           priority: hoursUntil <= 2 ? 'high' : 'medium',
         });
@@ -149,15 +216,42 @@ export const NotificationCenter = () => {
   };
 
   const markAsRead = (id: string) => {
+<<<<<<< HEAD
+=======
+    if (!profile?.id) return;
+
+>>>>>>> acecbb8 (changes)
     setNotifications(prev =>
       prev.map(n => (n.id === id ? { ...n, read: true } : n))
     );
     setUnreadCount(prev => Math.max(0, prev - 1));
+<<<<<<< HEAD
   };
 
   const markAllAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     setUnreadCount(0);
+=======
+
+    // Persist to localStorage
+    const readNotifications = getReadNotifications(profile.id);
+    readNotifications.add(id);
+    saveReadNotifications(profile.id, readNotifications);
+  };
+
+  const markAllAsRead = () => {
+    if (!profile?.id) return;
+
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setUnreadCount(0);
+
+    // Persist all notifications as read to localStorage
+    const readNotifications = getReadNotifications(profile.id);
+    notifications.forEach(notification => {
+      readNotifications.add(notification.id);
+    });
+    saveReadNotifications(profile.id, readNotifications);
+>>>>>>> acecbb8 (changes)
   };
 
   const handleNotificationClick = (notification: Notification) => {

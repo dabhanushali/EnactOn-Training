@@ -204,13 +204,39 @@ Extract course details and 3-10 modules from this content.`;
       };
     }
 
+<<<<<<< HEAD
+=======
+    // Helper function to validate external URLs
+    const isExternalURL = (url: string): boolean => {
+      if (!url) return false;
+      try {
+        const urlObj = new URL(url.trim());
+        const externalDomains = [
+          'youtube.com', 'youtu.be', 'vimeo.com', 'loom.com',
+          'figma.com', 'drive.google.com', 'docs.google.com',
+          'notion.so', 'notion.site', 'clickup.com', 'trello.com',
+          'miro.com', 'dropbox.com', 'github.com'
+        ];
+        return urlObj.protocol.startsWith('http') &&
+               externalDomains.some(domain => urlObj.hostname.includes(domain));
+      } catch {
+        return false;
+      }
+    };
+
+>>>>>>> acecbb8 (changes)
     // Validate and clean data
     const cleanedResult = {
       course: {
         course_name: (result.course?.course_name || 'Untitled Course').slice(0, 200),
         course_description: (result.course?.course_description || 'No description').slice(0, 500),
+<<<<<<< HEAD
         course_type: ['Technical', 'Soft Skills', 'Compliance', 'Leadership', 'Other'].includes(result.course?.course_type) 
           ? result.course.course_type 
+=======
+        course_type: ['Technical', 'Soft Skills', 'Compliance', 'Leadership', 'Other'].includes(result.course?.course_type)
+          ? result.course.course_type
+>>>>>>> acecbb8 (changes)
           : 'Technical',
         difficulty_level: ['Beginner', 'Intermediate', 'Advanced'].includes(result.course?.difficulty_level)
           ? result.course.difficulty_level
@@ -224,7 +250,11 @@ Extract course details and 3-10 modules from this content.`;
           const contentUrl = module.content_url || '';
           const hasUrl = contentUrl.trim().length > 0;
           let contentType = module.content_type;
+<<<<<<< HEAD
           
+=======
+
+>>>>>>> acecbb8 (changes)
           // Normalize content type to proper case
           if (contentType) {
             const typeMap: { [key: string]: string } = {
@@ -237,6 +267,7 @@ Extract course details and 3-10 modules from this content.`;
             };
             contentType = typeMap[contentType.toLowerCase()] || contentType;
           }
+<<<<<<< HEAD
           
           // Auto-set to External Link if URL is present
           if (hasUrl && !contentType) {
@@ -249,6 +280,20 @@ Extract course details and 3-10 modules from this content.`;
             contentType = hasUrl ? 'External Link' : 'Text';
           }
           
+=======
+
+          // Auto-set to External Link only if URL is external
+          if (hasUrl && !contentType && isExternalURL(contentUrl)) {
+            contentType = 'External Link';
+          }
+
+          // Validate and default content type
+          const validTypes = ['External Link', 'Video', 'PDF', 'Text', 'Mixed'];
+          if (!validTypes.includes(contentType)) {
+            contentType = hasUrl && isExternalURL(contentUrl) ? 'External Link' : 'Text';
+          }
+
+>>>>>>> acecbb8 (changes)
           return {
             module_name: (module.module_name || `Module ${index + 1}`).slice(0, 200),
             module_description: (module.module_description || 'No description').slice(0, 500),

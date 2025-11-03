@@ -128,6 +128,27 @@ Extract 3-10 course modules from this content. Return a JSON array of modules.`;
       modules = [modules];
     }
 
+<<<<<<< HEAD
+=======
+    // Helper function to validate external URLs
+    const isExternalURL = (url: string): boolean => {
+      if (!url) return false;
+      try {
+        const urlObj = new URL(url.trim());
+        const externalDomains = [
+          'youtube.com', 'youtu.be', 'vimeo.com', 'loom.com',
+          'figma.com', 'drive.google.com', 'docs.google.com',
+          'notion.so', 'notion.site', 'clickup.com', 'trello.com',
+          'miro.com', 'dropbox.com', 'github.com'
+        ];
+        return urlObj.protocol.startsWith('http') &&
+               externalDomains.some(domain => urlObj.hostname.includes(domain));
+      } catch {
+        return false;
+      }
+    };
+
+>>>>>>> acecbb8 (changes)
     // Validate and clean modules
     const cleanedModules = modules
       .filter(m => m && typeof m === 'object')
@@ -135,7 +156,11 @@ Extract 3-10 course modules from this content. Return a JSON array of modules.`;
         const contentUrl = module.content_url || '';
         const hasUrl = contentUrl.trim().length > 0;
         let contentType = module.content_type;
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> acecbb8 (changes)
         // Normalize content type to proper case
         if (contentType) {
           const typeMap: { [key: string]: string } = {
@@ -148,6 +173,7 @@ Extract 3-10 course modules from this content. Return a JSON array of modules.`;
           };
           contentType = typeMap[contentType.toLowerCase()] || contentType;
         }
+<<<<<<< HEAD
         
         // Auto-set to External Link if URL is present
         if (hasUrl && !contentType) {
@@ -160,6 +186,20 @@ Extract 3-10 course modules from this content. Return a JSON array of modules.`;
           contentType = hasUrl ? 'External Link' : 'Text';
         }
         
+=======
+
+        // Auto-set to External Link only if URL is external
+        if (hasUrl && !contentType && isExternalURL(contentUrl)) {
+          contentType = 'External Link';
+        }
+
+        // Validate and default content type
+        const validTypes = ['External Link', 'Video', 'PDF', 'Text', 'Mixed'];
+        if (!validTypes.includes(contentType)) {
+          contentType = hasUrl && isExternalURL(contentUrl) ? 'External Link' : 'Text';
+        }
+
+>>>>>>> acecbb8 (changes)
         return {
           module_name: (module.module_name || `Module ${index + 1}`).slice(0, 200),
           module_description: (module.module_description || 'No description provided').slice(0, 500),

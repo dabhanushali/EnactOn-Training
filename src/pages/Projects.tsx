@@ -33,6 +33,10 @@ interface Project {
   status: string;
   duration_days?: number;
   created_at: string;
+<<<<<<< HEAD
+=======
+  pendingEvaluations?: number;
+>>>>>>> acecbb8 (changes)
 }
 
 interface ProjectAssignment {
@@ -98,10 +102,17 @@ export default function Projects() {
       if (!isManager || !user) return;
 
       try {
+<<<<<<< HEAD
         // Get all submitted assignments
         const { data: submittedAssignments, error: assignmentsError } = await supabase
           .from('project_assignments')
           .select('id')
+=======
+        // Get all submitted assignments with project info
+        const { data: submittedAssignments, error: assignmentsError } = await supabase
+          .from('project_assignments')
+          .select('id, project_id')
+>>>>>>> acecbb8 (changes)
           .eq('status', 'Submitted');
 
         if (assignmentsError) throw assignmentsError;
@@ -116,7 +127,11 @@ export default function Projects() {
         // Get all submissions for these assignments
         const { data: submissions, error: submissionsError } = await supabase
           .from('project_milestone_submissions')
+<<<<<<< HEAD
           .select('id')
+=======
+          .select('id, assignment_id')
+>>>>>>> acecbb8 (changes)
           .in('assignment_id', assignmentIds);
 
         if (submissionsError) throw submissionsError;
@@ -141,6 +156,42 @@ export default function Projects() {
         const pendingCount = submissions.filter(s => !evaluatedSubmissionIds.has(s.id)).length;
 
         setPendingEvaluations(pendingCount);
+<<<<<<< HEAD
+=======
+
+        // Calculate pending evaluations per project
+        const projectPendingCounts: Record<string, number> = {};
+
+        // Group submissions by project
+        const submissionsByProject: Record<string, typeof submissions> = {};
+        submissions.forEach(submission => {
+          const assignment = submittedAssignments.find(a => a.id === submission.assignment_id);
+          if (assignment && !evaluatedSubmissionIds.has(submission.id)) {
+            const projectId = assignment.project_id;
+            if (!submissionsByProject[projectId]) {
+              submissionsByProject[projectId] = [];
+            }
+            submissionsByProject[projectId].push(submission);
+          }
+        });
+
+        // Count pending evaluations per project
+        Object.entries(submissionsByProject).forEach(([projectId, projectSubmissions]) => {
+          projectPendingCounts[projectId] = projectSubmissions.length;
+        });
+
+        // Update projects with pending evaluation counts
+        setProjects(prevProjects =>
+          prevProjects.map(project => {
+            const projectId = 'projects' in project ? project.projects.id : project.id;
+            return {
+              ...project,
+              pendingEvaluations: projectPendingCounts[projectId] || 0
+            };
+          })
+        );
+
+>>>>>>> acecbb8 (changes)
       } catch (error) {
         console.error('Error fetching pending evaluations:', error);
       }
@@ -272,6 +323,52 @@ export default function Projects() {
           />
         </div>
 
+<<<<<<< HEAD
+=======
+        {/* Projects Needing Attention - Only for managers
+        {isManager && projects.some(p => ('pendingEvaluations' in p ? p.pendingEvaluations : 0) > 0) && (
+          <Card className="border-destructive/20 bg-destructive/5 shadow-md mb-6">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold flex items-center gap-2 text-destructive">
+                <CheckCircle className="w-5 h-5" />
+                Projects Needing Attention
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Projects with pending evaluations that require your review
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {projects
+                  .filter(p => ('pendingEvaluations' in p ? p.pendingEvaluations : 0) > 0)
+                  .map((item) => {
+                    const project = 'projects' in item ? item.projects : item;
+                    return (
+                      <Card key={`attention-${project.id}`} className="border-destructive/30 bg-white/90">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <h4 className="font-medium text-sm line-clamp-2 flex-1">
+                              {project.project_name}
+                            </h4>
+                            <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-xs ml-2">
+                              {project.pendingEvaluations} pending
+                            </Badge>
+                          </div>
+                          <Link to={`/projects/${project.id}`}>
+                            <Button variant="outline" size="sm" className="w-full text-destructive hover:bg-destructive hover:text-destructive-foreground">
+                              Review Now
+                            </Button>
+                          </Link>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+              </div>
+            </CardContent>
+          </Card>
+        )} */}
+
+>>>>>>> acecbb8 (changes)
         {/* Projects Grid */}
         <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
           <CardHeader>
@@ -344,6 +441,17 @@ export default function Projects() {
                             )}
                           </div>}
 
+<<<<<<< HEAD
+=======
+                          {/* Show pending evaluations for managers */}
+                          {isManager && project.pendingEvaluations && project.pendingEvaluations > 0 ? (
+                            <div className="flex items-center justify-between">
+                              <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-xs font-medium">
+                                {project.pendingEvaluations} pending evaluation{project.pendingEvaluations !== 1 ? 's' : ''}
+                              </Badge>
+                            </div>
+                          ) : (<div>&nbsp;</div>)}
+>>>>>>> acecbb8 (changes)
 
                           <div className="flex items-center text-sm text-muted-foreground">
                             <Calendar className="w-4 h-4 mr-2" />
@@ -436,4 +544,8 @@ export default function Projects() {
       </AlertDialog>
     </div>
   );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> acecbb8 (changes)
