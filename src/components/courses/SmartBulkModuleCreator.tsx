@@ -194,20 +194,59 @@ export const SmartBulkModuleCreator = ({ courseId, onModulesCreated, isAutoGener
 
     setSaving(true);
     try {
-      const modulesToInsert = validModules.map(module => {
-        // Ensure content_type is set to External Link if content_url is present and type is not properly set
-        let contentType = module.content_type;
-        if (module.content_url && module.content_url.trim() && 
-            (!contentType || !['Video', 'Document', 'External Link', 'Assessment'].includes(contentType))) {
-          contentType = 'External Link';
+      // Helper function to validate external URLs
+      const isExternalURL = (url: string): boolean => {
+        if (!url) return false;
+        try {
+          const urlObj = new URL(url.trim());
+          const externalDomains = [
+            'youtube.com', 'youtu.be', 'vimeo.com', 'loom.com',
+            'figma.com', 'drive.google.com', 'docs.google.com',
+            'notion.so', 'notion.site', 'clickup.com', 'trello.com',
+            'miro.com', 'dropbox.com', 'github.com'
+          ];
+          return urlObj.protocol.startsWith('http') && 
+                 externalDomains.some(domain => urlObj.hostname.includes(domain));
+        } catch {
+          return false;
         }
+      };
+
+      // Helper function to map content types
+      const mapContentType = (type: string, contentUrl: string): string => {
+        if (!type) return isExternalURL(contentUrl) ? 'External Link' : 'Text';
+        
+        const lowerType = type.toLowerCase();
+        
+        // If there's a URL and it's external, prefer External Link
+        if (contentUrl && isExternalURL(contentUrl)) {
+          return 'External Link';
+        }
+        
+        // Map common variations to standard types
+        const typeMap: Record<string, string> = {
+          'link': 'External Link',
+          'external link': 'External Link',
+          'video': 'Video',
+          'document': 'Document',
+          'pdf': 'Document',
+          'assessment': 'Assessment',
+          'mixed': 'External Link',
+          'text': 'Text'
+        };
+        
+        return typeMap[lowerType] || (contentUrl ? 'External Link' : 'Text');
+      };
+
+      const modulesToInsert = validModules.map(module => {
+        const contentType = mapContentType(module.content_type, module.content_url);
         
         return {
           course_id: courseId,
           module_name: module.module_name.trim(),
           module_description: module.module_description.trim(),
           content_type: contentType,
-          content_url: module.content_url.trim() || null,
+          content_url: module.content_url?.trim() || null,
           estimated_duration_minutes: module.estimated_duration_minutes,
           module_order: module.module_order
         };
