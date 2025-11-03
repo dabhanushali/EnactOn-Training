@@ -33,10 +33,7 @@ interface Project {
   status: string;
   duration_days?: number;
   created_at: string;
-<<<<<<< HEAD
-=======
   pendingEvaluations?: number;
->>>>>>> acecbb8 (changes)
 }
 
 interface ProjectAssignment {
@@ -102,17 +99,10 @@ export default function Projects() {
       if (!isManager || !user) return;
 
       try {
-<<<<<<< HEAD
-        // Get all submitted assignments
-        const { data: submittedAssignments, error: assignmentsError } = await supabase
-          .from('project_assignments')
-          .select('id')
-=======
         // Get all submitted assignments with project info
         const { data: submittedAssignments, error: assignmentsError } = await supabase
           .from('project_assignments')
           .select('id, project_id')
->>>>>>> acecbb8 (changes)
           .eq('status', 'Submitted');
 
         if (assignmentsError) throw assignmentsError;
@@ -127,11 +117,7 @@ export default function Projects() {
         // Get all submissions for these assignments
         const { data: submissions, error: submissionsError } = await supabase
           .from('project_milestone_submissions')
-<<<<<<< HEAD
-          .select('id')
-=======
           .select('id, assignment_id')
->>>>>>> acecbb8 (changes)
           .in('assignment_id', assignmentIds);
 
         if (submissionsError) throw submissionsError;
@@ -156,8 +142,6 @@ export default function Projects() {
         const pendingCount = submissions.filter(s => !evaluatedSubmissionIds.has(s.id)).length;
 
         setPendingEvaluations(pendingCount);
-<<<<<<< HEAD
-=======
 
         // Calculate pending evaluations per project
         const projectPendingCounts: Record<string, number> = {};
@@ -191,7 +175,6 @@ export default function Projects() {
           })
         );
 
->>>>>>> acecbb8 (changes)
       } catch (error) {
         console.error('Error fetching pending evaluations:', error);
       }
@@ -323,8 +306,6 @@ export default function Projects() {
           />
         </div>
 
-<<<<<<< HEAD
-=======
         {/* Projects Needing Attention - Only for managers
         {isManager && projects.some(p => ('pendingEvaluations' in p ? p.pendingEvaluations : 0) > 0) && (
           <Card className="border-destructive/20 bg-destructive/5 shadow-md mb-6">
@@ -368,7 +349,6 @@ export default function Projects() {
           </Card>
         )} */}
 
->>>>>>> acecbb8 (changes)
         {/* Projects Grid */}
         <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
           <CardHeader>
@@ -441,8 +421,6 @@ export default function Projects() {
                             )}
                           </div>}
 
-<<<<<<< HEAD
-=======
                           {/* Show pending evaluations for managers */}
                           {isManager && project.pendingEvaluations && project.pendingEvaluations > 0 ? (
                             <div className="flex items-center justify-between">
@@ -451,7 +429,6 @@ export default function Projects() {
                               </Badge>
                             </div>
                           ) : (<div>&nbsp;</div>)}
->>>>>>> acecbb8 (changes)
 
                           <div className="flex items-center text-sm text-muted-foreground">
                             <Calendar className="w-4 h-4 mr-2" />
@@ -544,8 +521,4 @@ export default function Projects() {
       </AlertDialog>
     </div>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> acecbb8 (changes)

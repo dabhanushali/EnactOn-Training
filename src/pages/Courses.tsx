@@ -29,10 +29,7 @@ interface Course {
     target_role?: string;
     difficulty_level: string;
     is_mandatory: boolean;
-<<<<<<< HEAD
-=======
     enrolledCount?: number;
->>>>>>> acecbb8 (changes)
 }
 
 export default function Courses() {
@@ -80,11 +77,7 @@ export default function Courses() {
             .in('id', enrolledCourseIdsList);
 
         if (enrolledCoursesError) throw enrolledCoursesError;
-<<<<<<< HEAD
-        
-=======
 
->>>>>>> acecbb8 (changes)
         const allCourses = [...(enrolledCoursesData || []), ...(optionalCourses || [])];
         const uniqueCourses = Array.from(new Map(allCourses.map(c => [c.id, c])).values());
         coursesData = uniqueCourses;
@@ -98,8 +91,6 @@ export default function Courses() {
         coursesData = data;
       }
 
-<<<<<<< HEAD
-=======
       // Fetch enrollment counts for all courses
       const courseIds = coursesData?.map(c => c.id) || [];
       const { data: enrollmentCounts, error: countError } = await supabase
@@ -123,7 +114,6 @@ export default function Courses() {
         ...course,
         enrolledCount: enrollmentCountMap.get(course.id) || 0
       })) || [];
->>>>>>> acecbb8 (changes)
 
       if (profile?.id) {
         const { data: enrollmentsData } = await supabase
@@ -138,11 +128,7 @@ export default function Courses() {
         setEnrollments(enrollmentMap);
       }
 
-<<<<<<< HEAD
-      setCourses(coursesData || []);
-=======
       setCourses(coursesWithCounts);
->>>>>>> acecbb8 (changes)
     } catch (error) {
       console.error('Error fetching courses:', error);
       toast.error("Failed to load courses");
@@ -228,13 +214,7 @@ export default function Courses() {
     });
   };
 
-<<<<<<< HEAD
-  const canManageCourses = profile?.role?.role_name === 'Team Lead' || 
-                          profile?.role?.role_name === 'HR' ||
-                          profile?.role?.role_name === 'Management';
-=======
   const canManageCourses = profile?.role?.role_name === 'Team Lead' || profile?.role?.role_name === 'HR' || profile?.role?.role_name === 'Management';
->>>>>>> acecbb8 (changes)
 
   return (
     <div className="min-h-screen bg-background">
@@ -258,20 +238,12 @@ export default function Courses() {
           </div>
           
           {/* Course Quick Actions Stats */}
-<<<<<<< HEAD
-          <CourseQuickActions
-=======
           {/* <CourseQuickActions
->>>>>>> acecbb8 (changes)
             totalCourses={courses.length}
             activeCourses={Array.from(enrollments.values()).filter(s => s === 'enrolled').length}
             completedCourses={Array.from(enrollments.values()).filter(s => s === 'completed').length}
             userRole={profile?.role?.role_name || 'Trainee'}
-<<<<<<< HEAD
-          />
-=======
           /> */}
->>>>>>> acecbb8 (changes)
           
           <div className="relative mb-6">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -307,15 +279,10 @@ export default function Courses() {
                 description={course.course_description}
                 type={course.course_type || 'Training'}
                 difficulty={course.difficulty_level}
-<<<<<<< HEAD
-                isMandatory={course.is_mandatory}
-                isEnrolled={enrollments.has(course.id)}
-=======
                 enrolledCount={course.enrolledCount || 0}
                 isMandatory={course.is_mandatory}
                 isEnrolled={enrollments.has(course.id)}
                 isCompleted={enrollments.get(course.id) === 'completed'}
->>>>>>> acecbb8 (changes)
                 isAdmin={canManageCourses}
                 onEnroll={handleEnroll}
                 onViewDetails={handleViewDetails}
@@ -353,8 +320,4 @@ export default function Courses() {
       </AlertDialog>
     </div>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> acecbb8 (changes)

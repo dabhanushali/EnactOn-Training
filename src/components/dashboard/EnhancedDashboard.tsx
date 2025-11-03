@@ -97,12 +97,6 @@ export const EnhancedDashboard = () => {
         const totalCourses = coursesResult.count || 0;
         const totalProjects = projectsResult.count || 0;
         const enrollments = enrollmentsResult.data || [];
-<<<<<<< HEAD
-        
-        const completed = enrollments.filter(e => e.status === 'completed').length;
-        const completionRate = enrollments.length > 0 ? (completed / enrollments.length) * 100 : 0;
-
-=======
 
         const completed = enrollments.filter(e => e.status === 'completed').length;
         const completionRate = enrollments.length > 0 ? (completed / enrollments.length) * 100 : 0;
@@ -135,7 +129,6 @@ export const EnhancedDashboard = () => {
           }
         }
 
->>>>>>> acecbb8 (changes)
         // Get real recent activity data
         const { data: recentEnrollments } = await supabase
           .from('course_enrollments')
@@ -151,11 +144,7 @@ export const EnhancedDashboard = () => {
         const recentActivity = (recentEnrollments || []).map((enrollment, index) => ({
           id: String(index),
           type: enrollment.status === 'completed' ? 'completion' as const : 'enrollment' as const,
-<<<<<<< HEAD
-          description: enrollment.status === 'completed' 
-=======
           description: enrollment.status === 'completed'
->>>>>>> acecbb8 (changes)
             ? `Course completed: ${enrollment.courses.course_name}`
             : `Enrolled in: ${enrollment.courses.course_name}`,
           time: new Date(enrollment.created_at).toLocaleDateString(),
@@ -184,10 +173,7 @@ export const EnhancedDashboard = () => {
           totalCourses,
           totalProjects,
           completionRate,
-<<<<<<< HEAD
-=======
           pendingEvaluations,
->>>>>>> acecbb8 (changes)
           monthlyGrowth: 12.5,
           recentActivity,
           departmentStats,
@@ -522,11 +508,7 @@ export const EnhancedDashboard = () => {
   const renderManagementDashboard = () => (
     <div className="space-y-8">
       {/* Enhanced Stats Grid */}
-<<<<<<< HEAD
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-=======
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
->>>>>>> acecbb8 (changes)
         <StatCard
           title="Total Employees"
           value={stats.loading ? "..." : stats.totalEmployees}
@@ -556,8 +538,6 @@ export const EnhancedDashboard = () => {
           icon={FolderOpen}
           onClick={() => navigate('/projects')}
         />
-<<<<<<< HEAD
-=======
         <StatCard
           title="Pending Evaluations"
           value={stats.loading ? "..." : stats.pendingEvaluations || 0}
@@ -566,7 +546,6 @@ export const EnhancedDashboard = () => {
           onClick={() => navigate('/projects')}
           trend={stats.pendingEvaluations && stats.pendingEvaluations > 0 ? { value: stats.pendingEvaluations, isPositive: false } : undefined}
         />
->>>>>>> acecbb8 (changes)
       </div>
 
       {/* Quick Actions Panel */}
@@ -964,8 +943,4 @@ export const EnhancedDashboard = () => {
       </Card>
     </div>
   );
-<<<<<<< HEAD
 };
-=======
-};
->>>>>>> acecbb8 (changes)

@@ -229,11 +229,7 @@ export default function TraineeReadinessReport() {
                                             <CommandInput placeholder="Search department..." />
                                             <CommandEmpty>No department found.</CommandEmpty>
                                             <CommandGroup>
-<<<<<<< HEAD
-                                                <CommandItem onSelect={() => setSelectedDepartment('')}>All Departments</CommandItem>
-=======
                                                 {/* <CommandItem onSelect={() => setSelectedDepartment('')}>All Departments</CommandItem> */}
->>>>>>> acecbb8 (changes)
                                                 {departments.map((dept) => (
                                                     <CommandItem
                                                         key={dept}
@@ -263,11 +259,7 @@ export default function TraineeReadinessReport() {
                                             <CommandInput placeholder="Search role..." />
                                             <CommandEmpty>No role found.</CommandEmpty>
                                             <CommandGroup>
-<<<<<<< HEAD
-                                                <CommandItem onSelect={() => setSelectedRole('')}>All Roles</CommandItem>
-=======
                                                 {/* <CommandItem onSelect={() => setSelectedRole('')}>All Roles</CommandItem> */}
->>>>>>> acecbb8 (changes)
                                                 {UserRoleOptions.map((role) => (
                                                     <CommandItem
                                                         key={role}

@@ -10,10 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-<<<<<<< HEAD
-=======
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
->>>>>>> acecbb8 (changes)
 import { 
   ArrowLeft, Edit, Save, X, User, Calendar, Phone, Building, UserCheck, 
   Mail, MapPin, Users, Briefcase, Award, BookOpen, FileText, Settings
@@ -26,8 +23,6 @@ import { MASTER_DATA } from '@/lib/masterData';
 import { CourseEnrollmentDialog } from '@/components/employees/CourseEnrollmentDialog';
 import { RequiredLabel } from '@/components/forms/RequiredLabel';
 
-<<<<<<< HEAD
-=======
 // Trainee Status Change Dialog Component
 function TraineeStatusChangeDialog({
   open,
@@ -143,7 +138,6 @@ function TraineeStatusChangeDialog({
   );
 }
 
->>>>>>> acecbb8 (changes)
 interface Employee {
   id: string;
   first_name: string | null;
@@ -193,12 +187,9 @@ export default function EmployeeDetailEnhanced() {
   const [roles, setRoles] = useState<Role[]>([]);
 
   const canManage = profile?.role?.role_name === 'HR' || profile?.role?.role_name === 'Management';
-<<<<<<< HEAD
-=======
   const isOwnProfile = profile?.id === employeeId;
   const isTrainee = profile?.role?.role_name === 'Trainee';
   const canChangeOwnStatus = isOwnProfile && isTrainee;
->>>>>>> acecbb8 (changes)
 
   const fetchEmployeeDetails = useCallback(async (showToast = false) => {
     if (!employeeId) return;
@@ -641,13 +632,8 @@ export default function EmployeeDetailEnhanced() {
               <div className="space-y-2">
                 <Label>Status</Label>
                 {isEditing ? (
-<<<<<<< HEAD
-                  <Select 
-                    value={editData.current_status || ''} 
-=======
                   <Select
                     value={editData.current_status || ''}
->>>>>>> acecbb8 (changes)
                     onValueChange={value => handleInputChange('current_status', value)}
                   >
                     <SelectTrigger className="bg-white/50">
@@ -666,17 +652,10 @@ export default function EmployeeDetailEnhanced() {
                     <Badge variant={getStatusBadgeVariant(employee.current_status)} className="font-medium">
                       {employee.current_status}
                     </Badge>
-<<<<<<< HEAD
-                    {canManage && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-=======
                     {(canManage || canChangeOwnStatus) && (
                       <Button
                         variant="ghost"
                         size="sm"
->>>>>>> acecbb8 (changes)
                         onClick={() => setShowStatusDialog(true)}
                         className="h-6 px-2 text-xs"
                       >
@@ -785,11 +764,7 @@ export default function EmployeeDetailEnhanced() {
                 toast.success('Course assigned successfully');
               }}
             />
-<<<<<<< HEAD
-            
-=======
 
->>>>>>> acecbb8 (changes)
             <StatusChangeDialog
               open={showStatusDialog}
               onOpenChange={setShowStatusDialog}
@@ -802,12 +777,6 @@ export default function EmployeeDetailEnhanced() {
             />
           </>
         )}
-<<<<<<< HEAD
-      </div>
-    </div>
-  );
-}
-=======
 
         {/* Trainee Status Change Dialog */}
         {canChangeOwnStatus && (
@@ -825,4 +794,3 @@ export default function EmployeeDetailEnhanced() {
     </div>
   );
 }
->>>>>>> acecbb8 (changes)
