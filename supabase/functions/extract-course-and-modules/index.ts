@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 import Firecrawl from "npm:@mendable/firecrawl-js@4.4.1";
+import { authenticateUser } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,6 +19,15 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate user using shared utility
+    const authResult = await authenticateUser(req);
+    if (!authResult.success) {
+      return new Response(
+        JSON.stringify({ success: false, error: authResult.error }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: authResult.status }
+      );
+    }
+
     const { content, source }: ExtractRequest = await req.json();
 
     if (!content || content.trim().length < 20) {
@@ -58,7 +69,7 @@ serve(async (req) => {
           
           if (crawlResponse && crawlResponse.data && Array.isArray(crawlResponse.data) && crawlResponse.data.length > 0) {
             contentToProcess = crawlResponse.data
-              .map((page: any) => page.markdown || page.html || '')
+              .map((page: { markdown?: string; html?: string }) => page.markdown || page.html || '')
               .join('\n\n---\n\n');
             console.log(`Successfully crawled ${crawlResponse.data.length} pages with Firecrawl SDK (status: ${crawlResponse.status})`);
           } else {

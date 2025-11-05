@@ -1,5 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import { authenticateUser } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,6 +22,15 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate user using shared utility
+    const authResult = await authenticateUser(req);
+    if (!authResult.success) {
+      return new Response(
+        JSON.stringify({ success: false, error: authResult.error }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: authResult.status }
+      );
+    }
+
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) {
       throw new Error('Gemini API key not configured');
@@ -181,11 +192,11 @@ QUALITY STANDARDS:
     }
 
     // Validate and clean the modules
-    const cleanedModules = modules.map((module: any, index: number) => ({
+    const cleanedModules = modules.map((module: { module_name?: string; module_description?: string; content_type?: string; estimated_duration_minutes?: number; learning_objectives?: unknown[]; suggested_activities?: unknown[] }, index: number) => ({
       module_name: module.module_name || `Module ${index + 1}`,
       module_description: module.module_description || 'AI-generated module description',
-      content_type: ['text', 'video', 'pdf', 'external_link', 'mixed_content'].includes(module.content_type) 
-        ? module.content_type 
+      content_type: module.content_type && ['text', 'video', 'pdf', 'external_link', 'mixed_content'].includes(module.content_type)
+        ? module.content_type
         : 'text',
       estimated_duration_minutes: Math.max(15, Math.min(300, module.estimated_duration_minutes || 60)),
       learning_objectives: Array.isArray(module.learning_objectives) ? module.learning_objectives : [],
