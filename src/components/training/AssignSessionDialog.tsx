@@ -132,15 +132,6 @@ export function AssignSessionDialog({ sessionId, open, onOpenChange, onSessionAs
     // Send email notifications to newly added trainees ONLY
     if (newlyAdded.length > 0) {
       try {
-        // Call CRM notification (with email fallback)
-        await supabase.functions.invoke('notify-training-session-crm', {
-          body: { 
-            sessionId,
-            attendeeIds: newlyAdded
-          }
-        });
-        
-        // Also send regular trainee notifications
         await supabase.functions.invoke('notify-training-session', {
           body: { 
             sessionId,
