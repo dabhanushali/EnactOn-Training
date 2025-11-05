@@ -42,6 +42,9 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("id", traineeId)
       .single();
 
+    // Get trainee email
+    const traineeEmail = (await supabase.rpc("get_user_email", { user_id: traineeId })).data;
+
     // Get project info
     const { data: project } = await supabase
       .from("projects")
@@ -67,33 +70,81 @@ const handler = async (req: Request): Promise<Response> => {
       })
     );
 
-    const recipients = [...hrEmails.filter(Boolean)];
-    if (teamLeadEmail) recipients.push(teamLeadEmail);
+    // Prepare CRM payload
+    const today = new Date();
+    const startDate = today.toISOString().split('T')[0];
+    const dueDate = new Date(today.setDate(today.getDate() + 3)).toISOString().split('T')[0];
 
-    const emailResults = [];
+    const assignees = [traineeEmail, teamLeadEmail].filter(Boolean);
+    const followers = [teamLeadEmail, ...hrEmails].filter(Boolean);
 
-    for (const recipient of recipients) {
-      const emailResult = await transporter.sendMail({
-        from: `GrowPro Suite <${Deno.env.get("EMAIL_USER")}>`,
-        to: recipient as string,
-        subject: `Project Submission: ${project?.project_name} by ${traineeProfile?.first_name} ${traineeProfile?.last_name}`,
-        html: `
-          <h2>New Project Submission</h2>
-          <p>Hello,</p>
-          <p><strong>${traineeProfile?.first_name} ${traineeProfile?.last_name}</strong> has submitted their work for the project <strong>${project?.project_name}</strong>.</p>
-          <p>Please review the submission at your earliest convenience:</p>
-          <p><a href="http://growpro-suite.lovable.app/" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">View Submission</a></p>
-          <p>Best regards,<br>GrowPro Suite</p>
-        `,
+    const crmPayload = {
+      name: `Review for ${project?.project_name}`,
+      startdate: startDate,
+      duedate: dueDate,
+      tasktype: "Training",
+      rel_type: "Project",
+      rel_type_id: 567,
+      assignees,
+      followers,
+      description: `Project Review between ${traineeProfile?.first_name} ${traineeProfile?.last_name} and Team Lead for ${project?.project_name}`,
+    };
+
+    // Try CRM webhook first
+    let crmSuccess = false;
+    try {
+      console.log("Attempting CRM task creation:", crmPayload);
+      const webhookResponse = await fetch("https://webhook.site/8f2a2f4d-8691-4f54-bdbd-49f1ff316e02", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(crmPayload),
       });
 
-      emailResults.push(emailResult);
+      if (webhookResponse.ok) {
+        crmSuccess = true;
+        console.log("CRM task created successfully");
+      } else {
+        console.error("CRM webhook failed with status:", webhookResponse.status);
+      }
+    } catch (webhookError: any) {
+      console.error("CRM webhook error:", webhookError.message);
     }
 
-    console.log("Project submission notification emails sent:", emailResults);
+    // Fallback to email if CRM failed
+    const emailResults = [];
+    if (!crmSuccess) {
+      console.log("Falling back to email notifications");
+      const recipients = [...hrEmails.filter(Boolean)];
+      if (teamLeadEmail) recipients.push(teamLeadEmail);
+
+      for (const recipient of recipients) {
+        const emailResult = await transporter.sendMail({
+          from: `GrowPro Suite <${Deno.env.get("EMAIL_USER")}>`,
+          to: recipient as string,
+          subject: `Project Submission: ${project?.project_name} by ${traineeProfile?.first_name} ${traineeProfile?.last_name}`,
+          html: `
+            <h2>New Project Submission</h2>
+            <p>Hello,</p>
+            <p><strong>${traineeProfile?.first_name} ${traineeProfile?.last_name}</strong> has submitted their work for the project <strong>${project?.project_name}</strong>.</p>
+            <p>Please review the submission at your earliest convenience:</p>
+            <p><a href="http://growpro-suite.lovable.app/" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">View Submission</a></p>
+            <p>Best regards,<br>GrowPro Suite</p>
+          `,
+        });
+
+        emailResults.push(emailResult);
+      }
+      console.log("Fallback emails sent:", emailResults.length);
+    }
 
     return new Response(
-      JSON.stringify({ success: true, emailsSent: emailResults.length }),
+      JSON.stringify({ 
+        success: true, 
+        crmCreated: crmSuccess,
+        emailsSent: emailResults.length 
+      }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

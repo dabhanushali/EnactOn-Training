@@ -92,8 +92,8 @@ export default function TraineeReadinessReport() {
     const { profile } = useAuth();
     const [selectedTraineeId, setSelectedTraineeId] = useState<string>('');
     const [open, setOpen] = useState(false);
-    const [selectedDepartment, setSelectedDepartment] = useState<string>('');
-    const [selectedRole, setSelectedRole] = useState<string>('');
+    const [selectedDepartment, setSelectedDepartment] = useState<string>('All Departments');
+    const [selectedRole, setSelectedRole] = useState<string>('All Roles');
 
     const canViewReports = ['Management', 'HR', 'Team Lead'].includes(profile?.role?.role_name || '');
 
@@ -126,10 +126,20 @@ export default function TraineeReadinessReport() {
 
     const filteredEmployees = useMemo(() => {
         return employees.filter(emp => 
-            (selectedDepartment ? emp.department === selectedDepartment : true) &&
-            (selectedRole ? emp.role?.role_name === selectedRole : true)
+            (selectedDepartment && selectedDepartment !== 'All Departments' ? emp.department === selectedDepartment : true) &&
+            (selectedRole && selectedRole !== 'All Roles' ? emp.role?.role_name === selectedRole : true)
         );
     }, [employees, selectedDepartment, selectedRole]);
+
+    const hasActiveFilters = useMemo(() => {
+        return selectedDepartment !== 'All Departments' || selectedRole !== 'All Roles';
+    }, [selectedDepartment, selectedRole]);
+
+    const handleClearFilters = () => {
+        setSelectedDepartment('All Departments');
+        setSelectedRole('All Roles');
+        setSelectedTraineeId('');
+    };
 
     // Fetch readiness data for selected trainee
     const { data: readinessData, isLoading: readinessLoading, error } = useQuery({
@@ -220,7 +230,7 @@ export default function TraineeReadinessReport() {
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <Button variant="outline" className="w-full justify-between">
-                                            {selectedDepartment || "Select Department"}
+                                            {selectedDepartment}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                     </PopoverTrigger>
@@ -229,15 +239,32 @@ export default function TraineeReadinessReport() {
                                             <CommandInput placeholder="Search department..." />
                                             <CommandEmpty>No department found.</CommandEmpty>
                                             <CommandGroup>
-                                                {/* <CommandItem onSelect={() => setSelectedDepartment('')}>All Departments</CommandItem> */}
+                                                <CommandItem 
+                                                    value="All Departments"
+                                                    onSelect={() => setSelectedDepartment('All Departments')}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            "mr-2 h-4 w-4",
+                                                            selectedDepartment === 'All Departments' ? "opacity-100" : "opacity-0"
+                                                        )}
+                                                    />
+                                                    All Departments
+                                                </CommandItem>
                                                 {departments.map((dept) => (
                                                     <CommandItem
                                                         key={dept}
                                                         value={dept}
                                                         onSelect={(currentValue) => {
-                                                            setSelectedDepartment(currentValue === selectedDepartment ? '' : currentValue);
+                                                            setSelectedDepartment(currentValue);
                                                         }}
                                                     >
+                                                        <Check
+                                                            className={cn(
+                                                                "mr-2 h-4 w-4",
+                                                                selectedDepartment === dept ? "opacity-100" : "opacity-0"
+                                                            )}
+                                                        />
                                                         {dept}
                                                     </CommandItem>
                                                 ))}
@@ -250,7 +277,7 @@ export default function TraineeReadinessReport() {
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <Button variant="outline" className="w-full justify-between">
-                                            {selectedRole || "Select Role"}
+                                            {selectedRole}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                     </PopoverTrigger>
@@ -259,15 +286,32 @@ export default function TraineeReadinessReport() {
                                             <CommandInput placeholder="Search role..." />
                                             <CommandEmpty>No role found.</CommandEmpty>
                                             <CommandGroup>
-                                                {/* <CommandItem onSelect={() => setSelectedRole('')}>All Roles</CommandItem> */}
+                                                <CommandItem 
+                                                    value="All Roles"
+                                                    onSelect={() => setSelectedRole('All Roles')}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            "mr-2 h-4 w-4",
+                                                            selectedRole === 'All Roles' ? "opacity-100" : "opacity-0"
+                                                        )}
+                                                    />
+                                                    All Roles
+                                                </CommandItem>
                                                 {UserRoleOptions.map((role) => (
                                                     <CommandItem
                                                         key={role}
                                                         value={role}
                                                         onSelect={(currentValue) => {
-                                                            setSelectedRole(currentValue === selectedRole ? '' : currentValue);
+                                                            setSelectedRole(currentValue);
                                                         }}
                                                     >
+                                                        <Check
+                                                            className={cn(
+                                                                "mr-2 h-4 w-4",
+                                                                selectedRole === role ? "opacity-100" : "opacity-0"
+                                                            )}
+                                                        />
                                                         {role}
                                                     </CommandItem>
                                                 ))}
@@ -275,6 +319,17 @@ export default function TraineeReadinessReport() {
                                         </Command>
                                     </PopoverContent>
                                 </Popover>
+
+                                {/* Clear Filters Button */}
+                                {hasActiveFilters && (
+                                    <Button 
+                                        variant="outline" 
+                                        onClick={handleClearFilters}
+                                        className="w-full"
+                                    >
+                                        Clear Filters
+                                    </Button>
+                                )}
                             </div>
 
                             <Popover open={open} onOpenChange={setOpen}>
