@@ -47,7 +47,7 @@ export const LoginForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
+    <div className="flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">

@@ -92,7 +92,7 @@ const handler = async (req: Request): Promise<Response> => {
       rel_type_id: 567,
       assignees,
       followers,
-      description: `Review Meeting / Project Review between ${trainerProfile?.first_name} ${trainerProfile?.last_name} and trainees. Meeting Link: ${session.meeting_link}`,
+      description: `Review Meeting between ${trainerProfile?.first_name} ${trainerProfile?.last_name} and trainees. Meeting Link: ${session.meeting_link}`,
     };
 
     // Try CRM webhook first

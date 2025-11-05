@@ -15,7 +15,9 @@ const setMeta = (title: string, description: string, canonical?: string) => {
     document.head.appendChild(m);
   }
   if (canonical) {
-    let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    let link = document.querySelector(
+      'link[rel="canonical"]'
+    ) as HTMLLinkElement | null;
     if (!link) {
       link = document.createElement("link");
       link.rel = "canonical";
@@ -36,36 +38,47 @@ const AuthPage = () => {
 
   return (
     <div className="w-full min-h-screen grid grid-cols-1 md:grid-cols-2">
-      <div className="relative hidden md:flex flex-col justify-center items-center bg-cover bg-center p-12 text-white" style={{ backgroundImage: `url(${heroImage})` }}>
+      <div
+        className="relative hidden md:flex flex-col justify-center items-center bg-cover bg-center p-12 text-white"
+        style={{ backgroundImage: `url(${heroImage})` }}
+      >
         <div className="absolute inset-0 bg-primary opacity-70"></div>
         <div className="relative z-10 text-center">
           <h1 className="text-4xl font-bold leading-tight mb-4">
             Unlock Your Team's Potential
           </h1>
           <p className="text-lg text-primary-foreground/90">
-            Join GrowPro LMS - the all-in-one solution for professional growth and learning management.
+            Join GrowPro LMS - the all-in-one solution for professional growth
+            and learning management.
           </p>
         </div>
       </div>
       <div className="bg-gradient-to-br from-background to-muted flex items-center justify-center p-6 md:p-12">
         <div className="w-full max-w-md">
-           <div className="text-center mb-6">
+          <div className="text-center mb-6">
             <h2 className="text-3xl font-bold text-foreground">Get Started</h2>
-            <p className="text-muted-foreground">Access your account or create a new one.</p>
+            <p className="text-muted-foreground">
+              Access your account or create a new one.
+            </p>
           </div>
-          <div className="bg-card p-8 rounded-lg shadow-lg" aria-label="Authentication">
-            <Tabs defaultValue="login" className="w-full">
+          <div
+            className="bg-card p-8 rounded-lg shadow-lg"
+            aria-label="Authentication"
+          >
+            {/*  <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Create Account</TabsTrigger>
               </TabsList>
               <TabsContent value="login" className="mt-6">
                 <LoginForm />
-              </TabsContent>
-              <TabsContent value="signup" className="mt-6">
+                </TabsContent>
+                <TabsContent value="signup" className="mt-6">
                 <SignupForm />
               </TabsContent>
             </Tabs>
+            */}
+            <LoginForm />
           </div>
         </div>
       </div>
