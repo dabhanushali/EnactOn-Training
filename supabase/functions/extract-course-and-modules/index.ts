@@ -553,7 +553,50 @@ Return ONLY valid JSON with this structure:
       }
     };
 
-    // Validate and clean data
+    // Validate and clean data with constraints (max 12 modules, max 3 sub-modules per module)
+    const MAX_MODULES = 12;
+    const MAX_SUBS = 3;
+
+    const normalizeType = (t?: string) => {
+      if (!t) return 'Mixed';
+      const typeMap: Record<string, string> = {
+        'link': 'External Link',
+        'external link': 'External Link',
+        'video': 'Video',
+        'pdf': 'PDF',
+        'document': 'PDF',
+        'text': 'Text',
+        'mixed': 'Mixed'
+      };
+      const lowered = t.toLowerCase();
+      return typeMap[lowered] || (lowered ? lowered[0].toUpperCase() + lowered.slice(1) : 'Mixed');
+    };
+
+    const getFirstUrl = (s?: string) => {
+      if (!s) return '';
+      const urlPattern = /(https?:\/\/[^\s\]\)\}\>,;\"\"]+)/gi;
+      const m = s.match(urlPattern);
+      return m && m.length > 0 ? m[0] : '';
+    };
+
+    // Helper function to validate external URLs
+    const isExternalURL = (url: string): boolean => {
+      if (!url) return false;
+      try {
+        const urlObj = new URL(url.trim());
+        const externalDomains = [
+          'youtube.com', 'youtu.be', 'vimeo.com', 'loom.com',
+          'figma.com', 'drive.google.com', 'docs.google.com',
+          'notion.so', 'notion.site', 'clickup.com', 'trello.com',
+          'miro.com', 'dropbox.com', 'github.com'
+        ];
+        return urlObj.protocol.startsWith('http') &&
+               externalDomains.some(domain => urlObj.hostname.includes(domain));
+      } catch {
+        return false;
+      }
+    };
+
     const cleanedResult = {
       course: {
         course_name: (result.course?.course_name || 'Untitled Course').slice(0, 200),
@@ -568,73 +611,59 @@ Return ONLY valid JSON with this structure:
         learning_objectives: (result.course?.learning_objectives || '').slice(0, 500)
       },
       modules: (result.modules || [])
-        .filter(m => m && typeof m === 'object')
-        .map((module, index) => {
-          const contentUrl = module.content_url || '';
-          const hasUrl = contentUrl.trim().length > 0;
-          let contentType = module.content_type || 'Mixed';
-
-          // Normalize content type to proper case
-          const typeMap: { [key: string]: string } = {
-            'link': 'External Link',
-            'external link': 'External Link',
-            'video': 'Video',
-            'pdf': 'PDF',
-            'text': 'Text',
-            'mixed': 'Mixed'
-          };
-          contentType = typeMap[contentType.toLowerCase()] || contentType;
-
-          // Validate and default content type
-          const validTypes = ['External Link', 'Video', 'PDF', 'Text', 'Mixed'];
-          if (!validTypes.includes(contentType)) {
-            contentType = 'Mixed';
+        .filter((m: any) => m && typeof m === 'object')
+        .map((module: any, index: number) => {
+          // Top-level modules should generally not carry links; keep type normalized
+          const contentUrl = (module.content_url || '').trim();
+          let contentType = normalizeType(module.content_type || 'Mixed');
+          if (contentUrl && isExternalURL(contentUrl) && (!contentType || contentType === 'Mixed')) {
+            contentType = 'External Link';
           }
 
-          // Process sub-modules if they exist
-          const subModules = (module.sub_modules || [])
-            .filter(sm => sm && typeof sm === 'object')
-            .map((subModule, subIndex) => {
-              const subContentUrl = subModule.content_url || '';
-              const subHasUrl = subContentUrl.trim().length > 0;
-              let subContentType = subModule.content_type;
-
-              // Normalize sub-module content type
-              if (subContentType) {
-                subContentType = typeMap[subContentType.toLowerCase()] || subContentType;
+          // Sub-modules processing
+          const subModulesRaw = Array.isArray(module.sub_modules) ? module.sub_modules : [];
+          const subModulesProcessed = subModulesRaw
+            .filter((sm: any) => sm && typeof sm === 'object')
+            .map((subModule: any, subIndex: number) => {
+              const rawUrl = (subModule.content_url || '').trim();
+              const firstUrl = getFirstUrl(rawUrl || subModule.resources || '');
+              let subType = normalizeType(subModule.content_type || (firstUrl ? 'External Link' : 'Text'));
+              if (firstUrl && (!subType || subType === 'Mixed') && isExternalURL(firstUrl)) {
+                subType = 'External Link';
               }
-
-              // Auto-set to External Link if URL is external
-              if (subHasUrl && (!subContentType || subContentType === 'Mixed') && isExternalURL(subContentUrl)) {
-                subContentType = 'External Link';
-              }
-
-              // Validate sub-module content type
-              if (!validTypes.includes(subContentType)) {
-                subContentType = subHasUrl && isExternalURL(subContentUrl) ? 'External Link' : 'Text';
-              }
-
               return {
                 sub_module_name: (subModule.sub_module_name || `Sub-module ${subIndex + 1}`).slice(0, 200),
                 sub_module_description: (subModule.sub_module_description || 'No description').slice(0, 500),
-                content_type: subContentType,
-                content_url: subContentUrl,
+                content_type: subType,
+                content_url: firstUrl || '',
                 resources: (subModule.resources || '').slice(0, 1000),
                 estimated_duration_minutes: Math.min(Math.max(subModule.estimated_duration_minutes || 30, 10), 180)
               };
-            });
+            })
+            // Prioritize Projects and items with links, then others
+            .sort((a: any, b: any) => {
+              const aProj = /project/i.test(a.sub_module_name) || /project/i.test(a.sub_module_description);
+              const bProj = /project/i.test(b.sub_module_name) || /project/i.test(b.sub_module_description);
+              if (aProj !== bProj) return aProj ? -1 : 1;
+              const aHas = !!a.content_url;
+              const bHas = !!b.content_url;
+              if (aHas !== bHas) return aHas ? -1 : 1;
+              return 0;
+            })
+            .slice(0, MAX_SUBS);
 
           return {
             module_name: (module.module_name || `Module ${index + 1}`).slice(0, 200),
             module_description: (module.module_description || 'No description').slice(0, 500),
-            content_type: contentType,
-            content_url: contentUrl,
+            content_type: normalizeType(contentType),
+            content_url: '', // keep links on sub-modules only
             estimated_duration_minutes: Math.min(Math.max(module.estimated_duration_minutes || 120, 30), 480),
             module_order: index + 1,
-            sub_modules: subModules
+            sub_modules: subModulesProcessed
           };
         })
-        .slice(0, 20),
+        // Prefer modules named like "Week X" and keep original order otherwise
+        .slice(0, MAX_MODULES),
       source
     };
 

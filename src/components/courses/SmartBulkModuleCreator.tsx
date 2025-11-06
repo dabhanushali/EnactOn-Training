@@ -415,10 +415,10 @@ export const SmartBulkModuleCreator = ({ courseId, onModulesCreated, isAutoGener
                           parent_module_id: parentId,
                           module_name: sub.sub_module_name,
                           module_description: sub.sub_module_description,
-                          content_type: sub.content_type,
-                          content_url: packContentUrl(sub.content_url || '', sub.resources || ''),
-                          estimated_duration_minutes: sub.estimated_duration_minutes,
-                          module_order: baseOrder + (++subCounter),
+                           content_type: sub.content_type,
+                           content_url: (sub.content_url && sub.content_url.trim()) ? sub.content_url.trim() : null,
+                           estimated_duration_minutes: sub.estimated_duration_minutes,
+                           module_order: baseOrder + (++subCounter),
                         });
                       });
                     }
