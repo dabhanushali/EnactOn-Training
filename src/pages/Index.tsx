@@ -44,7 +44,7 @@ const Index = () => {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${heroImage})` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/90 via-primary/70 to-secondary/80"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/90 via-primary/80 to-primary/70"></div>
         </div>
         
         {/* Content */}
@@ -69,7 +69,7 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Button 
                 size="lg"
-                className="bg-white text-primary hover:bg-white/90 font-semibold px-8 py-3 text-lg"
+                className="bg-primary text-white hover:bg-primary/90 font-semibold px-8 py-3 text-lg shadow-lg"
                 onClick={() => navigate("/dashboard")}
               >
                 Get Started
@@ -108,7 +108,7 @@ const Index = () => {
               return (
                 <Card key={index} className="text-center hover:shadow-lg transition-shadow border-0 bg-card/50">
                   <CardHeader>
-                    <div className="mx-auto bg-gradient-to-r from-primary to-secondary p-3 rounded-2xl w-fit">
+                    <div className="mx-auto bg-primary p-3 rounded-2xl w-fit">
                       <Icon className="w-8 h-8 text-white" />
                     </div>
                     <CardTitle className="text-xl">{feature.title}</CardTitle>
@@ -163,7 +163,7 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-primary to-secondary">
+      <section className="py-20 bg-primary">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
             Ready to Transform Your Training Programs?
@@ -173,7 +173,7 @@ const Index = () => {
           </p>
           <Button 
             size="lg"
-            className="bg-white text-primary hover:bg-white/90 font-semibold px-8 py-3 text-lg"
+            className="bg-white text-primary hover:bg-white/90 shadow-lg font-semibold px-8 py-3 text-lg"
             onClick={() => navigate("/dashboard")}
           >
             Start Your Journey

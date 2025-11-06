@@ -188,12 +188,11 @@ export const CourseCard = ({
           {isAdmin && (
             <Button
               variant="outline"
-              size="sm"
+              size="icon"
               onClick={() => onDelete?.(id)}
               className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
             >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Delete
+              <Trash2 className="h-4 w-4" />
             </Button>
           )}
         </div>
