@@ -88,7 +88,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     for (const recipient of recipients) {
       const emailResult = await transporter.sendMail({
-        from: `GrowPro Suite <${Deno.env.get("EMAIL_USER")}>`,
+        from: `EnactOn Training <${Deno.env.get("EMAIL_USER")}>`,
         to: recipient as string,
         subject: `Training Session ${attendeeIds && attendeeIds.length > 0 ? 'Assigned' : 'Scheduled'}: ${session.session_name}`,
         html: `
@@ -103,9 +103,9 @@ const handler = async (req: Request): Promise<Response> => {
             <p><strong>Trainer:</strong> ${trainerProfile?.first_name} ${trainerProfile?.last_name}</p>
             ${session.meeting_link ? `<p><strong>Meeting Link:</strong> <a href="${session.meeting_link}">${session.meeting_link}</a></p>` : ''}
           </div>
-          <p>Please visit the GrowPro Suite for more details:</p>
-          <p><a href="http://growpro-suite.lovable.app/" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">View Session</a></p>
-          <p>Best regards,<br>GrowPro Suite</p>
+          <p>Please visit the EnactOn Training for more details:</p>
+          <p><a href="http://enactontraining.vercel.app/" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">View Session</a></p>
+          <p>Best regards,<br>EnactOn Training</p>
         `,
       });
 

@@ -82,7 +82,7 @@ const handler = async (req: Request): Promise<Response> => {
       for (const trainee of trainees || []) {
         for (const hrEmail of hrEmails.filter(Boolean)) {
           const emailResult = await transporter.sendMail({
-            from: `GrowPro Suite <${Deno.env.get("EMAIL_USER")}>`,
+            from: `EnactOn Training <${Deno.env.get("EMAIL_USER")}>`,
             to: hrEmail as string,
             subject: `${checkDate.days}-Day Review Meeting Required for ${trainee.first_name} ${trainee.last_name}`,
             html: `
@@ -90,9 +90,9 @@ const handler = async (req: Request): Promise<Response> => {
               <p>Hello,</p>
               <p>This is a reminder to schedule a ${checkDate.days}-day review meeting with trainee <strong>${trainee.first_name} ${trainee.last_name}</strong>.</p>
               <p><strong>Joining Date:</strong> ${trainee.date_of_joining}</p>
-              <p>Please visit the GrowPro Suite to schedule this meeting:</p>
-              <p><a href="http://growpro-suite.lovable.app/" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Schedule Meeting</a></p>
-              <p>Best regards,<br>GrowPro Suite</p>
+              <p>Please visit the EnactOn Training to schedule this meeting:</p>
+              <p><a href="http://enactontraining.vercel.app/" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Schedule Meeting</a></p>
+              <p>Best regards,<br>EnactOn Training</p>
             `,
           });
 

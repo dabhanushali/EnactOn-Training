@@ -2,7 +2,7 @@
 
 ## 1. Introduction
 
-This document provides a comprehensive specification for a full user experience (UX) revamp across three key areas of the GrowPro Suite application: Navigation Consistency, Authentication, and the Course Engagement flow. The goal is to create a more cohesive, intuitive, and visually polished user journey.
+This document provides a comprehensive specification for a full user experience (UX) revamp across three key areas of the EnactOn Training application: Navigation Consistency, Authentication, and the Course Engagement flow. The goal is to create a more cohesive, intuitive, and visually polished user journey.
 
 ### 1.1. Change Log
 

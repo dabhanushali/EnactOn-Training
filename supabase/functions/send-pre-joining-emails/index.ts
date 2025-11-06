@@ -79,7 +79,7 @@ const handler = async (req: Request): Promise<Response> => {
         if (employeeEmail.data) {
           // Send to employee
           const employeeEmailResult = await transporter.sendMail({
-            from: `GrowPro Suite <${Deno.env.get("EMAIL_USER")}>`,
+            from: `EnactOn Training <${Deno.env.get("EMAIL_USER")}>`,
             to: employeeEmail.data as string,
             subject: `Welcome! ${checkDate.days} Days Until Your Start Date`,
             html: `
@@ -93,9 +93,9 @@ const handler = async (req: Request): Promise<Response> => {
                 <li>Review the course materials assigned to you</li>
                 <li>Prepare any questions for your first day</li>
               </ul>
-              <p><a href="http://growpro-suite.lovable.app/" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Access Your Portal</a></p>
+              <p><a href="http://enactontraining.vercel.app/" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Access Your Portal</a></p>
               <p>Looking forward to having you on the team!</p>
-              <p>Best regards,<br>GrowPro Suite</p>
+              <p>Best regards,<br>EnactOn Training</p>
             `,
           });
 
@@ -111,7 +111,7 @@ const handler = async (req: Request): Promise<Response> => {
         // Send to HR
         for (const hrEmail of hrEmails.filter(Boolean)) {
           const hrEmailResult = await transporter.sendMail({
-            from: `GrowPro Suite <${Deno.env.get("EMAIL_USER")}>`,
+            from: `EnactOn Training <${Deno.env.get("EMAIL_USER")}>`,
             to: hrEmail as string,
             subject: `Pre-Joining Follow-up: ${checkDate.days} Days - ${employee.first_name} ${employee.last_name}`,
             html: `
@@ -128,8 +128,8 @@ const handler = async (req: Request): Promise<Response> => {
                 <li>Onboarding plan is ready</li>
                 <li>Workstation and equipment are prepared</li>
               </ul>
-              <p><a href="http://growpro-suite.lovable.app/employees/${employee.id}" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">View Employee Profile</a></p>
-              <p>Best regards,<br>GrowPro Suite</p>
+              <p><a href="http://enactontraining.vercel.app/employees/${employee.id}" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">View Employee Profile</a></p>
+              <p>Best regards,<br>EnactOn Training</p>
             `,
           });
 

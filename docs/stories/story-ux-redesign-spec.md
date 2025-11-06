@@ -2,7 +2,7 @@
 
 ## 1. Introduction
 
-This document defines the user experience goals, information architecture, user flows, and visual design specifications for the GrowPro Suite's course interface. It serves as the foundation for visual design and frontend development, ensuring a cohesive and user-centered experience.
+This document defines the user experience goals, information architecture, user flows, and visual design specifications for the EnactOn Training's course interface. It serves as the foundation for visual design and frontend development, ensuring a cohesive and user-centered experience.
 
 ### 1.1. Overall UX Goals & Principles
 
