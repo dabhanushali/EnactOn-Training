@@ -19,13 +19,17 @@ serve(async (req) => {
   }
 
   try {
-    // Authenticate user using shared utility
-    const authResult = await authenticateUser(req);
-    if (!authResult.success) {
-      return new Response(
-        JSON.stringify({ success: false, error: authResult.error }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: authResult.status }
-      );
+    // Optional authentication: validate if header is present; otherwise proceed as public
+    try {
+      const authHeader = req.headers.get('Authorization');
+      if (authHeader) {
+        const authResult = await authenticateUser(req);
+        if (!authResult.success) {
+          console.log('Auth provided but invalid, proceeding as public:', authResult.error);
+        }
+      }
+    } catch (authErr) {
+      console.log('Auth check error, proceeding as public:', authErr);
     }
 
     const { content, source }: ExtractRequest = await req.json();
