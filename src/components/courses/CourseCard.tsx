@@ -144,7 +144,7 @@ export const CourseCard = ({
             className="flex-1"
             onClick={() => onViewDetails?.(id)}
           >
-            <BookOpen className="w-4 h-4 mr-2" />
+            <BookOpen className="w-4 h-4" />
             View Details
           </Button>
 
@@ -162,7 +162,7 @@ export const CourseCard = ({
               className="flex-1"
               onClick={() => onViewDetails?.(id)}
             >
-              <Users className="w-4 h-4 mr-2" />
+              <Users className="w-4 h-4" />
               Assign Employees
             </Button>
           ) : isCompleted ? (
@@ -190,10 +190,9 @@ export const CourseCard = ({
               variant="outline"
               size="sm"
               onClick={() => onDelete?.(id)}
-              className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground h-9 w-9"
             >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Delete
+              <Trash2 className="h-4 w-4" />
             </Button>
           )}
         </div>

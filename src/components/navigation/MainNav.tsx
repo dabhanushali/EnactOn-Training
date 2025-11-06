@@ -128,8 +128,8 @@ export const MainNav = () => {
             </div>
             <div className="hidden sm:flex items-center gap-3">
               <div>
-                <h1 className="text-xl font-bold text-foreground">GrowPro LMS</h1>
-                <p className="text-xs text-muted-foreground -mt-1">Learning Management System</p>
+                <h1 className="text-xl font-bold text-foreground">EnactOn LMS</h1>
+                <p className="text-xs text-muted-foreground -mt-1">Where reliability matters</p>
               </div>
               {userRole && (
                 <div className="flex items-center gap-2 pl-3 border-l">

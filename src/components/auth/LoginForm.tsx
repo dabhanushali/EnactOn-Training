@@ -55,8 +55,8 @@ export const LoginForm = () => {
               <GraduationCap className="w-8 h-8 text-white" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">GrowPro LMS</h1>
-          <p className="text-muted-foreground">Learning Management & Training System</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">EnactOn LMS</h1>
+          <p className="text-muted-foreground">Where reliability matters</p>
         </div>
 
         <Card className="shadow-xl border-0 bg-card/50 backdrop-blur-sm">
@@ -107,17 +107,6 @@ export const LoginForm = () => {
                 )}
               </Button>
             </form>
-            
-            <div className="mt-6 text-center text-sm text-muted-foreground">
-              <p>Demo Accounts:</p>
-              <div className="mt-2 space-y-1 text-xs">
-                <p><strong>Management:</strong> management@company.com</p>
-                <p><strong>HR:</strong> hr@company.com</p>
-                <p><strong>Team Lead:</strong> teamlead@company.com</p>
-                <p><strong>Trainee:</strong> trainee@company.com</p>
-                <p className="text-muted-foreground/70">Password: password123</p>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>

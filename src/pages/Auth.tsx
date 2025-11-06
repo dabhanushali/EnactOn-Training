@@ -30,8 +30,8 @@ const setMeta = (title: string, description: string, canonical?: string) => {
 const AuthPage = () => {
   useEffect(() => {
     setMeta(
-      "Access Your Account - GrowPro Suite",
-      "Access GrowPro Suite: sign in to your account or create a new one in seconds.",
+      "Access Your Account - EnactOn LMS",
+      "Access EnactOn LMS: sign in to your account or create a new one in seconds.",
       window.location.href
     );
   }, []);
@@ -48,7 +48,7 @@ const AuthPage = () => {
             Unlock Your Team's Potential
           </h1>
           <p className="text-lg text-primary-foreground/90">
-            Join GrowPro LMS - the all-in-one solution for professional growth
+            Join EnactOn LMS - Where reliability matters in professional growth
             and learning management.
           </p>
         </div>
