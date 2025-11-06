@@ -57,8 +57,8 @@ const Index = () => {
             </div>
             
             <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-              GrowPro
-              <span className="block text-secondary-light">Learning Management System</span>
+              EnactOn LMS
+              <span className="block text-secondary-light">Where reliability matters</span>
             </h1>
             
             <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto leading-relaxed">

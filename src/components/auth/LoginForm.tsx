@@ -55,8 +55,8 @@ export const LoginForm = () => {
               <GraduationCap className="w-8 h-8 text-white" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">GrowPro LMS</h1>
-          <p className="text-muted-foreground">Learning Management & Training System</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">EnactOn LMS</h1>
+          <p className="text-muted-foreground">Where reliability matters</p>
         </div>
 
         <Card className="shadow-xl border-0 bg-card/50 backdrop-blur-sm">
