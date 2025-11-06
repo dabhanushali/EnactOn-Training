@@ -670,20 +670,53 @@ export default function CreateCourse() {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle>Extracted Modules ({extractedData.modules?.length || 0})</CardTitle>
+                      <CardTitle>
+                        Extracted Modules ({extractedData.modules?.length || 0})
+                        {extractedData.modules?.some(m => m.sub_modules?.length > 0) && (
+                          <span className="text-sm font-normal text-muted-foreground ml-2">
+                            with {extractedData.modules.reduce((sum, m) => sum + (m.sub_modules?.length || 0), 0)} sub-modules
+                          </span>
+                        )}
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3 max-h-96 overflow-y-auto">
                         {extractedData.modules?.map((module, idx) => (
                           <Card key={idx}>
                             <CardContent className="p-4">
-                              <h4 className="font-semibold">{module.module_name}</h4>
+                              <h4 className="font-semibold text-primary">{module.module_name}</h4>
                               <p className="text-sm text-muted-foreground mt-1">{module.module_description}</p>
                               <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
                                 <span>Type: {module.content_type}</span>
                                 <span>Duration: {module.estimated_duration_minutes}min</span>
                                 {module.content_url && <span className="truncate">URL: {module.content_url}</span>}
                               </div>
+                              
+                              {/* Sub-modules */}
+                              {module.sub_modules?.length > 0 && (
+                                <div className="mt-3 pl-4 border-l-2 border-muted space-y-2">
+                                  {module.sub_modules.map((subModule, subIdx) => (
+                                    <div key={subIdx} className="bg-muted/30 p-3 rounded">
+                                      <h5 className="font-medium text-sm">{subModule.sub_module_name}</h5>
+                                      <p className="text-xs text-muted-foreground mt-1">{subModule.sub_module_description}</p>
+                                      <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
+                                        <span>Type: {subModule.content_type}</span>
+                                        <span>Duration: {subModule.estimated_duration_minutes}min</span>
+                                      </div>
+                                      {subModule.content_url && (
+                                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                                          URL: {subModule.content_url}
+                                        </p>
+                                      )}
+                                      {subModule.resources && (
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                          Resources: {subModule.resources.slice(0, 100)}...
+                                        </p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </CardContent>
                           </Card>
                         ))}
@@ -725,28 +758,53 @@ export default function CreateCourse() {
 
                           if (courseError) throw courseError;
 
-                          // Create modules
+                          // Create modules and sub-modules
                           if (extractedData.modules?.length > 0) {
-                            const modulesToInsert = extractedData.modules.map((module, idx) => ({
-                              course_id: courseData.id,
-                              module_name: module.module_name,
-                              module_description: module.module_description,
-                              content_type: module.content_type,
-                              content_url: module.content_url || '',
-                              estimated_duration_minutes: module.estimated_duration_minutes,
-                              module_order: idx + 1
-                            }));
+                            for (const [idx, module] of extractedData.modules.entries()) {
+                              // Insert main module
+                              const { data: moduleData, error: moduleError } = await supabase
+                                .from('course_modules')
+                                .insert({
+                                  course_id: courseData.id,
+                                  module_name: module.module_name,
+                                  module_description: module.module_description,
+                                  content_type: module.content_type,
+                                  content_url: module.content_url || '',
+                                  estimated_duration_minutes: module.estimated_duration_minutes,
+                                  module_order: idx + 1
+                                })
+                                .select()
+                                .single();
 
-                            const { error: modulesError } = await supabase
-                              .from('course_modules')
-                              .insert(modulesToInsert);
+                              if (moduleError) throw moduleError;
 
-                            if (modulesError) throw modulesError;
+                              // Insert sub-modules if they exist
+                              if (module.sub_modules?.length > 0) {
+                                const subModulesToInsert = module.sub_modules.map((subModule, subIdx) => ({
+                                  course_id: courseData.id,
+                                  parent_module_id: moduleData.id,
+                                  module_name: subModule.sub_module_name,
+                                  module_description: subModule.sub_module_description,
+                                  content_type: subModule.content_type,
+                                  content_url: subModule.content_url || '',
+                                  estimated_duration_minutes: subModule.estimated_duration_minutes,
+                                  module_order: subIdx + 1,
+                                  resources: subModule.resources || ''
+                                }));
+
+                                const { error: subModulesError } = await supabase
+                                  .from('course_modules')
+                                  .insert(subModulesToInsert);
+
+                                if (subModulesError) throw subModulesError;
+                              }
+                            }
                           }
 
+                          const totalSubModules = extractedData.modules.reduce((sum, m) => sum + (m.sub_modules?.length || 0), 0);
                           toast({
                             title: "Success",
-                            description: `Course created with ${extractedData.modules?.length || 0} modules`
+                            description: `Course created with ${extractedData.modules?.length || 0} modules${totalSubModules > 0 ? ` and ${totalSubModules} sub-modules` : ''}`
                           });
                           
                           navigate(`/courses/${courseData.id}`);

@@ -103,15 +103,22 @@ serve(async (req) => {
       }
     }
 
-    const systemPrompt = `You are an expert course designer. Analyze the provided content and extract:
+    const systemPrompt = `You are an expert course designer. Analyze the provided Google Sheets content and extract:
 1. Course details (name, description, type, difficulty, target role)
-2. Structured course modules
+2. Hierarchical course structure with modules and sub-modules
+
+IMPORTANT PARSING RULES:
+- Each row with "Week X" represents a main MODULE
+- The "Training Topic" column becomes the module name
+- Items in the "Modules" column become SUB-MODULES under that module
+- Each bullet point or line in "Modules" column is a separate sub-module
+- Resources from "Resources" or "Column 4" should be extracted and included
 
 Return ONLY valid JSON with this structure:
 {
   "course": {
-    "course_name": "string (max 200 chars)",
-    "course_description": "string (200-500 chars)",
+    "course_name": "string (derive from sheet content or first Training Topic)",
+    "course_description": "string (200-500 chars, summarize the overall course)",
     "course_type": "one of: Technical, Soft Skills, Compliance, Leadership, Other",
     "difficulty_level": "one of: Beginner, Intermediate, Advanced",
     "target_role": "string (job role this course is for)",
@@ -119,21 +126,38 @@ Return ONLY valid JSON with this structure:
   },
   "modules": [
     {
-      "module_name": "string (max 100 chars)",
+      "module_name": "string (from Training Topic column)",
       "module_description": "string (100-300 chars)",
-      "content_type": "one of: External Link, Video, PDF, Text, Mixed - USE 'External Link' when content_url contains a URL",
-      "content_url": "string (URL if available)",
-      "estimated_duration_minutes": number (15-180)
+      "content_type": "Mixed",
+      "estimated_duration_minutes": number (60-240 for main modules),
+      "sub_modules": [
+        {
+          "sub_module_name": "string (from Modules column content)",
+          "sub_module_description": "string (brief description)",
+          "content_type": "one of: External Link, Video, PDF, Text, Mixed",
+          "content_url": "string (URL from Resources if available)",
+          "resources": "string (all related resources/links)",
+          "estimated_duration_minutes": number (15-120)
+        }
+      ]
     }
   ]
 }`;
 
     const userPrompt = `Source: ${source}
 
-Content to analyze:
-${contentToProcess.slice(0, 8000)}
+Content to analyze (Google Sheets data):
+${contentToProcess.slice(0, 12000)}
 
-Extract course details and 3-10 modules from this content.`;
+INSTRUCTIONS:
+1. Identify the overall course name from the sheet content
+2. Each "Week X" row becomes a MODULE with name from "Training Topic" column
+3. Parse "Modules" column content - each bullet/item becomes a SUB-MODULE
+4. Extract URLs and resources from the "Resources" or rightmost column
+5. Match resources to their corresponding sub-modules
+6. Create hierarchical structure: Course → Modules → Sub-Modules
+
+Extract the complete course structure with all modules and sub-modules.`;
 
     console.log('Calling Lovable AI (Gemini) to extract course and modules...');
     
@@ -208,9 +232,16 @@ Extract course details and 3-10 modules from this content.`;
         modules: [{
           module_name: `Content from ${source}`,
           module_description: 'Extracted content - please review and edit',
-          content_type: content.startsWith('http') ? 'External Link' : 'Text',
-          content_url: content.startsWith('http') ? content : '',
-          estimated_duration_minutes: 60
+          content_type: 'Mixed',
+          estimated_duration_minutes: 60,
+          sub_modules: [{
+            sub_module_name: 'Module Content',
+            sub_module_description: 'Please review and edit',
+            content_type: content.startsWith('http') ? 'External Link' : 'Text',
+            content_url: content.startsWith('http') ? content : '',
+            resources: '',
+            estimated_duration_minutes: 30
+          }]
         }]
       };
     }
@@ -252,46 +283,74 @@ Extract course details and 3-10 modules from this content.`;
         .map((module, index) => {
           const contentUrl = module.content_url || '';
           const hasUrl = contentUrl.trim().length > 0;
-          let contentType = module.content_type;
+          let contentType = module.content_type || 'Mixed';
 
           // Normalize content type to proper case
-          if (contentType) {
-            const typeMap: { [key: string]: string } = {
-              'link': 'External Link',
-              'external link': 'External Link',
-              'video': 'Video',
-              'pdf': 'PDF',
-              'text': 'Text',
-              'mixed': 'Mixed'
-            };
-            contentType = typeMap[contentType.toLowerCase()] || contentType;
-          }
-
-          // Auto-set to External Link only if URL is external
-          if (hasUrl && !contentType && isExternalURL(contentUrl)) {
-            contentType = 'External Link';
-          }
+          const typeMap: { [key: string]: string } = {
+            'link': 'External Link',
+            'external link': 'External Link',
+            'video': 'Video',
+            'pdf': 'PDF',
+            'text': 'Text',
+            'mixed': 'Mixed'
+          };
+          contentType = typeMap[contentType.toLowerCase()] || contentType;
 
           // Validate and default content type
           const validTypes = ['External Link', 'Video', 'PDF', 'Text', 'Mixed'];
           if (!validTypes.includes(contentType)) {
-            contentType = hasUrl && isExternalURL(contentUrl) ? 'External Link' : 'Text';
+            contentType = 'Mixed';
           }
+
+          // Process sub-modules if they exist
+          const subModules = (module.sub_modules || [])
+            .filter(sm => sm && typeof sm === 'object')
+            .map((subModule, subIndex) => {
+              const subContentUrl = subModule.content_url || '';
+              const subHasUrl = subContentUrl.trim().length > 0;
+              let subContentType = subModule.content_type;
+
+              // Normalize sub-module content type
+              if (subContentType) {
+                subContentType = typeMap[subContentType.toLowerCase()] || subContentType;
+              }
+
+              // Auto-set to External Link if URL is external
+              if (subHasUrl && (!subContentType || subContentType === 'Mixed') && isExternalURL(subContentUrl)) {
+                subContentType = 'External Link';
+              }
+
+              // Validate sub-module content type
+              if (!validTypes.includes(subContentType)) {
+                subContentType = subHasUrl && isExternalURL(subContentUrl) ? 'External Link' : 'Text';
+              }
+
+              return {
+                sub_module_name: (subModule.sub_module_name || `Sub-module ${subIndex + 1}`).slice(0, 200),
+                sub_module_description: (subModule.sub_module_description || 'No description').slice(0, 500),
+                content_type: subContentType,
+                content_url: subContentUrl,
+                resources: (subModule.resources || '').slice(0, 1000),
+                estimated_duration_minutes: Math.min(Math.max(subModule.estimated_duration_minutes || 30, 10), 180)
+              };
+            });
 
           return {
             module_name: (module.module_name || `Module ${index + 1}`).slice(0, 200),
             module_description: (module.module_description || 'No description').slice(0, 500),
             content_type: contentType,
             content_url: contentUrl,
-            estimated_duration_minutes: Math.min(Math.max(module.estimated_duration_minutes || 60, 15), 300),
-            module_order: index + 1
+            estimated_duration_minutes: Math.min(Math.max(module.estimated_duration_minutes || 120, 30), 480),
+            module_order: index + 1,
+            sub_modules: subModules
           };
         })
         .slice(0, 20),
       source
     };
 
-    console.log(`Successfully extracted course with ${cleanedResult.modules.length} modules`);
+    const totalSubModules = cleanedResult.modules.reduce((sum, m) => sum + (m.sub_modules?.length || 0), 0);
+    console.log(`Successfully extracted course with ${cleanedResult.modules.length} modules and ${totalSubModules} sub-modules`);
 
     return new Response(
       JSON.stringify({ 
