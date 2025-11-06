@@ -214,8 +214,8 @@ Extract the complete course structure with all modules and sub-modules.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.7,
-        max_tokens: 3000
+        temperature: 0.5,
+        max_tokens: 8000
       }),
     });
 
@@ -234,8 +234,8 @@ Extract the complete course structure with all modules and sub-modules.`;
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
           ],
-          temperature: 0.7,
-          max_tokens: 3000
+          temperature: 0.5,
+          max_tokens: 8000
         }),
       });
     }
@@ -247,44 +247,77 @@ Extract the complete course structure with all modules and sub-modules.`;
     }
 
     const aiData = await aiResponse.json();
-    console.log('AI Response received');
+    console.log('AI Response received, length:', aiData.choices?.[0]?.message?.content?.length || 0);
     
     let generatedText = aiData.choices?.[0]?.message?.content || '';
     
-    // Clean up the response
+    // Robust JSON extraction
     generatedText = generatedText.trim();
-    generatedText = generatedText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    
+    // Remove markdown code blocks
+    generatedText = generatedText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '');
+    
+    // Try to find JSON object boundaries if there's extra text
+    const jsonStart = generatedText.indexOf('{');
+    const jsonEnd = generatedText.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+      generatedText = generatedText.substring(jsonStart, jsonEnd + 1);
+    }
+    
+    console.log('Attempting to parse JSON, length:', generatedText.length);
     
     let result;
     try {
       result = JSON.parse(generatedText);
+      console.log('Successfully parsed JSON with', result.modules?.length || 0, 'modules');
     } catch (parseError) {
-      console.error('Failed to parse AI response:', generatedText);
-      // Fallback
-      result = {
-        course: {
-          course_name: `Course from ${source}`,
-          course_description: 'Extracted content - please review and edit',
-          course_type: 'Technical',
-          difficulty_level: 'Intermediate',
-          target_role: '',
-          learning_objectives: ''
-        },
-        modules: [{
-          module_name: `Content from ${source}`,
-          module_description: 'Extracted content - please review and edit',
-          content_type: 'Mixed',
-          estimated_duration_minutes: 60,
-          sub_modules: [{
-            sub_module_name: 'Module Content',
-            sub_module_description: 'Please review and edit',
-            content_type: content.startsWith('http') ? 'External Link' : 'Text',
-            content_url: content.startsWith('http') ? content : '',
-            resources: '',
-            estimated_duration_minutes: 30
+      console.error('JSON parse failed:', parseError.message);
+      console.error('First 500 chars:', generatedText.substring(0, 500));
+      console.error('Last 500 chars:', generatedText.substring(Math.max(0, generatedText.length - 500)));
+      
+      // Try to salvage partial JSON by finding complete objects
+      try {
+        // Attempt to close incomplete JSON by adding missing closing braces
+        let fixedText = generatedText;
+        const openBraces = (fixedText.match(/{/g) || []).length;
+        const closeBraces = (fixedText.match(/}/g) || []).length;
+        const openBrackets = (fixedText.match(/\[/g) || []).length;
+        const closeBrackets = (fixedText.match(/]/g) || []).length;
+        
+        // Add missing closing brackets/braces
+        fixedText += ']'.repeat(Math.max(0, openBrackets - closeBrackets));
+        fixedText += '}'.repeat(Math.max(0, openBraces - closeBraces));
+        
+        console.log('Attempting to fix incomplete JSON...');
+        result = JSON.parse(fixedText);
+        console.log('Successfully fixed and parsed JSON!');
+      } catch (fixError) {
+        console.error('Could not fix JSON, using fallback');
+        result = {
+          course: {
+            course_name: `Course from ${source}`,
+            course_description: 'AI extraction incomplete - please review and edit. Try with a smaller sheet or fewer modules.',
+            course_type: 'Technical',
+            difficulty_level: 'Intermediate',
+            target_role: '',
+            learning_objectives: ''
+          },
+          modules: [{
+            module_name: `Content from ${source}`,
+            module_description: 'AI extraction incomplete - please review and edit',
+            content_type: 'Mixed',
+            estimated_duration_minutes: 60,
+            sub_modules: [{
+              sub_module_name: 'Module Content',
+              sub_module_description: 'Please review and edit',
+              content_type: content.startsWith('http') ? 'External Link' : 'Text',
+              content_url: content.startsWith('http') ? content : '',
+              resources: '',
+              estimated_duration_minutes: 30
+            }]
           }]
-        }]
-      };
+        };
+      }
     }
 
     // Helper function to validate external URLs
