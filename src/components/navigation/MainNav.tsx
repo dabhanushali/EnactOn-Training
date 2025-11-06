@@ -21,7 +21,8 @@ import {
   LogOut,
   Menu,
   GraduationCap,
-  User
+  User,
+  FileText
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { NotificationCenter } from '@/components/common/NotificationCenter';
@@ -75,6 +76,12 @@ const navigationItems: NavItem[] = [
     icon: BarChart3,
     href: '/reports/readiness',
     roles: [UserRoles.MANAGEMENT, UserRoles.HR, UserRoles.TEAM_LEAD],
+  },
+  {
+    label: 'Company Rules',
+    icon: FileText,
+    href: '/company-rules',
+    roles: [UserRoles.MANAGEMENT, UserRoles.HR, UserRoles.TRAINEE],
   },
 ];
 
