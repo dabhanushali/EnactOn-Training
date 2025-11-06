@@ -536,10 +536,11 @@ export default function CreateCourse() {
                           throw new Error(data.error || 'Failed to extract course data');
                         }
                         
+                        // Just set the extracted data, DON'T save to database yet
                         setExtractedData(data);
                         toast({
-                          title: "Success",
-                          description: `Extracted course with ${data.modules?.length || 0} modules`
+                          title: "Extraction Complete",
+                          description: `Extracted ${data.modules?.length || 0} modules. Review and click "Save Course & Modules" to save.`
                         });
                       } catch (error) {
                         console.error('Error extracting course:', error);
