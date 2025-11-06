@@ -123,7 +123,7 @@ export const MainNav = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center space-x-3">
-            <div className="bg-gradient-to-r from-primary to-secondary p-2 rounded-lg">
+            <div className="bg-primary p-2 rounded-lg">
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <div className="hidden sm:flex items-center gap-3">

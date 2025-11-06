@@ -51,7 +51,7 @@ export const LoginForm = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="bg-gradient-to-r from-primary to-secondary p-3 rounded-2xl shadow-lg">
+            <div className="bg-primary p-3 rounded-2xl shadow-lg">
               <GraduationCap className="w-8 h-8 text-white" />
             </div>
           </div>
@@ -94,7 +94,7 @@ export const LoginForm = () => {
               </div>
               <Button
                 type="submit"
-                className="w-full h-11 bg-gradient-to-r from-primary to-secondary hover:from-primary-dark hover:to-secondary text-white font-medium"
+                className="w-full h-11 bg-primary hover:from-primary-dark hover:to-secondary text-white font-medium"
                 disabled={loading}
               >
                 {loading ? (
