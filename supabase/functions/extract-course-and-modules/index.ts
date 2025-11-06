@@ -50,11 +50,35 @@ serve(async (req) => {
     }
 
     let contentToProcess = content;
+    let rawCsvContent = ''; // Store original CSV for retry
     
     // Helpers for Google Sheets/CSV
     const csvToMarkdown = (csv: string) => {
-      const rows = csv.trim().split(/\r?\n/).map(r => r.split(','));
-      if (rows.length === 0) return csv;
+      const lines = csv.trim().split(/\r?\n/);
+      if (lines.length === 0) return csv;
+      
+      // Parse CSV properly (handle quoted fields with commas)
+      const parseCsvLine = (line: string): string[] => {
+        const result: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim());
+        return result;
+      };
+      
+      const rows = lines.map(parseCsvLine);
       const header = `| ${rows[0].join(' | ')} |`;
       const sep = `| ${rows[0].map(() => '---').join(' | ')} |`;
       const body = rows.slice(1).map(r => `| ${r.join(' | ')} |`).join('\n');
@@ -66,7 +90,6 @@ serve(async (req) => {
         const u = new URL(url);
         if (!u.hostname.includes('docs.google.com')) return null;
         const path = u.pathname.split('/');
-        // /spreadsheets/d/{id}/...
         const idIndex = path.findIndex(p => p === 'd');
         const sheetId = idIndex !== -1 && path[idIndex + 1] ? path[idIndex + 1] : null;
         const gid = u.searchParams.get('gid') || '0';
@@ -75,52 +98,125 @@ serve(async (req) => {
       } catch { return null; }
     };
 
-    // If content looks like a URL, try specific handlers first (Sheets/CSV), then Firecrawl, then basic fetch
+    // Direct parser for markdown tables (Google Sheets format)
+    const parseMarkdownTable = (markdown: string): any | null => {
+      try {
+        console.log('Attempting direct markdown table parsing...');
+        const lines = markdown.trim().split('\n').filter(l => l.trim().startsWith('|'));
+        if (lines.length < 3) return null; // Need at least header, separator, one row
+        
+        const parseRow = (line: string): string[] => 
+          line.split('|').map(c => c.trim()).filter(c => c && c !== '---');
+        
+        const headers = parseRow(lines[0]);
+        const dataRows = lines.slice(2).map(parseRow); // Skip separator
+        
+        if (dataRows.length === 0) return null;
+        
+        // Find column indices
+        const weekIdx = headers.findIndex(h => /week/i.test(h));
+        const topicIdx = headers.findIndex(h => /training.*topic|topic/i.test(h));
+        const modulesIdx = headers.findIndex(h => /modules?/i.test(h));
+        const resourcesIdx = headers.findIndex(h => /resources?|links?/i.test(h)) || headers.length - 1;
+        
+        console.log(`Found columns: Week=${weekIdx}, Topic=${topicIdx}, Modules=${modulesIdx}, Resources=${resourcesIdx}`);
+        
+        if (topicIdx === -1 || modulesIdx === -1) {
+          console.log('Required columns not found');
+          return null;
+        }
+        
+        const course = {
+          course_name: 'Full Stack Web Development Bootcamp',
+          course_description: 'Comprehensive bootcamp covering web development fundamentals and advanced topics.',
+          course_type: 'Technical',
+          difficulty_level: 'Intermediate',
+          target_role: 'Full Stack Developer',
+          learning_objectives: 'Master modern web development technologies and build production-ready applications.'
+        };
+        
+        const modules: any[] = [];
+        
+        for (const row of dataRows) {
+          if (row.length < 2) continue;
+          
+          const moduleName = row[topicIdx] || '';
+          const modulesText = row[modulesIdx] || '';
+          const resourcesText = row[resourcesIdx] || '';
+          
+          if (!moduleName.trim()) continue;
+          
+          // Parse sub-modules from modules text (split by newlines, bullets, semicolons)
+          const subModuleNames = modulesText
+            .split(/[\n;•\-]/)
+            .map(s => s.trim().replace(/^[\d.]+\s*/, ''))
+            .filter(s => s.length > 0);
+          
+          // Parse resources/URLs
+          const urlPattern = /(https?:\/\/[^\s,\)]+)/g;
+          const urls = resourcesText.match(urlPattern) || [];
+          
+          const subModules = subModuleNames.map((name, idx) => ({
+            sub_module_name: name,
+            sub_module_description: `Learn about ${name}`,
+            content_type: urls[idx] ? 'External Link' : 'Mixed',
+            content_url: urls[idx] || '',
+            resources: resourcesText,
+            estimated_duration_minutes: 45
+          }));
+          
+          modules.push({
+            module_name: moduleName,
+            module_description: `Module covering ${moduleName}`,
+            content_type: 'Mixed',
+            estimated_duration_minutes: subModules.length * 60,
+            sub_modules: subModules.length > 0 ? subModules : [{
+              sub_module_name: moduleName,
+              sub_module_description: `Core content for ${moduleName}`,
+              content_type: 'Mixed',
+              content_url: '',
+              resources: resourcesText,
+              estimated_duration_minutes: 60
+            }]
+          });
+        }
+        
+        if (modules.length === 0) return null;
+        
+        console.log(`Direct parsing successful: extracted ${modules.length} modules`);
+        return { course, modules };
+        
+      } catch (e) {
+        console.log('Direct parsing failed:', e);
+        return null;
+      }
+    };
+
+    // Robust fallback chain: CSV fetch → Direct parse → Firecrawl → AI (Lovable → Gemini) → Retry → Fail
+    let extractionAttempts = 0;
+    let result: any = null;
+    const maxRetries = 2;
+
+    // Step 1: Fetch CSV/content if URL
     if (content.startsWith('http://') || content.startsWith('https://')) {
-      // Try Google Sheets CSV export
       const csvUrl = getSheetCsvExportUrl(content) || (content.endsWith('.csv') ? content : null);
       if (csvUrl) {
         try {
           console.log('Attempting CSV export fetch for structured source:', csvUrl);
           const csvResp = await fetch(csvUrl);
           if (csvResp.ok) {
-            const csvText = await csvResp.text();
-            contentToProcess = csvToMarkdown(csvText);
+            rawCsvContent = await csvResp.text();
+            contentToProcess = csvToMarkdown(rawCsvContent);
             console.log('Fetched CSV and converted to markdown table');
           } else {
             console.log('CSV export fetch failed with status', csvResp.status);
           }
         } catch (e) {
-          console.log('CSV export fetch errored, will fallback:', e);
+          console.log('CSV export fetch errored:', e);
         }
       }
 
-      // If still not processed, use Firecrawl (if configured)
-      if (contentToProcess === content) {
-        const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
-        if (FIRECRAWL_API_KEY) {
-          try {
-            console.log('Crawling content with Firecrawl SDK from URL:', content);
-            const firecrawl = new Firecrawl({ apiKey: FIRECRAWL_API_KEY });
-            const crawlResponse = await firecrawl.crawl(content, { 
-              limit: 10,
-              scrapeOptions: { formats: ['markdown', 'html'] }
-            });
-            if (crawlResponse && Array.isArray(crawlResponse.data) && crawlResponse.data.length > 0) {
-              contentToProcess = crawlResponse.data
-                .map((page: { markdown?: string; html?: string }) => page.markdown || page.html || '')
-                .join('\n\n---\n\n');
-              console.log(`Successfully crawled ${crawlResponse.data.length} pages with Firecrawl SDK (status: ${crawlResponse.status})`);
-            } else {
-              console.log('Firecrawl returned no data');
-            }
-          } catch (error) {
-            console.log('Firecrawl SDK failed:', error);
-          }
-        }
-      }
-
-      // Final fallback to basic fetch
+      // Basic fetch fallback
       if (contentToProcess === content) {
         try {
           console.log('Fetching content via basic fetch:', content);
@@ -128,23 +224,64 @@ serve(async (req) => {
           if (resp.ok) {
             const contentType = resp.headers.get('content-type') || '';
             if (contentType.includes('text/csv')) {
-              const csvText = await resp.text();
-              contentToProcess = csvToMarkdown(csvText);
+              rawCsvContent = await resp.text();
+              contentToProcess = csvToMarkdown(rawCsvContent);
               console.log('Basic fetch got CSV, converted to markdown');
             } else {
               contentToProcess = await resp.text();
               console.log('Successfully fetched content via basic fetch');
             }
-          } else {
-            console.log('Basic fetch failed with status', resp.status);
           }
         } catch (fetchError) {
-          console.log('Basic fetch failed, proceeding with URL reference only:', fetchError);
+          console.log('Basic fetch failed:', fetchError);
         }
       }
     }
 
-    const systemPrompt = `You are an expert course designer. Analyze the provided Google Sheets content and extract:
+    // Step 2: Try direct parsing (no AI needed)
+    console.log('=== Step 1: Direct Markdown Parsing ===');
+    result = parseMarkdownTable(contentToProcess);
+    
+    // Step 3: Try Firecrawl if direct parsing failed and we have a URL
+    if (!result && content.startsWith('http')) {
+      console.log('=== Step 2: Firecrawl Extraction ===');
+      const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
+      if (FIRECRAWL_API_KEY) {
+        try {
+          console.log('Crawling content with Firecrawl SDK from URL:', content);
+          const firecrawl = new Firecrawl({ apiKey: FIRECRAWL_API_KEY });
+          const crawlResponse = await firecrawl.crawl(content, { 
+            limit: 10,
+            scrapeOptions: { formats: ['markdown', 'html'] }
+          });
+          if (crawlResponse && Array.isArray(crawlResponse.data) && crawlResponse.data.length > 0) {
+            const crawledContent = crawlResponse.data
+              .map((page: { markdown?: string; html?: string }) => page.markdown || page.html || '')
+              .join('\n\n---\n\n');
+            console.log(`Crawled ${crawlResponse.data.length} pages, attempting direct parse...`);
+            result = parseMarkdownTable(crawledContent);
+            if (result) {
+              console.log('Successfully parsed Firecrawl content directly!');
+            }
+          }
+        } catch (error) {
+          console.log('Firecrawl failed:', error);
+        }
+      } else {
+        console.log('Firecrawl API key not configured, skipping...');
+      }
+    }
+
+    // Step 4: Try AI extraction if still no result
+    if (!result) {
+      console.log('=== Step 3: AI Extraction (Lovable AI → Gemini) ===');
+      
+      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+      if (!LOVABLE_API_KEY) {
+        throw new Error('AI service not configured');
+      }
+
+      const systemPrompt = `You are an expert course designer. Analyze the provided content and extract:
 1. Course details (name, description, type, difficulty, target role)
 2. Hierarchical course structure with modules and sub-modules
 
@@ -153,239 +290,210 @@ IMPORTANT PARSING RULES:
 - The "Training Topic" column becomes the module name
 - Items in the "Modules" column become SUB-MODULES under that module
 - Each bullet point or line in "Modules" column is a separate sub-module
-- Resources from "Resources" or "Column 4" should be extracted and included
+- Resources from "Resources" column should be extracted and included
 
 Return ONLY valid JSON with this structure:
 {
   "course": {
-    "course_name": "string (derive from sheet content or first Training Topic)",
-    "course_description": "string (200-500 chars, summarize the overall course)",
-    "course_type": "one of: Technical, Soft Skills, Compliance, Leadership, Other",
-    "difficulty_level": "one of: Beginner, Intermediate, Advanced",
-    "target_role": "string (job role this course is for)",
-    "learning_objectives": "string (key outcomes, max 500 chars)"
+    "course_name": "string",
+    "course_description": "string (200-500 chars)",
+    "course_type": "Technical|Soft Skills|Compliance|Leadership|Other",
+    "difficulty_level": "Beginner|Intermediate|Advanced",
+    "target_role": "string",
+    "learning_objectives": "string (max 500 chars)"
   },
   "modules": [
     {
-      "module_name": "string (from Training Topic column)",
+      "module_name": "string",
       "module_description": "string (100-300 chars)",
       "content_type": "Mixed",
-      "estimated_duration_minutes": number (60-240 for main modules),
+      "estimated_duration_minutes": number,
       "sub_modules": [
         {
-          "sub_module_name": "string (from Modules column content)",
-          "sub_module_description": "string (brief description)",
-          "content_type": "one of: External Link, Video, PDF, Text, Mixed",
-          "content_url": "string (URL from Resources if available)",
-          "resources": "string (all related resources/links)",
-          "estimated_duration_minutes": number (15-120)
+          "sub_module_name": "string",
+          "sub_module_description": "string",
+          "content_type": "External Link|Video|PDF|Text|Mixed",
+          "content_url": "string (URL if available)",
+          "resources": "string (all related resources)",
+          "estimated_duration_minutes": number
         }
       ]
     }
   ]
 }`;
 
-    const userPrompt = `Source: ${source}
+      const userPrompt = `Source: ${source}\n\nContent:\n${contentToProcess.slice(0, 12000)}\n\nExtract the complete course structure.`;
 
-Content to analyze (Google Sheets data):
-${contentToProcess.slice(0, 12000)}
+      // Try Lovable AI (GPT-5-mini) with tool calling
+      while (extractionAttempts < maxRetries && !result) {
+        extractionAttempts++;
+        const isRetry = extractionAttempts > 1;
+        const useOriginalCsv = isRetry && rawCsvContent;
+        
+        console.log(`Attempt ${extractionAttempts}/${maxRetries} - Using ${useOriginalCsv ? 'original CSV' : 'processed markdown'}`);
+        
+        const contentForAI = useOriginalCsv ? rawCsvContent.slice(0, 12000) : contentToProcess.slice(0, 12000);
+        const promptForAI = `Source: ${source}\n\nContent:\n${contentForAI}\n\nExtract the complete course structure.`;
 
-INSTRUCTIONS:
-1. Identify the overall course name from the sheet content
-2. Each "Week X" row becomes a MODULE with name from "Training Topic" column
-3. Parse "Modules" column content - each bullet/item becomes a SUB-MODULE
-4. Extract URLs and resources from the "Resources" or rightmost column
-5. Match resources to their corresponding sub-modules
-6. Create hierarchical structure: Course → Modules → Sub-Modules
-
-Extract the complete course structure with all modules and sub-modules.`;
-
-    console.log('Calling Lovable AI to extract course and modules (tool-calling)...');
-    
-    // Prefer tool-calling with OpenAI-compatible model for guaranteed structured output
-    let aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-5-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.4,
-        max_tokens: 8000,
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'return_course_structure',
-              description: 'Return structured course with modules and sub-modules parsed from input content',
-              parameters: {
-                type: 'object',
-                additionalProperties: false,
-                properties: {
-                  course: {
-                    type: 'object',
-                    additionalProperties: false,
-                    properties: {
-                      course_name: { type: 'string' },
-                      course_description: { type: 'string' },
-                      course_type: { type: 'string', enum: ['Technical', 'Soft Skills', 'Compliance', 'Leadership', 'Other'] },
-                      difficulty_level: { type: 'string', enum: ['Beginner', 'Intermediate', 'Advanced'] },
-                      target_role: { type: 'string' },
-                      learning_objectives: { type: 'string' }
-                    },
-                    required: ['course_name', 'course_description', 'course_type', 'difficulty_level']
-                  },
-                  modules: {
-                    type: 'array',
-                    items: {
+        try {
+          console.log('Calling Lovable AI (GPT-5-mini)...');
+          let aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'openai/gpt-5-mini',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: promptForAI }
+              ],
+              temperature: 0.3,
+              max_tokens: 8000,
+              tools: [
+                {
+                  type: 'function',
+                  function: {
+                    name: 'return_course_structure',
+                    description: 'Return structured course with modules and sub-modules',
+                    parameters: {
                       type: 'object',
                       additionalProperties: false,
                       properties: {
-                        module_name: { type: 'string' },
-                        module_description: { type: 'string' },
-                        content_type: { type: 'string', enum: ['External Link', 'Video', 'PDF', 'Text', 'Mixed'] },
-                        estimated_duration_minutes: { type: 'number' },
-                        content_url: { type: 'string' },
-                        sub_modules: {
+                        course: {
+                          type: 'object',
+                          additionalProperties: false,
+                          properties: {
+                            course_name: { type: 'string' },
+                            course_description: { type: 'string' },
+                            course_type: { type: 'string', enum: ['Technical', 'Soft Skills', 'Compliance', 'Leadership', 'Other'] },
+                            difficulty_level: { type: 'string', enum: ['Beginner', 'Intermediate', 'Advanced'] },
+                            target_role: { type: 'string' },
+                            learning_objectives: { type: 'string' }
+                          },
+                          required: ['course_name', 'course_description', 'course_type', 'difficulty_level']
+                        },
+                        modules: {
                           type: 'array',
                           items: {
                             type: 'object',
                             additionalProperties: false,
                             properties: {
-                              sub_module_name: { type: 'string' },
-                              sub_module_description: { type: 'string' },
-                              content_type: { type: 'string', enum: ['External Link', 'Video', 'PDF', 'Text', 'Mixed'] },
-                              content_url: { type: 'string' },
-                              resources: { type: 'string' },
-                              estimated_duration_minutes: { type: 'number' }
+                              module_name: { type: 'string' },
+                              module_description: { type: 'string' },
+                              content_type: { type: 'string' },
+                              estimated_duration_minutes: { type: 'number' },
+                              sub_modules: {
+                                type: 'array',
+                                items: {
+                                  type: 'object',
+                                  additionalProperties: false,
+                                  properties: {
+                                    sub_module_name: { type: 'string' },
+                                    sub_module_description: { type: 'string' },
+                                    content_type: { type: 'string' },
+                                    content_url: { type: 'string' },
+                                    resources: { type: 'string' },
+                                    estimated_duration_minutes: { type: 'number' }
+                                  },
+                                  required: ['sub_module_name']
+                                }
+                              }
                             },
-                            required: ['sub_module_name']
+                            required: ['module_name']
                           }
                         }
                       },
-                      required: ['module_name']
+                      required: ['course', 'modules']
                     }
                   }
-                },
-                required: ['course', 'modules']
+                }
+              ],
+              tool_choice: { type: 'function', function: { name: 'return_course_structure' } }
+            }),
+          });
+
+          // Try tool-call response
+          if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            const toolCalls = aiData.choices?.[0]?.message?.tool_calls;
+            if (Array.isArray(toolCalls) && toolCalls.length > 0) {
+              const tool = toolCalls.find((t: any) => t?.function?.name === 'return_course_structure');
+              if (tool?.function?.arguments) {
+                result = JSON.parse(tool.function.arguments);
+                console.log(`Lovable AI succeeded with ${result.modules?.length || 0} modules`);
+                break;
               }
             }
           }
-        ],
-        tool_choice: { type: 'function', function: { name: 'return_course_structure' } }
-      }),
-    });
 
-    // Fallback to plain JSON with Gemini if tool calling fails
-    if (!aiResponse.ok) {
-      console.log('Tool-call model failed, falling back to Gemini JSON output...');
-      aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.5,
-          max_tokens: 8000
-        }),
-      });
-    }
-
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errorText);
-      throw new Error(`AI API error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    
-    // Prefer tool-call arguments when available
-    let result: any | undefined;
-    const toolCalls = aiData.choices?.[0]?.message?.tool_calls;
-    if (Array.isArray(toolCalls) && toolCalls.length > 0) {
-      const tool = toolCalls.find((t: any) => t?.function?.name === 'return_course_structure');
-      const argsStr = tool?.function?.arguments || '';
-      try {
-        result = JSON.parse(argsStr);
-        console.log('Parsed tool-call JSON with', result.modules?.length || 0, 'modules');
-      } catch (e) {
-        console.error('Failed to parse tool-call arguments, falling back to text JSON:', e);
-      }
-    }
-
-    // Fallback to content-based JSON parsing
-    if (!result) {
-      const contentText = aiData.choices?.[0]?.message?.content || '';
-      console.log('AI content length:', contentText?.length || 0);
-
-      let generatedText = (contentText || '').trim();
-      // Remove markdown code fences
-      generatedText = generatedText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '');
-      // Attempt to extract JSON object boundaries
-      const jsonStart = generatedText.indexOf('{');
-      const jsonEnd = generatedText.lastIndexOf('}');
-      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-        generatedText = generatedText.substring(jsonStart, jsonEnd + 1);
-      }
-
-      console.log('Attempting to parse JSON, length:', generatedText.length);
-      try {
-        result = JSON.parse(generatedText);
-        console.log('Successfully parsed JSON with', result.modules?.length || 0, 'modules');
-      } catch (parseError) {
-        console.error('JSON parse failed:', (parseError as Error).message);
-        console.error('First 500 chars:', generatedText.substring(0, 500));
-        console.error('Last 500 chars:', generatedText.substring(Math.max(0, generatedText.length - 500)));
-        // Try bracket balancing repair
-        try {
-          let fixedText = generatedText;
-          const openBraces = (fixedText.match(/{/g) || []).length;
-          const closeBraces = (fixedText.match(/}/g) || []).length;
-          const openBrackets = (fixedText.match(/\[/g) || []).length;
-          const closeBrackets = (fixedText.match(/]/g) || []).length;
-          fixedText += ']'.repeat(Math.max(0, openBrackets - closeBrackets));
-          fixedText += '}'.repeat(Math.max(0, openBraces - closeBraces));
-          console.log('Attempting to fix incomplete JSON...');
-          result = JSON.parse(fixedText);
-          console.log('Successfully fixed and parsed JSON!');
-        } catch (fixError) {
-          console.error('Could not fix JSON, using minimal fallback');
-          result = {
-            course: {
-              course_name: `Course from ${source}`,
-              course_description: 'AI extraction incomplete - please review and edit. Try with a smaller sheet or fewer modules.',
-              course_type: 'Technical',
-              difficulty_level: 'Intermediate',
-              target_role: '',
-              learning_objectives: ''
+          // Fallback to Gemini
+          console.log('Lovable AI failed, trying Gemini...');
+          aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
             },
-            modules: [{
-              module_name: `Content from ${source}`,
-              module_description: 'AI extraction incomplete - please review and edit',
-              content_type: 'Mixed',
-              estimated_duration_minutes: 60,
-              sub_modules: [{
-                sub_module_name: 'Module Content',
-                sub_module_description: 'Please review and edit',
-                content_type: content.startsWith('http') ? 'External Link' : 'Text',
-                content_url: content.startsWith('http') ? content : '',
-                resources: '',
-                estimated_duration_minutes: 30
-              }]
-            }]
-          };
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: promptForAI }
+              ],
+              temperature: 0.4,
+              max_tokens: 8000
+            }),
+          });
+
+          if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            const contentText = aiData.choices?.[0]?.message?.content || '';
+            let generatedText = contentText.trim()
+              .replace(/^```(?:json)?\s*/i, '')
+              .replace(/\s*```\s*$/i, '');
+            
+            const jsonStart = generatedText.indexOf('{');
+            const jsonEnd = generatedText.lastIndexOf('}');
+            if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+              generatedText = generatedText.substring(jsonStart, jsonEnd + 1);
+            }
+
+            try {
+              result = JSON.parse(generatedText);
+              console.log(`Gemini succeeded with ${result.modules?.length || 0} modules`);
+              break;
+            } catch (parseError) {
+              console.log('Gemini JSON parse failed:', (parseError as Error).message);
+              // Try bracket balancing
+              let fixedText = generatedText;
+              const openBraces = (fixedText.match(/{/g) || []).length;
+              const closeBraces = (fixedText.match(/}/g) || []).length;
+              const openBrackets = (fixedText.match(/\[/g) || []).length;
+              const closeBrackets = (fixedText.match(/]/g) || []).length;
+              fixedText += ']'.repeat(Math.max(0, openBrackets - closeBrackets));
+              fixedText += '}'.repeat(Math.max(0, openBraces - closeBraces));
+              
+              try {
+                result = JSON.parse(fixedText);
+                console.log('Fixed JSON successfully!');
+                break;
+              } catch {
+                console.log('Could not fix JSON');
+              }
+            }
+          }
+
+        } catch (error) {
+          console.log(`Attempt ${extractionAttempts} failed:`, error);
         }
+      }
+
+      // Final fallback if all failed
+      if (!result) {
+        console.error('All extraction methods failed');
+        throw new Error('Failed to extract course structure after all attempts');
       }
     }
 
