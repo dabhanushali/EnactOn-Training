@@ -90,7 +90,9 @@ export default function CourseDetails() {
         .eq('course_id', courseId);
 
       setCourse(courseData);
-      setModules(modulesData || []);
+      const hasSubmodules = (modulesData || []).some((m: any) => m.parent_module_id);
+      const flatModules = hasSubmodules ? (modulesData || []).filter((m: any) => m.parent_module_id) : (modulesData || []);
+      setModules(flatModules);
       setEnrollment(enrollmentData);
       setAssessments(assessmentsData || []);
       setAssessmentTemplates(templateData || []);
