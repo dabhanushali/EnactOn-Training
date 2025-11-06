@@ -103,6 +103,7 @@ serve(async (req) => {
     };
 
     // Direct parser for markdown tables (Google Sheets format)
+    // Groups all content by weeks - each week becomes a module with all topics as sub-modules
     const parseMarkdownTable = (markdown: string): any | null => {
       try {
         console.log('Attempting direct markdown table parsing...');
@@ -125,7 +126,7 @@ serve(async (req) => {
         
         console.log(`Found columns: Week=${weekIdx}, Topic=${topicIdx}, Modules=${modulesIdx}, Resources=${resourcesIdx}`);
         
-        if (topicIdx === -1 || modulesIdx === -1) {
+        if (weekIdx === -1 || topicIdx === -1 || modulesIdx === -1) {
           console.log('Required columns not found');
           return null;
         }
@@ -139,55 +140,76 @@ serve(async (req) => {
           learning_objectives: 'Master modern web development technologies and build production-ready applications.'
         };
         
-        const modules: any[] = [];
+        // Group rows by week
+        const weekMap = new Map<string, any[]>();
         
         for (const row of dataRows) {
           if (row.length < 2) continue;
           
-          const moduleName = row[topicIdx] || '';
-          const modulesText = row[modulesIdx] || '';
-          const resourcesText = row[resourcesIdx] || '';
+          const weekCell = row[weekIdx] || '';
+          const topicCell = row[topicIdx] || '';
+          const modulesCell = row[modulesIdx] || '';
+          const resourcesCell = row[resourcesIdx] || '';
           
-          if (!moduleName.trim()) continue;
+          if (!topicCell.trim()) continue;
           
-          // Parse sub-modules from modules text (split by newlines, bullets, semicolons)
-          const subModuleNames = modulesText
-            .split(/[\n;•\-]/)
-            .map(s => s.trim().replace(/^[\d.]+\s*/, ''))
-            .filter(s => s.length > 0);
+          // Extract week number (e.g., "Week 1" -> "Week 1")
+          const weekMatch = weekCell.match(/Week\s*\d+/i);
+          const weekKey = weekMatch ? weekMatch[0] : 'Week 1';
           
-          // Parse resources/URLs
-          const urlPattern = /(https?:\/\/[^\s,\)]+)/g;
-          const urls = resourcesText.match(urlPattern) || [];
+          if (!weekMap.has(weekKey)) {
+            weekMap.set(weekKey, []);
+          }
           
-          const subModules = subModuleNames.map((name, idx) => ({
-            sub_module_name: name,
-            sub_module_description: `Learn about ${name}`,
-            content_type: urls[idx] ? 'External Link' : 'Mixed',
-            content_url: urls[idx] || '',
-            resources: resourcesText,
-            estimated_duration_minutes: 45
-          }));
+          weekMap.get(weekKey)!.push({
+            topic: topicCell.trim(),
+            modules: modulesCell.trim(),
+            resources: resourcesCell.trim()
+          });
+        }
+        
+        console.log(`Found ${weekMap.size} weeks with content`);
+        
+        // Build modules array - one module per week
+        const modules: any[] = [];
+        
+        for (const [weekName, rowsInWeek] of weekMap.entries()) {
+          const subModules: any[] = [];
           
-          modules.push({
-            module_name: moduleName,
-            module_description: `Module covering ${moduleName}`,
-            content_type: 'Mixed',
-            estimated_duration_minutes: subModules.length * 60,
-            sub_modules: subModules.length > 0 ? subModules : [{
-              sub_module_name: moduleName,
-              sub_module_description: `Core content for ${moduleName}`,
-              content_type: 'Mixed',
-              content_url: '',
+          // Each row in the week becomes a sub-module
+          // Keep all content from each cell together
+          for (const rowData of rowsInWeek) {
+            const { topic, modules: modulesText, resources: resourcesText } = rowData;
+            
+            // Parse resources/URLs for this specific topic
+            const urlPattern = /(https?:\/\/[^\s,\)]+)/g;
+            const urls = resourcesText.match(urlPattern) || [];
+            
+            // Keep the entire cell content together as one sub-module
+            // The modulesText describes what's covered in this topic
+            subModules.push({
+              sub_module_name: topic,
+              sub_module_description: modulesText || `Learn about ${topic}`,
+              content_type: urls.length > 0 ? 'External Link' : 'Mixed',
+              content_url: urls.join(', '), // Include all URLs for this topic
               resources: resourcesText,
-              estimated_duration_minutes: 60
-            }]
+              estimated_duration_minutes: 90
+            });
+          }
+          
+          // Create module for this week
+          modules.push({
+            module_name: weekName,
+            module_description: `${weekName} curriculum covering ${rowsInWeek.map(r => r.topic).join(', ')}`,
+            content_type: 'Mixed',
+            estimated_duration_minutes: subModules.length * 90,
+            sub_modules: subModules
           });
         }
         
         if (modules.length === 0) return null;
         
-        console.log(`Direct parsing successful: extracted ${modules.length} modules`);
+        console.log(`Direct parsing successful: extracted ${modules.length} modules with ${modules.reduce((sum, m) => sum + m.sub_modules.length, 0)} total sub-modules`);
         return { course, modules };
         
       } catch (e) {
