@@ -24,27 +24,19 @@ export async function authenticateUser(req: Request): Promise<AuthResult> {
       };
     }
 
-    const token = authHeader.replace('Bearer ', '');
-
-    // Create Supabase client with user's token
+    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { 
-        auth: { persistSession: false },
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      }
+      { auth: { persistSession: false } }
     );
 
     // Validate JWT token
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
 
     if (userError || !user) {
-      console.error('User validation error:', userError);
       return {
         success: false,
         error: 'Invalid authentication',
@@ -52,23 +44,14 @@ export async function authenticateUser(req: Request): Promise<AuthResult> {
       };
     }
 
-    // Verify user profile exists (now using authenticated client)
+    // Verify user profile exists
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('id')
       .eq('id', user.id)
-      .maybeSingle();
+      .single();
 
-    if (profileError) {
-      console.error('Profile query error:', profileError);
-      return {
-        success: false,
-        error: 'Error checking user profile',
-        status: 500
-      };
-    }
-
-    if (!profile) {
+    if (profileError || !profile) {
       return {
         success: false,
         error: 'User profile not found',

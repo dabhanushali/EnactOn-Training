@@ -670,53 +670,20 @@ export default function CreateCourse() {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle>
-                        Extracted Modules ({extractedData.modules?.length || 0})
-                        {extractedData.modules?.some(m => m.sub_modules?.length > 0) && (
-                          <span className="text-sm font-normal text-muted-foreground ml-2">
-                            with {extractedData.modules.reduce((sum, m) => sum + (m.sub_modules?.length || 0), 0)} sub-modules
-                          </span>
-                        )}
-                      </CardTitle>
+                      <CardTitle>Extracted Modules ({extractedData.modules?.length || 0})</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3 max-h-96 overflow-y-auto">
                         {extractedData.modules?.map((module, idx) => (
                           <Card key={idx}>
                             <CardContent className="p-4">
-                              <h4 className="font-semibold text-primary">{module.module_name}</h4>
+                              <h4 className="font-semibold">{module.module_name}</h4>
                               <p className="text-sm text-muted-foreground mt-1">{module.module_description}</p>
                               <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
                                 <span>Type: {module.content_type}</span>
                                 <span>Duration: {module.estimated_duration_minutes}min</span>
                                 {module.content_url && <span className="truncate">URL: {module.content_url}</span>}
                               </div>
-                              
-                              {/* Sub-modules */}
-                              {module.sub_modules?.length > 0 && (
-                                <div className="mt-3 pl-4 border-l-2 border-muted space-y-2">
-                                  {module.sub_modules.map((subModule, subIdx) => (
-                                    <div key={subIdx} className="bg-muted/30 p-3 rounded">
-                                      <h5 className="font-medium text-sm">{subModule.sub_module_name}</h5>
-                                      <p className="text-xs text-muted-foreground mt-1">{subModule.sub_module_description}</p>
-                                      <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
-                                        <span>Type: {subModule.content_type}</span>
-                                        <span>Duration: {subModule.estimated_duration_minutes}min</span>
-                                      </div>
-                                      {subModule.content_url && (
-                                        <p className="text-xs text-muted-foreground mt-1 truncate">
-                                          URL: {subModule.content_url}
-                                        </p>
-                                      )}
-                                      {subModule.resources && (
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                          Resources: {subModule.resources.slice(0, 100)}...
-                                        </p>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
                             </CardContent>
                           </Card>
                         ))}
@@ -758,90 +725,37 @@ export default function CreateCourse() {
 
                           if (courseError) throw courseError;
 
-                          // Helper to pack resources into JSON for content_url when available
-                          const packContentUrl = (primaryUrl?: string, resourcesText?: string) => {
-                            const links: { name: string; url: string }[] = [];
-                            if (resourcesText) {
-                              const urlRegex = /(https?:\/\/[^\s)]+)+/gi;
-                              const found = resourcesText.match(urlRegex) || [];
-                              found.forEach((u, i) => {
-                                try {
-                                  const host = new URL(u).hostname.replace('www.', '');
-                                  links.push({ name: host || `Resource ${i + 1}`, url: u });
-                                } catch {
-                                  links.push({ name: `Resource ${i + 1}`, url: u });
-                                }
-                              });
-                            }
-                            if (primaryUrl || links.length) {
-                              return JSON.stringify({ url: primaryUrl || undefined, links });
-                            }
-                            return null;
-                          };
+                          // Create modules
+                          if (extractedData.modules?.length > 0) {
+                            const modulesToInsert = extractedData.modules.map((module, idx) => ({
+                              course_id: courseData.id,
+                              module_name: module.module_name,
+                              module_description: module.module_description,
+                              content_type: module.content_type,
+                              content_url: module.content_url || '',
+                              estimated_duration_minutes: module.estimated_duration_minutes,
+                              module_order: idx + 1
+                            }));
 
-                          // Build and insert all top-level modules in one request
-                          const mainModules = (extractedData.modules || []).map((module: any, idx: number) => ({
-                            course_id: courseData.id,
-                            module_name: module.module_name,
-                            module_description: module.module_description,
-                            content_type: module.content_type,
-                            content_url: (module.content_url && module.content_url.trim()) ? module.content_url.trim() : null,
-                            estimated_duration_minutes: module.estimated_duration_minutes,
-                            module_order: idx + 1,
-                          }));
-
-                          const { data: insertedParents, error: parentsErr } = await supabase
-                            .from('course_modules')
-                            .insert(mainModules)
-                            .select('id');
-                          if (parentsErr) throw parentsErr;
-
-                          // Build all sub-modules and bulk insert (if any)
-                          const allSubmodules: any[] = [];
-                          (extractedData.modules || []).forEach((module: any, idx: number) => {
-                            const parentId = insertedParents?.[idx]?.id;
-                            if (!parentId) return;
-                            if (module.sub_modules?.length > 0) {
-                              module.sub_modules.forEach((sub: any, sidx: number) => {
-                                allSubmodules.push({
-                                  course_id: courseData.id,
-                                  parent_module_id: parentId,
-                                  module_name: sub.sub_module_name,
-                                  module_description: sub.sub_module_description,
-                                  content_type: sub.content_type,
-                                  content_url: packContentUrl(sub.content_url || '', sub.resources || ''),
-                                  estimated_duration_minutes: sub.estimated_duration_minutes,
-                                  module_order: sidx + 1,
-                                });
-                              });
-                            }
-                          });
-
-                          if (allSubmodules.length > 0) {
-                            const { error: subsErr } = await supabase
+                            const { error: modulesError } = await supabase
                               .from('course_modules')
-                              .insert(allSubmodules);
-                            if (subsErr) {
-                              // Roll back parent modules from this operation to avoid partial saves
-                              const ids = (insertedParents || []).map(p => p.id);
-                              await supabase.from('course_modules').delete().in('id', ids);
-                              throw subsErr;
-                            }
+                              .insert(modulesToInsert);
+
+                            if (modulesError) throw modulesError;
                           }
 
-                          const totalSubModules = (extractedData.modules || []).reduce((sum: number, m: any) => sum + (m.sub_modules?.length || 0), 0);
                           toast({
-                            title: 'Success',
-                            description: `Course created with ${(extractedData.modules?.length || 0)} modules${totalSubModules > 0 ? ` and ${totalSubModules} sub-modules` : ''}`
+                            title: "Success",
+                            description: `Course created with ${extractedData.modules?.length || 0} modules`
                           });
                           
                           navigate(`/courses/${courseData.id}`);
                         } catch (error) {
                           console.error('Error saving course:', error);
                           toast({
-                            title: 'Error',
-                            description: 'Failed to save course',
-                            variant: 'destructive'
+                            title: "Error",
+                            description: "Failed to save course",
+                            variant: "destructive"
                           });
                         } finally {
                           setLoading(false);

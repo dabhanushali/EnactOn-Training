@@ -51,115 +51,67 @@ serve(async (req) => {
 
     let contentToProcess = content;
     
-    // Helpers for Google Sheets/CSV
-    const csvToMarkdown = (csv: string) => {
-      const rows = csv.trim().split(/\r?\n/).map(r => r.split(','));
-      if (rows.length === 0) return csv;
-      const header = `| ${rows[0].join(' | ')} |`;
-      const sep = `| ${rows[0].map(() => '---').join(' | ')} |`;
-      const body = rows.slice(1).map(r => `| ${r.join(' | ')} |`).join('\n');
-      return [header, sep, body].join('\n');
-    };
-
-    const getSheetCsvExportUrl = (url: string) => {
-      try {
-        const u = new URL(url);
-        if (!u.hostname.includes('docs.google.com')) return null;
-        const path = u.pathname.split('/');
-        // /spreadsheets/d/{id}/...
-        const idIndex = path.findIndex(p => p === 'd');
-        const sheetId = idIndex !== -1 && path[idIndex + 1] ? path[idIndex + 1] : null;
-        const gid = u.searchParams.get('gid') || '0';
-        if (!sheetId) return null;
-        return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
-      } catch { return null; }
-    };
-
-    // If content looks like a URL, try specific handlers first (Sheets/CSV), then Firecrawl, then basic fetch
+    // If content looks like a URL, try Firecrawl first, then fallback to basic fetch
     if (content.startsWith('http://') || content.startsWith('https://')) {
-      // Try Google Sheets CSV export
-      const csvUrl = getSheetCsvExportUrl(content) || (content.endsWith('.csv') ? content : null);
-      if (csvUrl) {
+      const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
+      
+      if (FIRECRAWL_API_KEY) {
         try {
-          console.log('Attempting CSV export fetch for structured source:', csvUrl);
-          const csvResp = await fetch(csvUrl);
-          if (csvResp.ok) {
-            const csvText = await csvResp.text();
-            contentToProcess = csvToMarkdown(csvText);
-            console.log('Fetched CSV and converted to markdown table');
+          console.log('Crawling content with Firecrawl SDK from URL:', content);
+          
+          const firecrawl = new Firecrawl({ apiKey: FIRECRAWL_API_KEY });
+          const crawlResponse = await firecrawl.crawl(content, { 
+            limit: 10,
+            scrapeOptions: {
+              formats: ['markdown', 'html']
+            }
+          });
+          
+          if (crawlResponse && crawlResponse.data && Array.isArray(crawlResponse.data) && crawlResponse.data.length > 0) {
+            contentToProcess = crawlResponse.data
+              .map((page: { markdown?: string; html?: string }) => page.markdown || page.html || '')
+              .join('\n\n---\n\n');
+            console.log(`Successfully crawled ${crawlResponse.data.length} pages with Firecrawl SDK (status: ${crawlResponse.status})`);
           } else {
-            console.log('CSV export fetch failed with status', csvResp.status);
+            console.log('Firecrawl returned no data, falling back to basic fetch');
+            throw new Error('No data from Firecrawl');
           }
-        } catch (e) {
-          console.log('CSV export fetch errored, will fallback:', e);
-        }
-      }
-
-      // If still not processed, use Firecrawl (if configured)
-      if (contentToProcess === content) {
-        const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
-        if (FIRECRAWL_API_KEY) {
+        } catch (error) {
+          console.log('Firecrawl SDK failed, attempting basic fetch:', error);
           try {
-            console.log('Crawling content with Firecrawl SDK from URL:', content);
-            const firecrawl = new Firecrawl({ apiKey: FIRECRAWL_API_KEY });
-            const crawlResponse = await firecrawl.crawl(content, { 
-              limit: 10,
-              scrapeOptions: { formats: ['markdown', 'html'] }
-            });
-            if (crawlResponse && Array.isArray(crawlResponse.data) && crawlResponse.data.length > 0) {
-              contentToProcess = crawlResponse.data
-                .map((page: { markdown?: string; html?: string }) => page.markdown || page.html || '')
-                .join('\n\n---\n\n');
-              console.log(`Successfully crawled ${crawlResponse.data.length} pages with Firecrawl SDK (status: ${crawlResponse.status})`);
-            } else {
-              console.log('Firecrawl returned no data');
+            const urlResponse = await fetch(content);
+            if (urlResponse.ok) {
+              contentToProcess = await urlResponse.text();
+              console.log('Successfully fetched content with basic fetch');
             }
-          } catch (error) {
-            console.log('Firecrawl SDK failed:', error);
+          } catch (fetchError) {
+            console.log('Basic fetch also failed, will process URL as reference:', fetchError);
           }
         }
-      }
-
-      // Final fallback to basic fetch
-      if (contentToProcess === content) {
+      } else {
+        // No Firecrawl key, use basic fetch
         try {
-          console.log('Fetching content via basic fetch:', content);
-          const resp = await fetch(content);
-          if (resp.ok) {
-            const contentType = resp.headers.get('content-type') || '';
-            if (contentType.includes('text/csv')) {
-              const csvText = await resp.text();
-              contentToProcess = csvToMarkdown(csvText);
-              console.log('Basic fetch got CSV, converted to markdown');
-            } else {
-              contentToProcess = await resp.text();
-              console.log('Successfully fetched content via basic fetch');
-            }
-          } else {
-            console.log('Basic fetch failed with status', resp.status);
+          console.log('Fetching content from URL (no Firecrawl key):', content);
+          const urlResponse = await fetch(content);
+          if (urlResponse.ok) {
+            contentToProcess = await urlResponse.text();
+            console.log('Successfully fetched content from URL');
           }
-        } catch (fetchError) {
-          console.log('Basic fetch failed, proceeding with URL reference only:', fetchError);
+        } catch (error) {
+          console.log('Error fetching URL, will process as reference:', error);
         }
       }
     }
 
-    const systemPrompt = `You are an expert course designer. Analyze the provided Google Sheets content and extract:
+    const systemPrompt = `You are an expert course designer. Analyze the provided content and extract:
 1. Course details (name, description, type, difficulty, target role)
-2. Hierarchical course structure with modules and sub-modules
-
-IMPORTANT PARSING RULES:
-- Each row with "Week X" represents a main MODULE
-- The "Training Topic" column becomes the module name
-- Items in the "Modules" column become SUB-MODULES under that module
-- Each bullet point or line in "Modules" column is a separate sub-module
-- Resources from "Resources" or "Column 4" should be extracted and included
+2. Structured course modules
 
 Return ONLY valid JSON with this structure:
 {
   "course": {
-    "course_name": "string (derive from sheet content or first Training Topic)",
-    "course_description": "string (200-500 chars, summarize the overall course)",
+    "course_name": "string (max 200 chars)",
+    "course_description": "string (200-500 chars)",
     "course_type": "one of: Technical, Soft Skills, Compliance, Leadership, Other",
     "difficulty_level": "one of: Beginner, Intermediate, Advanced",
     "target_role": "string (job role this course is for)",
@@ -167,42 +119,24 @@ Return ONLY valid JSON with this structure:
   },
   "modules": [
     {
-      "module_name": "string (from Training Topic column)",
+      "module_name": "string (max 100 chars)",
       "module_description": "string (100-300 chars)",
-      "content_type": "Mixed",
-      "estimated_duration_minutes": number (60-240 for main modules),
-      "sub_modules": [
-        {
-          "sub_module_name": "string (from Modules column content)",
-          "sub_module_description": "string (brief description)",
-          "content_type": "one of: External Link, Video, PDF, Text, Mixed",
-          "content_url": "string (URL from Resources if available)",
-          "resources": "string (all related resources/links)",
-          "estimated_duration_minutes": number (15-120)
-        }
-      ]
+      "content_type": "one of: External Link, Video, PDF, Text, Mixed - USE 'External Link' when content_url contains a URL",
+      "content_url": "string (URL if available)",
+      "estimated_duration_minutes": number (15-180)
     }
   ]
 }`;
 
     const userPrompt = `Source: ${source}
 
-Content to analyze (Google Sheets data):
-${contentToProcess.slice(0, 12000)}
+Content to analyze:
+${contentToProcess.slice(0, 8000)}
 
-INSTRUCTIONS:
-1. Identify the overall course name from the sheet content
-2. Each "Week X" row becomes a MODULE with name from "Training Topic" column
-3. Parse "Modules" column content - each bullet/item becomes a SUB-MODULE
-4. Extract URLs and resources from the "Resources" or rightmost column
-5. Match resources to their corresponding sub-modules
-6. Create hierarchical structure: Course → Modules → Sub-Modules
+Extract course details and 3-10 modules from this content.`;
 
-Extract the complete course structure with all modules and sub-modules.`;
-
-    console.log('Calling Lovable AI to extract course and modules (tool-calling)...');
+    console.log('Calling Lovable AI (Gemini) to extract course and modules...');
     
-    // Prefer tool-calling with OpenAI-compatible model for guaranteed structured output
     let aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -210,80 +144,19 @@ Extract the complete course structure with all modules and sub-modules.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.4,
-        max_tokens: 8000,
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'return_course_structure',
-              description: 'Return structured course with modules and sub-modules parsed from input content',
-              parameters: {
-                type: 'object',
-                additionalProperties: false,
-                properties: {
-                  course: {
-                    type: 'object',
-                    additionalProperties: false,
-                    properties: {
-                      course_name: { type: 'string' },
-                      course_description: { type: 'string' },
-                      course_type: { type: 'string', enum: ['Technical', 'Soft Skills', 'Compliance', 'Leadership', 'Other'] },
-                      difficulty_level: { type: 'string', enum: ['Beginner', 'Intermediate', 'Advanced'] },
-                      target_role: { type: 'string' },
-                      learning_objectives: { type: 'string' }
-                    },
-                    required: ['course_name', 'course_description', 'course_type', 'difficulty_level']
-                  },
-                  modules: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      additionalProperties: false,
-                      properties: {
-                        module_name: { type: 'string' },
-                        module_description: { type: 'string' },
-                        content_type: { type: 'string', enum: ['External Link', 'Video', 'PDF', 'Text', 'Mixed'] },
-                        estimated_duration_minutes: { type: 'number' },
-                        content_url: { type: 'string' },
-                        sub_modules: {
-                          type: 'array',
-                          items: {
-                            type: 'object',
-                            additionalProperties: false,
-                            properties: {
-                              sub_module_name: { type: 'string' },
-                              sub_module_description: { type: 'string' },
-                              content_type: { type: 'string', enum: ['External Link', 'Video', 'PDF', 'Text', 'Mixed'] },
-                              content_url: { type: 'string' },
-                              resources: { type: 'string' },
-                              estimated_duration_minutes: { type: 'number' }
-                            },
-                            required: ['sub_module_name']
-                          }
-                        }
-                      },
-                      required: ['module_name']
-                    }
-                  }
-                },
-                required: ['course', 'modules']
-              }
-            }
-          }
-        ],
-        tool_choice: { type: 'function', function: { name: 'return_course_structure' } }
+        temperature: 0.7,
+        max_tokens: 3000
       }),
     });
 
-    // Fallback to plain JSON with Gemini if tool calling fails
+    // If Gemini fails, try GPT-4 as fallback
     if (!aiResponse.ok) {
-      console.log('Tool-call model failed, falling back to Gemini JSON output...');
+      console.log('Gemini failed, trying GPT-4 as fallback...');
       aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -291,13 +164,13 @@ Extract the complete course structure with all modules and sub-modules.`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: 'openai/gpt-5-mini',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
           ],
-          temperature: 0.5,
-          max_tokens: 8000
+          temperature: 0.7,
+          max_tokens: 3000
         }),
       });
     }
@@ -309,84 +182,37 @@ Extract the complete course structure with all modules and sub-modules.`;
     }
 
     const aiData = await aiResponse.json();
+    console.log('AI Response received');
     
-    // Prefer tool-call arguments when available
-    let result: any | undefined;
-    const toolCalls = aiData.choices?.[0]?.message?.tool_calls;
-    if (Array.isArray(toolCalls) && toolCalls.length > 0) {
-      const tool = toolCalls.find((t: any) => t?.function?.name === 'return_course_structure');
-      const argsStr = tool?.function?.arguments || '';
-      try {
-        result = JSON.parse(argsStr);
-        console.log('Parsed tool-call JSON with', result.modules?.length || 0, 'modules');
-      } catch (e) {
-        console.error('Failed to parse tool-call arguments, falling back to text JSON:', e);
-      }
-    }
-
-    // Fallback to content-based JSON parsing
-    if (!result) {
-      const contentText = aiData.choices?.[0]?.message?.content || '';
-      console.log('AI content length:', contentText?.length || 0);
-
-      let generatedText = (contentText || '').trim();
-      // Remove markdown code fences
-      generatedText = generatedText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '');
-      // Attempt to extract JSON object boundaries
-      const jsonStart = generatedText.indexOf('{');
-      const jsonEnd = generatedText.lastIndexOf('}');
-      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-        generatedText = generatedText.substring(jsonStart, jsonEnd + 1);
-      }
-
-      console.log('Attempting to parse JSON, length:', generatedText.length);
-      try {
-        result = JSON.parse(generatedText);
-        console.log('Successfully parsed JSON with', result.modules?.length || 0, 'modules');
-      } catch (parseError) {
-        console.error('JSON parse failed:', (parseError as Error).message);
-        console.error('First 500 chars:', generatedText.substring(0, 500));
-        console.error('Last 500 chars:', generatedText.substring(Math.max(0, generatedText.length - 500)));
-        // Try bracket balancing repair
-        try {
-          let fixedText = generatedText;
-          const openBraces = (fixedText.match(/{/g) || []).length;
-          const closeBraces = (fixedText.match(/}/g) || []).length;
-          const openBrackets = (fixedText.match(/\[/g) || []).length;
-          const closeBrackets = (fixedText.match(/]/g) || []).length;
-          fixedText += ']'.repeat(Math.max(0, openBrackets - closeBrackets));
-          fixedText += '}'.repeat(Math.max(0, openBraces - closeBraces));
-          console.log('Attempting to fix incomplete JSON...');
-          result = JSON.parse(fixedText);
-          console.log('Successfully fixed and parsed JSON!');
-        } catch (fixError) {
-          console.error('Could not fix JSON, using minimal fallback');
-          result = {
-            course: {
-              course_name: `Course from ${source}`,
-              course_description: 'AI extraction incomplete - please review and edit. Try with a smaller sheet or fewer modules.',
-              course_type: 'Technical',
-              difficulty_level: 'Intermediate',
-              target_role: '',
-              learning_objectives: ''
-            },
-            modules: [{
-              module_name: `Content from ${source}`,
-              module_description: 'AI extraction incomplete - please review and edit',
-              content_type: 'Mixed',
-              estimated_duration_minutes: 60,
-              sub_modules: [{
-                sub_module_name: 'Module Content',
-                sub_module_description: 'Please review and edit',
-                content_type: content.startsWith('http') ? 'External Link' : 'Text',
-                content_url: content.startsWith('http') ? content : '',
-                resources: '',
-                estimated_duration_minutes: 30
-              }]
-            }]
-          };
-        }
-      }
+    let generatedText = aiData.choices?.[0]?.message?.content || '';
+    
+    // Clean up the response
+    generatedText = generatedText.trim();
+    generatedText = generatedText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    
+    let result;
+    try {
+      result = JSON.parse(generatedText);
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', generatedText);
+      // Fallback
+      result = {
+        course: {
+          course_name: `Course from ${source}`,
+          course_description: 'Extracted content - please review and edit',
+          course_type: 'Technical',
+          difficulty_level: 'Intermediate',
+          target_role: '',
+          learning_objectives: ''
+        },
+        modules: [{
+          module_name: `Content from ${source}`,
+          module_description: 'Extracted content - please review and edit',
+          content_type: content.startsWith('http') ? 'External Link' : 'Text',
+          content_url: content.startsWith('http') ? content : '',
+          estimated_duration_minutes: 60
+        }]
+      };
     }
 
     // Helper function to validate external URLs
@@ -426,74 +252,46 @@ Extract the complete course structure with all modules and sub-modules.`;
         .map((module, index) => {
           const contentUrl = module.content_url || '';
           const hasUrl = contentUrl.trim().length > 0;
-          let contentType = module.content_type || 'Mixed';
+          let contentType = module.content_type;
 
           // Normalize content type to proper case
-          const typeMap: { [key: string]: string } = {
-            'link': 'External Link',
-            'external link': 'External Link',
-            'video': 'Video',
-            'pdf': 'PDF',
-            'text': 'Text',
-            'mixed': 'Mixed'
-          };
-          contentType = typeMap[contentType.toLowerCase()] || contentType;
+          if (contentType) {
+            const typeMap: { [key: string]: string } = {
+              'link': 'External Link',
+              'external link': 'External Link',
+              'video': 'Video',
+              'pdf': 'PDF',
+              'text': 'Text',
+              'mixed': 'Mixed'
+            };
+            contentType = typeMap[contentType.toLowerCase()] || contentType;
+          }
+
+          // Auto-set to External Link only if URL is external
+          if (hasUrl && !contentType && isExternalURL(contentUrl)) {
+            contentType = 'External Link';
+          }
 
           // Validate and default content type
           const validTypes = ['External Link', 'Video', 'PDF', 'Text', 'Mixed'];
           if (!validTypes.includes(contentType)) {
-            contentType = 'Mixed';
+            contentType = hasUrl && isExternalURL(contentUrl) ? 'External Link' : 'Text';
           }
-
-          // Process sub-modules if they exist
-          const subModules = (module.sub_modules || [])
-            .filter(sm => sm && typeof sm === 'object')
-            .map((subModule, subIndex) => {
-              const subContentUrl = subModule.content_url || '';
-              const subHasUrl = subContentUrl.trim().length > 0;
-              let subContentType = subModule.content_type;
-
-              // Normalize sub-module content type
-              if (subContentType) {
-                subContentType = typeMap[subContentType.toLowerCase()] || subContentType;
-              }
-
-              // Auto-set to External Link if URL is external
-              if (subHasUrl && (!subContentType || subContentType === 'Mixed') && isExternalURL(subContentUrl)) {
-                subContentType = 'External Link';
-              }
-
-              // Validate sub-module content type
-              if (!validTypes.includes(subContentType)) {
-                subContentType = subHasUrl && isExternalURL(subContentUrl) ? 'External Link' : 'Text';
-              }
-
-              return {
-                sub_module_name: (subModule.sub_module_name || `Sub-module ${subIndex + 1}`).slice(0, 200),
-                sub_module_description: (subModule.sub_module_description || 'No description').slice(0, 500),
-                content_type: subContentType,
-                content_url: subContentUrl,
-                resources: (subModule.resources || '').slice(0, 1000),
-                estimated_duration_minutes: Math.min(Math.max(subModule.estimated_duration_minutes || 30, 10), 180)
-              };
-            });
 
           return {
             module_name: (module.module_name || `Module ${index + 1}`).slice(0, 200),
             module_description: (module.module_description || 'No description').slice(0, 500),
             content_type: contentType,
             content_url: contentUrl,
-            estimated_duration_minutes: Math.min(Math.max(module.estimated_duration_minutes || 120, 30), 480),
-            module_order: index + 1,
-            sub_modules: subModules
+            estimated_duration_minutes: Math.min(Math.max(module.estimated_duration_minutes || 60, 15), 300),
+            module_order: index + 1
           };
         })
         .slice(0, 20),
       source
     };
 
-    const totalSubModules = cleanedResult.modules.reduce((sum, m) => sum + (m.sub_modules?.length || 0), 0);
-    console.log(`Successfully extracted course with ${cleanedResult.modules.length} modules and ${totalSubModules} sub-modules`);
+    console.log(`Successfully extracted course with ${cleanedResult.modules.length} modules`);
 
     return new Response(
       JSON.stringify({ 
