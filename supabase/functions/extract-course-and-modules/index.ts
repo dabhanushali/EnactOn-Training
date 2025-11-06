@@ -110,8 +110,14 @@ serve(async (req) => {
         const lines = markdown.trim().split('\n').filter(l => l.trim().startsWith('|'));
         if (lines.length < 3) return null; // Need at least header, separator, one row
         
-        const parseRow = (line: string): string[] => 
-          line.split('|').map(c => c.trim()).filter(c => c && c !== '---');
+         const parseRow = (line: string): string[] => {
+           // Preserve empty cells to keep column alignment
+           const parts = line.split('|');
+           if (parts.length >= 2) {
+             return parts.slice(1, -1).map(c => c.trim());
+           }
+           return parts.map(c => c.trim());
+         };
         
         const headers = parseRow(lines[0]);
         const dataRows = lines.slice(2).map(parseRow); // Skip separator
@@ -122,7 +128,8 @@ serve(async (req) => {
         const weekIdx = headers.findIndex(h => /week/i.test(h));
         const topicIdx = headers.findIndex(h => /training.*topic|topic/i.test(h));
         const modulesIdx = headers.findIndex(h => /modules?/i.test(h));
-        const resourcesIdx = headers.findIndex(h => /resources?|links?/i.test(h)) || headers.length - 1;
+         const rIdx = headers.findIndex(h => /resources?|links?/i.test(h));
+         const resourcesIdx = rIdx !== -1 ? rIdx : headers.length - 1;
         
         console.log(`Found columns: Week=${weekIdx}, Topic=${topicIdx}, Modules=${modulesIdx}, Resources=${resourcesIdx}`);
         

@@ -799,11 +799,14 @@ export default function CreateCourse() {
 
                           // Build all sub-modules and bulk insert (if any)
                           const allSubmodules: any[] = [];
+                          // Ensure module_order is UNIQUE across the whole course (parents + subs)
+                          const baseOrder = (extractedData.modules || []).length; // parents count
+                          let subCounter = 0;
                           (extractedData.modules || []).forEach((module: any, idx: number) => {
                             const parentId = insertedParents?.[idx]?.id;
                             if (!parentId) return;
                             if (module.sub_modules?.length > 0) {
-                              module.sub_modules.forEach((sub: any, sidx: number) => {
+                              module.sub_modules.forEach((sub: any) => {
                                 allSubmodules.push({
                                   course_id: courseData.id,
                                   parent_module_id: parentId,
@@ -812,7 +815,7 @@ export default function CreateCourse() {
                                   content_type: sub.content_type,
                                   content_url: packContentUrl(sub.content_url || '', sub.resources || ''),
                                   estimated_duration_minutes: sub.estimated_duration_minutes,
-                                  module_order: sidx + 1,
+                                  module_order: baseOrder + (++subCounter),
                                 });
                               });
                             }
