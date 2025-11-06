@@ -200,8 +200,9 @@ INSTRUCTIONS:
 
 Extract the complete course structure with all modules and sub-modules.`;
 
-    console.log('Calling Lovable AI (Gemini) to extract course and modules...');
+    console.log('Calling Lovable AI to extract course and modules (tool-calling)...');
     
+    // Prefer tool-calling with OpenAI-compatible model for guaranteed structured output
     let aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -209,19 +210,80 @@ Extract the complete course structure with all modules and sub-modules.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'openai/gpt-5-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.5,
-        max_tokens: 8000
+        temperature: 0.4,
+        max_tokens: 8000,
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'return_course_structure',
+              description: 'Return structured course with modules and sub-modules parsed from input content',
+              parameters: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  course: {
+                    type: 'object',
+                    additionalProperties: false,
+                    properties: {
+                      course_name: { type: 'string' },
+                      course_description: { type: 'string' },
+                      course_type: { type: 'string', enum: ['Technical', 'Soft Skills', 'Compliance', 'Leadership', 'Other'] },
+                      difficulty_level: { type: 'string', enum: ['Beginner', 'Intermediate', 'Advanced'] },
+                      target_role: { type: 'string' },
+                      learning_objectives: { type: 'string' }
+                    },
+                    required: ['course_name', 'course_description', 'course_type', 'difficulty_level']
+                  },
+                  modules: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      additionalProperties: false,
+                      properties: {
+                        module_name: { type: 'string' },
+                        module_description: { type: 'string' },
+                        content_type: { type: 'string', enum: ['External Link', 'Video', 'PDF', 'Text', 'Mixed'] },
+                        estimated_duration_minutes: { type: 'number' },
+                        content_url: { type: 'string' },
+                        sub_modules: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            additionalProperties: false,
+                            properties: {
+                              sub_module_name: { type: 'string' },
+                              sub_module_description: { type: 'string' },
+                              content_type: { type: 'string', enum: ['External Link', 'Video', 'PDF', 'Text', 'Mixed'] },
+                              content_url: { type: 'string' },
+                              resources: { type: 'string' },
+                              estimated_duration_minutes: { type: 'number' }
+                            },
+                            required: ['sub_module_name']
+                          }
+                        }
+                      },
+                      required: ['module_name']
+                    }
+                  }
+                },
+                required: ['course', 'modules']
+              }
+            }
+          }
+        ],
+        tool_choice: { type: 'function', function: { name: 'return_course_structure' } }
       }),
     });
 
-    // If Gemini fails, try GPT-4 as fallback
+    // Fallback to plain JSON with Gemini if tool calling fails
     if (!aiResponse.ok) {
-      console.log('Gemini failed, trying GPT-4 as fallback...');
+      console.log('Tool-call model failed, falling back to Gemini JSON output...');
       aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -229,7 +291,7 @@ Extract the complete course structure with all modules and sub-modules.`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'openai/gpt-5-mini',
+          model: 'google/gemini-2.5-flash',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
@@ -247,76 +309,83 @@ Extract the complete course structure with all modules and sub-modules.`;
     }
 
     const aiData = await aiResponse.json();
-    console.log('AI Response received, length:', aiData.choices?.[0]?.message?.content?.length || 0);
     
-    let generatedText = aiData.choices?.[0]?.message?.content || '';
-    
-    // Robust JSON extraction
-    generatedText = generatedText.trim();
-    
-    // Remove markdown code blocks
-    generatedText = generatedText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '');
-    
-    // Try to find JSON object boundaries if there's extra text
-    const jsonStart = generatedText.indexOf('{');
-    const jsonEnd = generatedText.lastIndexOf('}');
-    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-      generatedText = generatedText.substring(jsonStart, jsonEnd + 1);
-    }
-    
-    console.log('Attempting to parse JSON, length:', generatedText.length);
-    
-    let result;
-    try {
-      result = JSON.parse(generatedText);
-      console.log('Successfully parsed JSON with', result.modules?.length || 0, 'modules');
-    } catch (parseError) {
-      console.error('JSON parse failed:', parseError.message);
-      console.error('First 500 chars:', generatedText.substring(0, 500));
-      console.error('Last 500 chars:', generatedText.substring(Math.max(0, generatedText.length - 500)));
-      
-      // Try to salvage partial JSON by finding complete objects
+    // Prefer tool-call arguments when available
+    let result: any | undefined;
+    const toolCalls = aiData.choices?.[0]?.message?.tool_calls;
+    if (Array.isArray(toolCalls) && toolCalls.length > 0) {
+      const tool = toolCalls.find((t: any) => t?.function?.name === 'return_course_structure');
+      const argsStr = tool?.function?.arguments || '';
       try {
-        // Attempt to close incomplete JSON by adding missing closing braces
-        let fixedText = generatedText;
-        const openBraces = (fixedText.match(/{/g) || []).length;
-        const closeBraces = (fixedText.match(/}/g) || []).length;
-        const openBrackets = (fixedText.match(/\[/g) || []).length;
-        const closeBrackets = (fixedText.match(/]/g) || []).length;
-        
-        // Add missing closing brackets/braces
-        fixedText += ']'.repeat(Math.max(0, openBrackets - closeBrackets));
-        fixedText += '}'.repeat(Math.max(0, openBraces - closeBraces));
-        
-        console.log('Attempting to fix incomplete JSON...');
-        result = JSON.parse(fixedText);
-        console.log('Successfully fixed and parsed JSON!');
-      } catch (fixError) {
-        console.error('Could not fix JSON, using fallback');
-        result = {
-          course: {
-            course_name: `Course from ${source}`,
-            course_description: 'AI extraction incomplete - please review and edit. Try with a smaller sheet or fewer modules.',
-            course_type: 'Technical',
-            difficulty_level: 'Intermediate',
-            target_role: '',
-            learning_objectives: ''
-          },
-          modules: [{
-            module_name: `Content from ${source}`,
-            module_description: 'AI extraction incomplete - please review and edit',
-            content_type: 'Mixed',
-            estimated_duration_minutes: 60,
-            sub_modules: [{
-              sub_module_name: 'Module Content',
-              sub_module_description: 'Please review and edit',
-              content_type: content.startsWith('http') ? 'External Link' : 'Text',
-              content_url: content.startsWith('http') ? content : '',
-              resources: '',
-              estimated_duration_minutes: 30
+        result = JSON.parse(argsStr);
+        console.log('Parsed tool-call JSON with', result.modules?.length || 0, 'modules');
+      } catch (e) {
+        console.error('Failed to parse tool-call arguments, falling back to text JSON:', e);
+      }
+    }
+
+    // Fallback to content-based JSON parsing
+    if (!result) {
+      const contentText = aiData.choices?.[0]?.message?.content || '';
+      console.log('AI content length:', contentText?.length || 0);
+
+      let generatedText = (contentText || '').trim();
+      // Remove markdown code fences
+      generatedText = generatedText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '');
+      // Attempt to extract JSON object boundaries
+      const jsonStart = generatedText.indexOf('{');
+      const jsonEnd = generatedText.lastIndexOf('}');
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        generatedText = generatedText.substring(jsonStart, jsonEnd + 1);
+      }
+
+      console.log('Attempting to parse JSON, length:', generatedText.length);
+      try {
+        result = JSON.parse(generatedText);
+        console.log('Successfully parsed JSON with', result.modules?.length || 0, 'modules');
+      } catch (parseError) {
+        console.error('JSON parse failed:', (parseError as Error).message);
+        console.error('First 500 chars:', generatedText.substring(0, 500));
+        console.error('Last 500 chars:', generatedText.substring(Math.max(0, generatedText.length - 500)));
+        // Try bracket balancing repair
+        try {
+          let fixedText = generatedText;
+          const openBraces = (fixedText.match(/{/g) || []).length;
+          const closeBraces = (fixedText.match(/}/g) || []).length;
+          const openBrackets = (fixedText.match(/\[/g) || []).length;
+          const closeBrackets = (fixedText.match(/]/g) || []).length;
+          fixedText += ']'.repeat(Math.max(0, openBrackets - closeBrackets));
+          fixedText += '}'.repeat(Math.max(0, openBraces - closeBraces));
+          console.log('Attempting to fix incomplete JSON...');
+          result = JSON.parse(fixedText);
+          console.log('Successfully fixed and parsed JSON!');
+        } catch (fixError) {
+          console.error('Could not fix JSON, using minimal fallback');
+          result = {
+            course: {
+              course_name: `Course from ${source}`,
+              course_description: 'AI extraction incomplete - please review and edit. Try with a smaller sheet or fewer modules.',
+              course_type: 'Technical',
+              difficulty_level: 'Intermediate',
+              target_role: '',
+              learning_objectives: ''
+            },
+            modules: [{
+              module_name: `Content from ${source}`,
+              module_description: 'AI extraction incomplete - please review and edit',
+              content_type: 'Mixed',
+              estimated_duration_minutes: 60,
+              sub_modules: [{
+                sub_module_name: 'Module Content',
+                sub_module_description: 'Please review and edit',
+                content_type: content.startsWith('http') ? 'External Link' : 'Text',
+                content_url: content.startsWith('http') ? content : '',
+                resources: '',
+                estimated_duration_minutes: 30
+              }]
             }]
-          }]
-        };
+          };
+        }
       }
     }
 
