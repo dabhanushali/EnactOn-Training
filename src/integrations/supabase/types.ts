@@ -125,42 +125,6 @@ export type Database = {
           },
         ]
       }
-      company_rules: {
-        Row: {
-          category: string
-          created_at: string | null
-          created_by: string | null
-          description: string
-          id: string
-          is_active: boolean | null
-          priority: number | null
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          category: string
-          created_at?: string | null
-          created_by?: string | null
-          description: string
-          id?: string
-          is_active?: boolean | null
-          priority?: number | null
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          category?: string
-          created_at?: string | null
-          created_by?: string | null
-          description?: string
-          id?: string
-          is_active?: boolean | null
-          priority?: number | null
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       course_assessments: {
         Row: {
           assessment_template_id: string | null

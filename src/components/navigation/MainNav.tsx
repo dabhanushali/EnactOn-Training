@@ -21,8 +21,7 @@ import {
   LogOut,
   Menu,
   GraduationCap,
-  User,
-  FileText
+  User
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { NotificationCenter } from '@/components/common/NotificationCenter';
@@ -77,12 +76,6 @@ const navigationItems: NavItem[] = [
     href: '/reports/readiness',
     roles: [UserRoles.MANAGEMENT, UserRoles.HR, UserRoles.TEAM_LEAD],
   },
-  {
-    label: 'Company Rules',
-    icon: FileText,
-    href: '/company-rules',
-    roles: [UserRoles.MANAGEMENT, UserRoles.HR, UserRoles.TRAINEE],
-  },
 ];
 
 const NavItems = memo(({ items, isMobile = false, onItemClick = () => {} }: { items: NavItem[], isMobile?: boolean, onItemClick?: () => void }) => (
@@ -135,8 +128,8 @@ export const MainNav = () => {
             </div>
             <div className="hidden sm:flex items-center gap-3">
               <div>
-                <h1 className="text-xl font-bold text-foreground">eNactOn LMS</h1>
-                <p className="text-xs text-muted-foreground -mt-1">Where reliability matters</p>
+                <h1 className="text-xl font-bold text-foreground">GrowPro LMS</h1>
+                <p className="text-xs text-muted-foreground -mt-1">Learning Management System</p>
               </div>
               {userRole && (
                 <div className="flex items-center gap-2 pl-3 border-l">

@@ -103,14 +103,14 @@ export function CreateProjectDialog({ onProjectCreated, children }: CreateProjec
       <DialogTrigger asChild>
         {children || <Button>Create Project</Button>}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Create a New Project</DialogTitle>
           <DialogDescription>
             Fill in the details below to create a new project template.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-6 py-4 overflow-y-auto pr-2">
+        <div className="grid gap-6 py-4">
           <div className="space-y-2">
             <RequiredLabel htmlFor="project-name">Project Name</RequiredLabel>
             <Input 
