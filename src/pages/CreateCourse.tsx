@@ -758,62 +758,90 @@ export default function CreateCourse() {
 
                           if (courseError) throw courseError;
 
-                          // Create modules and sub-modules
-                          if (extractedData.modules?.length > 0) {
-                            for (const [idx, module] of extractedData.modules.entries()) {
-                              // Insert main module
-                              const { data: moduleData, error: moduleError } = await supabase
-                                .from('course_modules')
-                                .insert({
+                          // Helper to pack resources into JSON for content_url when available
+                          const packContentUrl = (primaryUrl?: string, resourcesText?: string) => {
+                            const links: { name: string; url: string }[] = [];
+                            if (resourcesText) {
+                              const urlRegex = /(https?:\/\/[^\s)]+)+/gi;
+                              const found = resourcesText.match(urlRegex) || [];
+                              found.forEach((u, i) => {
+                                try {
+                                  const host = new URL(u).hostname.replace('www.', '');
+                                  links.push({ name: host || `Resource ${i + 1}`, url: u });
+                                } catch {
+                                  links.push({ name: `Resource ${i + 1}`, url: u });
+                                }
+                              });
+                            }
+                            if (primaryUrl || links.length) {
+                              return JSON.stringify({ url: primaryUrl || undefined, links });
+                            }
+                            return null;
+                          };
+
+                          // Build and insert all top-level modules in one request
+                          const mainModules = (extractedData.modules || []).map((module: any, idx: number) => ({
+                            course_id: courseData.id,
+                            module_name: module.module_name,
+                            module_description: module.module_description,
+                            content_type: module.content_type,
+                            content_url: (module.content_url && module.content_url.trim()) ? module.content_url.trim() : null,
+                            estimated_duration_minutes: module.estimated_duration_minutes,
+                            module_order: idx + 1,
+                          }));
+
+                          const { data: insertedParents, error: parentsErr } = await supabase
+                            .from('course_modules')
+                            .insert(mainModules)
+                            .select('id');
+                          if (parentsErr) throw parentsErr;
+
+                          // Build all sub-modules and bulk insert (if any)
+                          const allSubmodules: any[] = [];
+                          (extractedData.modules || []).forEach((module: any, idx: number) => {
+                            const parentId = insertedParents?.[idx]?.id;
+                            if (!parentId) return;
+                            if (module.sub_modules?.length > 0) {
+                              module.sub_modules.forEach((sub: any, sidx: number) => {
+                                allSubmodules.push({
                                   course_id: courseData.id,
-                                  module_name: module.module_name,
-                                  module_description: module.module_description,
-                                  content_type: module.content_type,
-                                  content_url: module.content_url || '',
-                                  estimated_duration_minutes: module.estimated_duration_minutes,
-                                  module_order: idx + 1
-                                })
-                                .select()
-                                .single();
+                                  parent_module_id: parentId,
+                                  module_name: sub.sub_module_name,
+                                  module_description: sub.sub_module_description,
+                                  content_type: sub.content_type,
+                                  content_url: packContentUrl(sub.content_url || '', sub.resources || ''),
+                                  estimated_duration_minutes: sub.estimated_duration_minutes,
+                                  module_order: sidx + 1,
+                                });
+                              });
+                            }
+                          });
 
-                              if (moduleError) throw moduleError;
-
-                              // Insert sub-modules if they exist
-                              if (module.sub_modules?.length > 0) {
-                                const subModulesToInsert = module.sub_modules.map((subModule, subIdx) => ({
-                                  course_id: courseData.id,
-                                  parent_module_id: moduleData.id,
-                                  module_name: subModule.sub_module_name,
-                                  module_description: subModule.sub_module_description,
-                                  content_type: subModule.content_type,
-                                  content_url: subModule.content_url || '',
-                                  estimated_duration_minutes: subModule.estimated_duration_minutes,
-                                  module_order: subIdx + 1,
-                                  resources: subModule.resources || ''
-                                }));
-
-                                const { error: subModulesError } = await supabase
-                                  .from('course_modules')
-                                  .insert(subModulesToInsert);
-
-                                if (subModulesError) throw subModulesError;
-                              }
+                          if (allSubmodules.length > 0) {
+                            const { error: subsErr } = await supabase
+                              .from('course_modules')
+                              .insert(allSubmodules);
+                            if (subsErr) {
+                              // Roll back parent modules from this operation to avoid partial saves
+                              const ids = (insertedParents || []).map(p => p.id);
+                              await supabase.from('course_modules').delete().in('id', ids);
+                              throw subsErr;
                             }
                           }
 
-                          const totalSubModules = extractedData.modules.reduce((sum, m) => sum + (m.sub_modules?.length || 0), 0);
+                          const totalSubModules = (extractedData.modules || []).reduce((sum: number, m: any) => sum + (m.sub_modules?.length || 0), 0);
                           toast({
-                            title: "Success",
-                            description: `Course created with ${extractedData.modules?.length || 0} modules${totalSubModules > 0 ? ` and ${totalSubModules} sub-modules` : ''}`
+                            title: 'Success',
+                            description: `Course created with ${(extractedData.modules?.length || 0)} modules${totalSubModules > 0 ? ` and ${totalSubModules} sub-modules` : ''}`
                           });
                           
                           navigate(`/courses/${courseData.id}`);
                         } catch (error) {
                           console.error('Error saving course:', error);
                           toast({
-                            title: "Error",
-                            description: "Failed to save course",
-                            variant: "destructive"
+                            title: 'Error',
+                            description: 'Failed to save course',
+                            variant: 'destructive'
                           });
                         } finally {
                           setLoading(false);

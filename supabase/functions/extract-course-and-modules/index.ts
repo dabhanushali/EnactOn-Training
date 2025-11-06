@@ -51,54 +51,95 @@ serve(async (req) => {
 
     let contentToProcess = content;
     
-    // If content looks like a URL, try Firecrawl first, then fallback to basic fetch
+    // Helpers for Google Sheets/CSV
+    const csvToMarkdown = (csv: string) => {
+      const rows = csv.trim().split(/\r?\n/).map(r => r.split(','));
+      if (rows.length === 0) return csv;
+      const header = `| ${rows[0].join(' | ')} |`;
+      const sep = `| ${rows[0].map(() => '---').join(' | ')} |`;
+      const body = rows.slice(1).map(r => `| ${r.join(' | ')} |`).join('\n');
+      return [header, sep, body].join('\n');
+    };
+
+    const getSheetCsvExportUrl = (url: string) => {
+      try {
+        const u = new URL(url);
+        if (!u.hostname.includes('docs.google.com')) return null;
+        const path = u.pathname.split('/');
+        // /spreadsheets/d/{id}/...
+        const idIndex = path.findIndex(p => p === 'd');
+        const sheetId = idIndex !== -1 && path[idIndex + 1] ? path[idIndex + 1] : null;
+        const gid = u.searchParams.get('gid') || '0';
+        if (!sheetId) return null;
+        return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+      } catch { return null; }
+    };
+
+    // If content looks like a URL, try specific handlers first (Sheets/CSV), then Firecrawl, then basic fetch
     if (content.startsWith('http://') || content.startsWith('https://')) {
-      const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
-      
-      if (FIRECRAWL_API_KEY) {
+      // Try Google Sheets CSV export
+      const csvUrl = getSheetCsvExportUrl(content) || (content.endsWith('.csv') ? content : null);
+      if (csvUrl) {
         try {
-          console.log('Crawling content with Firecrawl SDK from URL:', content);
-          
-          const firecrawl = new Firecrawl({ apiKey: FIRECRAWL_API_KEY });
-          const crawlResponse = await firecrawl.crawl(content, { 
-            limit: 10,
-            scrapeOptions: {
-              formats: ['markdown', 'html']
-            }
-          });
-          
-          if (crawlResponse && crawlResponse.data && Array.isArray(crawlResponse.data) && crawlResponse.data.length > 0) {
-            contentToProcess = crawlResponse.data
-              .map((page: { markdown?: string; html?: string }) => page.markdown || page.html || '')
-              .join('\n\n---\n\n');
-            console.log(`Successfully crawled ${crawlResponse.data.length} pages with Firecrawl SDK (status: ${crawlResponse.status})`);
+          console.log('Attempting CSV export fetch for structured source:', csvUrl);
+          const csvResp = await fetch(csvUrl);
+          if (csvResp.ok) {
+            const csvText = await csvResp.text();
+            contentToProcess = csvToMarkdown(csvText);
+            console.log('Fetched CSV and converted to markdown table');
           } else {
-            console.log('Firecrawl returned no data, falling back to basic fetch');
-            throw new Error('No data from Firecrawl');
+            console.log('CSV export fetch failed with status', csvResp.status);
           }
-        } catch (error) {
-          console.log('Firecrawl SDK failed, attempting basic fetch:', error);
+        } catch (e) {
+          console.log('CSV export fetch errored, will fallback:', e);
+        }
+      }
+
+      // If still not processed, use Firecrawl (if configured)
+      if (contentToProcess === content) {
+        const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
+        if (FIRECRAWL_API_KEY) {
           try {
-            const urlResponse = await fetch(content);
-            if (urlResponse.ok) {
-              contentToProcess = await urlResponse.text();
-              console.log('Successfully fetched content with basic fetch');
+            console.log('Crawling content with Firecrawl SDK from URL:', content);
+            const firecrawl = new Firecrawl({ apiKey: FIRECRAWL_API_KEY });
+            const crawlResponse = await firecrawl.crawl(content, { 
+              limit: 10,
+              scrapeOptions: { formats: ['markdown', 'html'] }
+            });
+            if (crawlResponse && Array.isArray(crawlResponse.data) && crawlResponse.data.length > 0) {
+              contentToProcess = crawlResponse.data
+                .map((page: { markdown?: string; html?: string }) => page.markdown || page.html || '')
+                .join('\n\n---\n\n');
+              console.log(`Successfully crawled ${crawlResponse.data.length} pages with Firecrawl SDK (status: ${crawlResponse.status})`);
+            } else {
+              console.log('Firecrawl returned no data');
             }
-          } catch (fetchError) {
-            console.log('Basic fetch also failed, will process URL as reference:', fetchError);
+          } catch (error) {
+            console.log('Firecrawl SDK failed:', error);
           }
         }
-      } else {
-        // No Firecrawl key, use basic fetch
+      }
+
+      // Final fallback to basic fetch
+      if (contentToProcess === content) {
         try {
-          console.log('Fetching content from URL (no Firecrawl key):', content);
-          const urlResponse = await fetch(content);
-          if (urlResponse.ok) {
-            contentToProcess = await urlResponse.text();
-            console.log('Successfully fetched content from URL');
+          console.log('Fetching content via basic fetch:', content);
+          const resp = await fetch(content);
+          if (resp.ok) {
+            const contentType = resp.headers.get('content-type') || '';
+            if (contentType.includes('text/csv')) {
+              const csvText = await resp.text();
+              contentToProcess = csvToMarkdown(csvText);
+              console.log('Basic fetch got CSV, converted to markdown');
+            } else {
+              contentToProcess = await resp.text();
+              console.log('Successfully fetched content via basic fetch');
+            }
+          } else {
+            console.log('Basic fetch failed with status', resp.status);
           }
-        } catch (error) {
-          console.log('Error fetching URL, will process as reference:', error);
+        } catch (fetchError) {
+          console.log('Basic fetch failed, proceeding with URL reference only:', fetchError);
         }
       }
     }
