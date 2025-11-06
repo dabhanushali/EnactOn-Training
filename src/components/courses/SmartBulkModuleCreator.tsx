@@ -493,6 +493,7 @@ export const SmartBulkModuleCreator = ({ courseId, onModulesCreated, isAutoGener
       )}
 
       {/* Preview and Edit Section */}
+      {modules.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
