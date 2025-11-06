@@ -103,7 +103,7 @@ export function CreateProjectDialog({ onProjectCreated, children }: CreateProjec
       <DialogTrigger asChild>
         {children || <Button>Create Project</Button>}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Create a New Project</DialogTitle>
           <DialogDescription>

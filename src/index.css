@@ -20,11 +20,11 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 220 13% 18%;
 
-    /* Primary - EnactOn Blue */
-    --primary: 225 73% 57%;
+    /* Primary - Professional Blue */
+    --primary: 210 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 225 73% 95%;
-    --primary-dark: 225 73% 45%;
+    --primary-light: 210 100% 95%;
+    --primary-dark: 210 100% 40%;
 
     /* Secondary - Complementary Teal */
     --secondary: 180 100% 35%;
@@ -64,14 +64,14 @@ All colors MUST be HSL.
     --ring: 210 100% 50%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(225 73% 57%), hsl(180 100% 35%));
-    --gradient-hero: linear-gradient(135deg, hsl(225 73% 57%) 0%, hsl(180 100% 35%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(210 100% 50%), hsl(180 100% 35%));
+    --gradient-hero: linear-gradient(135deg, hsl(210 100% 50%) 0%, hsl(180 100% 35%) 100%);
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(210 20% 98%) 100%);
 
     /* Shadows */
-    --shadow-card: 0 4px 12px -2px hsl(225 73% 57% / 0.08);
-    --shadow-elevated: 0 8px 30px -5px hsl(225 73% 57% / 0.15);
-    --shadow-hero: 0 20px 40px -10px hsl(225 73% 57% / 0.2);
+    --shadow-card: 0 4px 12px -2px hsl(210 100% 50% / 0.08);
+    --shadow-elevated: 0 8px 30px -5px hsl(210 100% 50% / 0.15);
+    --shadow-hero: 0 20px 40px -10px hsl(210 100% 50% / 0.2);
 
     /* Animations */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -107,10 +107,10 @@ All colors MUST be HSL.
     --popover: 220 20% 10%;
     --popover-foreground: 210 20% 95%;
 
-    --primary: 225 73% 65%;
+    --primary: 210 100% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 225 73% 85%;
-    --primary-dark: 225 73% 50%;
+    --primary-light: 210 100% 85%;
+    --primary-dark: 210 100% 45%;
 
     --secondary: 180 100% 40%;
     --secondary-foreground: 0 0% 100%;
@@ -139,7 +139,7 @@ All colors MUST be HSL.
 
     --border: 220 20% 20%;
     --input: 220 20% 20%;
-    --ring: 225 73% 65%;
+    --ring: 210 100% 60%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
