@@ -535,24 +535,6 @@ Return ONLY valid JSON with this structure:
       }
     }
 
-    // Helper function to validate external URLs
-    const isExternalURL = (url: string): boolean => {
-      if (!url) return false;
-      try {
-        const urlObj = new URL(url.trim());
-        const externalDomains = [
-          'youtube.com', 'youtu.be', 'vimeo.com', 'loom.com',
-          'figma.com', 'drive.google.com', 'docs.google.com',
-          'notion.so', 'notion.site', 'clickup.com', 'trello.com',
-          'miro.com', 'dropbox.com', 'github.com'
-        ];
-        return urlObj.protocol.startsWith('http') &&
-               externalDomains.some(domain => urlObj.hostname.includes(domain));
-      } catch {
-        return false;
-      }
-    };
-
     // Validate and clean data with constraints (max 12 modules, max 3 sub-modules per module)
     const MAX_MODULES = 12;
     const MAX_SUBS = 3;
