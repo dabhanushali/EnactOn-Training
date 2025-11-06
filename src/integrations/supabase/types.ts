@@ -125,6 +125,42 @@ export type Database = {
           },
         ]
       }
+      company_rules: {
+        Row: {
+          category: string
+          created_at: string | null
+          created_by: string | null
+          description: string
+          id: string
+          is_active: boolean | null
+          priority: number | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          description: string
+          id?: string
+          is_active?: boolean | null
+          priority?: number | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          priority?: number | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       course_assessments: {
         Row: {
           assessment_template_id: string | null
@@ -274,6 +310,7 @@ export type Database = {
           module_description: string | null
           module_name: string
           module_order: number
+          parent_module_id: string | null
           updated_at: string
         }
         Insert: {
@@ -287,6 +324,7 @@ export type Database = {
           module_description?: string | null
           module_name: string
           module_order: number
+          parent_module_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -300,6 +338,7 @@ export type Database = {
           module_description?: string | null
           module_name?: string
           module_order?: number
+          parent_module_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -308,6 +347,13 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_modules_parent_module_id_fkey"
+            columns: ["parent_module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
             referencedColumns: ["id"]
           },
         ]
