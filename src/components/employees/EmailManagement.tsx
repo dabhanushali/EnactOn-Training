@@ -88,7 +88,6 @@ export const EmailManagement = ({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" className="h-8 gap-2">
-          <Mail className="w-3.5 h-3.5" />
           <span className="text-xs">{currentEmail}</span>
           <Edit2 className="w-3 h-3 text-muted-foreground" />
         </Button>
