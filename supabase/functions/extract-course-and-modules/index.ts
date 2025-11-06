@@ -189,17 +189,22 @@ serve(async (req) => {
             const { topic, modules: modulesText, resources: resourcesText } = rowData;
             
             // Parse resources/URLs for this specific topic
-            const urlPattern = /(https?:\/\/[^\s,\)]+)/g;
-            const urls = resourcesText.match(urlPattern) || [];
+            // Collect links from BOTH resources and modules cells to avoid missing project links in descriptions
+            const urlPattern = /(https?:\/\/[^\s\]\)\}\>,;\""]+)/gi;
+            const urlsFromResources = (resourcesText || '').match(urlPattern) || [];
+            const urlsFromModules = (modulesText || '').match(urlPattern) || [];
+            const urls = Array.from(new Set([
+              ...urlsFromResources,
+              ...urlsFromModules
+            ]));
             
-            // Keep the entire cell content together as one sub-module
-            // The modulesText describes what's covered in this topic
+            // Keep the entire cell content together as one sub-module (no splitting by commas/bullets)
             subModules.push({
               sub_module_name: topic,
               sub_module_description: modulesText || `Learn about ${topic}`,
               content_type: urls.length > 0 ? 'External Link' : 'Mixed',
               content_url: urls.join(', '), // Include all URLs for this topic
-              resources: resourcesText,
+              resources: `${modulesText ? modulesText + (resourcesText ? ' \n' : '') : ''}${resourcesText || ''}`.trim(),
               estimated_duration_minutes: 90
             });
           }

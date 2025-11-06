@@ -37,6 +37,7 @@ export const SmartBulkModuleCreator = ({ courseId, onModulesCreated, isAutoGener
   const [contentInput, setContentInput] = useState('');
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [inputType, setInputType] = useState<'url' | 'file' | 'text'>('url');
+  const [extractedData, setExtractedData] = useState<any | null>(null);
 
   useEffect(() => {
     fetchNextOrderNumber();
@@ -123,42 +124,19 @@ export const SmartBulkModuleCreator = ({ courseId, onModulesCreated, isAutoGener
 
   const processContent = async (content: string, source: string) => {
     try {
-      if (isAutoGeneration) {
-        // Use the new function that extracts both course and modules
-        const { data, error } = await supabase.functions.invoke('extract-course-and-modules', {
-          body: { content, source }
-        });
+      // Use hierarchical extractor that returns modules with sub-modules
+      const { data, error } = await supabase.functions.invoke('extract-course-and-modules', {
+        body: { content, source }
+      });
 
-        if (error) throw error;
-
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to extract course data');
-        }
-
-        // Call parent callback with course and modules data
-        if (onCourseGenerated) {
-          onCourseGenerated(data.course, data.modules);
-        }
-        toast.success(`Extracted course with ${data.modules?.length || 0} modules from ${source}`);
-      } else {
-        // Original behavior - just extract modules
-        const { data, error } = await supabase.functions.invoke('extract-modules-from-content', {
-          body: {
-            content,
-            source,
-            startingOrder: nextOrderNumber
-          }
-        });
-
-        if (error) throw error;
-
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to extract modules');
-        }
-
-        setModules(data.modules || []);
-        toast.success(`Extracted ${data.modules?.length || 0} modules from ${source}`);
+      if (error) throw error;
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to extract course content');
       }
+
+      // Show hierarchical preview (do not save yet)
+      setExtractedData(data);
+      toast.success(`Extracted ${data.modules?.length || 0} modules. Review and click Save to persist.`);
     } catch (error) {
       console.error('Error extracting content:', error);
       toast.error(`Failed to extract content: ${(error as Error).message}`);
@@ -362,8 +340,159 @@ export const SmartBulkModuleCreator = ({ courseId, onModulesCreated, isAutoGener
         </CardContent>
       </Card>
 
+      {/* Hierarchical Preview (Weeks as Modules + Sub-modules) */}
+      {extractedData && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Extracted Structure</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Review the weeks and sub-modules. Click save to add them to this course.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setExtractedData(null)}
+              >
+                Reset
+              </Button>
+              <Button onClick={async () => {
+                setSaving(true);
+                try {
+                  // Helper to pack resources and primary URL into a JSON string
+                  const packContentUrl = (primaryUrl?: string, resourcesText?: string) => {
+                    const links: { name: string; url: string }[] = [];
+                    if (resourcesText) {
+                      const urlRegex = /(https?:\/\/[^\s)]+)+/gi;
+                      const found = resourcesText.match(urlRegex) || [];
+                      found.forEach((u: string, i: number) => {
+                        try {
+                          const host = new URL(u).hostname.replace('www.', '');
+                          links.push({ name: host || `Resource ${i + 1}`, url: u });
+                        } catch {
+                          links.push({ name: `Resource ${i + 1}`, url: u });
+                        }
+                      });
+                    }
+                    if (primaryUrl || links.length) {
+                      return JSON.stringify({ url: primaryUrl || undefined, links });
+                    }
+                    return null;
+                  };
+
+                  // Determine starting order to append to existing modules
+                  const startOrder = nextOrderNumber;
+
+                  // Insert parent modules (weeks)
+                  const mainModules = (extractedData.modules || []).map((module: any, idx: number) => ({
+                    course_id: courseId,
+                    module_name: module.module_name,
+                    module_description: module.module_description,
+                    content_type: module.content_type,
+                    content_url: (module.content_url && module.content_url.trim()) ? module.content_url.trim() : null,
+                    estimated_duration_minutes: module.estimated_duration_minutes,
+                    module_order: startOrder + idx,
+                  }));
+
+                  const { data: insertedParents, error: parentsErr } = await supabase
+                    .from('course_modules')
+                    .insert(mainModules)
+                    .select('id');
+                  if (parentsErr) throw parentsErr;
+
+                  // Prepare sub-modules with parent ids
+                  const allSubmodules: any[] = [];
+                  const baseOrder = startOrder + (extractedData.modules || []).length;
+                  let subCounter = 0;
+                  (extractedData.modules || []).forEach((module: any, idx: number) => {
+                    const parentId = insertedParents?.[idx]?.id;
+                    if (!parentId) return;
+                    if (module.sub_modules?.length > 0) {
+                      module.sub_modules.forEach((sub: any) => {
+                        allSubmodules.push({
+                          course_id: courseId,
+                          parent_module_id: parentId,
+                          module_name: sub.sub_module_name,
+                          module_description: sub.sub_module_description,
+                          content_type: sub.content_type,
+                          content_url: packContentUrl(sub.content_url || '', sub.resources || ''),
+                          estimated_duration_minutes: sub.estimated_duration_minutes,
+                          module_order: baseOrder + (++subCounter),
+                        });
+                      });
+                    }
+                  });
+
+                  if (allSubmodules.length > 0) {
+                    const { error: subsErr } = await supabase.from('course_modules').insert(allSubmodules);
+                    if (subsErr) {
+                      // Rollback parents on failure
+                      const ids = (insertedParents || []).map((p: any) => p.id);
+                      await supabase.from('course_modules').delete().in('id', ids);
+                      throw subsErr;
+                    }
+                  }
+
+                  toast.success(`Saved ${(extractedData.modules?.length || 0)} modules and ${allSubmodules.length} sub-modules`);
+                  setExtractedData(null);
+                  setModules([]);
+                  setContentInput('');
+                  await fetchNextOrderNumber();
+                  onModulesCreated();
+                } catch (err) {
+                  console.error('Error saving extracted structure:', err);
+                  toast.error(`Failed to save: ${(err as Error).message}`);
+                } finally {
+                  setSaving(false);
+                }
+              }} disabled={saving}>
+                <Save className="w-4 h-4 mr-2" />
+                {saving ? 'Saving...' : 'Save Modules & Sub-modules'}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {extractedData.modules?.map((module: any, idx: number) => (
+                <Card key={idx}>
+                  <CardContent className="p-4">
+                    <h4 className="font-semibold text-primary">{module.module_name}</h4>
+                    <p className="text-sm text-muted-foreground mt-1">{module.module_description}</p>
+                    <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                      <span>Type: {module.content_type}</span>
+                      <span>Duration: {module.estimated_duration_minutes}min</span>
+                      {module.content_url && <span className="truncate">URL: {module.content_url}</span>}
+                    </div>
+                    {module.sub_modules?.length > 0 && (
+                      <div className="mt-3 pl-4 border-l-2 border-muted space-y-2">
+                        {module.sub_modules.map((sub: any, sidx: number) => (
+                          <div key={sidx} className="bg-muted/30 p-3 rounded">
+                            <h5 className="font-medium text-sm">{sub.sub_module_name}</h5>
+                            <p className="text-xs text-muted-foreground mt-1">{sub.sub_module_description}</p>
+                            <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
+                              <span>Type: {sub.content_type}</span>
+                              <span>Duration: {sub.estimated_duration_minutes}min</span>
+                            </div>
+                            {sub.content_url && (
+                              <p className="text-xs text-muted-foreground mt-1 truncate">URL: {sub.content_url}</p>
+                            )}
+                            {sub.resources && (
+                              <p className="text-xs text-muted-foreground mt-1">Resources: {sub.resources.slice(0, 120)}...</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Preview and Edit Section */}
-      {modules.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
