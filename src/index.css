@@ -20,11 +20,11 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 220 13% 18%;
 
-    /* Primary - Professional Blue */
-    --primary: 210 100% 50%;
+    /* Primary - eNactOn Blue */
+    --primary: 214 100% 45%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 210 100% 95%;
-    --primary-dark: 210 100% 40%;
+    --primary-light: 214 100% 95%;
+    --primary-dark: 214 100% 35%;
 
     /* Secondary - Complementary Teal */
     --secondary: 180 100% 35%;

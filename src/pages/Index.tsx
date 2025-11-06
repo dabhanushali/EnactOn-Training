@@ -57,7 +57,7 @@ const Index = () => {
             </div>
             
             <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-              GrowPro
+              eNactOn
               <span className="block text-secondary-light">Learning Management System</span>
             </h1>
             
@@ -169,7 +169,7 @@ const Index = () => {
             Ready to Transform Your Training Programs?
           </h2>
           <p className="text-xl text-white/90 mb-8">
-            Join organizations worldwide who trust GrowPro LMS for their employee development needs.
+            Join organizations worldwide who trust eNactOn LMS for their employee development needs.
           </p>
           <Button 
             size="lg"
