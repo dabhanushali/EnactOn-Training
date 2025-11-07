@@ -146,10 +146,10 @@ Jane,Smith,jane.smith@example.com,+91 9876543211,EMP002,HR,HR Manager,2024-02-01
             }
           }
 
-          // Create user in auth using signUp
+          // Create user in auth using signUp with common password
           const { data: authData, error: authError } = await supabase.auth.signUp({
             email: emp.email,
-            password: Math.random().toString(36).slice(-12) + 'A1!', // Generate random password
+            password: 'Wellcome@123',
             options: {
               data: {
                 first_name: emp.first_name,
