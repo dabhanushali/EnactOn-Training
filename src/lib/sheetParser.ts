@@ -189,6 +189,7 @@ export async function parseGoogleSheet(sheetUrl: string): Promise<ParsedCourseDa
 
           const records = results.data as Record<string, string>[];
           const modules: ParsedModule[] = [];
+          let currentModule: ParsedModule | null = null;
           let courseTitle = '';
 
           for (let i = 0; i < records.length; i++) {
@@ -200,8 +201,13 @@ export async function parseGoogleSheet(sheetUrl: string): Promise<ParsedCourseDa
             const modulesColumn = record['Modules'] || record['Module'] || record['modules'] || '';
             const resourcesColumn = record['Column 4'] || record['Resources'] || record['resources'] || '';
 
-            // Check if this row has a training topic (creates a new module)
+            // Check if this row starts a new module (has a training topic)
             if (trainingTopicColumn && trainingTopicColumn.trim()) {
+              // Save previous module if it exists
+              if (currentModule) {
+                modules.push(currentModule);
+              }
+
               const moduleName = trainingTopicColumn.trim();
               
               // Set course title from first module name if not set
@@ -209,6 +215,18 @@ export async function parseGoogleSheet(sheetUrl: string): Promise<ParsedCourseDa
                 courseTitle = moduleName;
               }
 
+              // Create new module
+              currentModule = {
+                module_name: moduleName.substring(0, 100),
+                module_description: '',
+                module_order: modules.length + 1,
+                estimated_duration_minutes: 0,
+                contents: []
+              };
+            }
+
+            // Create content item for this row if we have a current module and content
+            if (currentModule && (modulesColumn || resourcesColumn)) {
               // Combine all URLs from resources column
               const combinedUrls = combineResourceUrls(resourcesColumn);
               
@@ -220,26 +238,40 @@ export async function parseGoogleSheet(sheetUrl: string): Promise<ParsedCourseDa
               const allUrls = combinedUrls ? combinedUrls.split('\n') : [];
               const estimatedDuration = estimateDuration(modulesColumn, allUrls);
 
-              // Create one content item for this module
+              // Use module name as title if this is the first content, otherwise use a generic title
+              const contentTitle = currentModule.contents.length === 0 
+                ? currentModule.module_name 
+                : `${currentModule.module_name} - Part ${currentModule.contents.length + 1}`;
+
+              // Create one content item for this row
               const contentItem: ParsedContentItem = {
-                content_title: moduleName.substring(0, 100),
+                content_title: contentTitle.substring(0, 100),
                 content_description: modulesColumn || '',
                 content_url: combinedUrls,
                 content_type: contentType,
-                content_order: 1,
+                content_order: currentModule.contents.length + 1,
                 estimated_duration_minutes: estimatedDuration
               };
 
-              // Create module with single content item
-              modules.push({
-                module_name: moduleName.substring(0, 100),
-                module_description: modulesColumn || '',
-                module_order: modules.length + 1,
-                estimated_duration_minutes: estimatedDuration,
-                contents: [contentItem]
-              });
+              currentModule.contents.push(contentItem);
+              
+              // Append to module description
+              if (modulesColumn) {
+                currentModule.module_description += (currentModule.module_description ? '\n' : '') + modulesColumn;
+              }
             }
           }
+
+          // Add last module if it exists
+          if (currentModule) {
+            modules.push(currentModule);
+          }
+
+          // Calculate module durations from their contents
+          modules.forEach(module => {
+            const totalDuration = module.contents.reduce((sum, content) => sum + content.estimated_duration_minutes, 0);
+            module.estimated_duration_minutes = totalDuration || 30;
+          });
 
           if (modules.length === 0) {
             resolve({
