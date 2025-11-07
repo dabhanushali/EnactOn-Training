@@ -39,14 +39,8 @@ function extractUrls(text: string): string[] {
 function detectContentType(url: string): string {
   if (!url) return 'Text';
   const lowerUrl = url.toLowerCase();
-  if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be') || lowerUrl.includes('vimeo.com')) {
-    return 'Video';
-  }
   if (lowerUrl.includes('.pdf')) {
     return 'PDF';
-  }
-  if (lowerUrl.includes('docs.google.com') || lowerUrl.includes('.docx') || lowerUrl.includes('.doc')) {
-    return 'Document';
   }
   return 'External Link';
 }
