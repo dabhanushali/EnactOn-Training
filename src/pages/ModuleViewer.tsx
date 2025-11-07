@@ -151,13 +151,51 @@ export default function ModuleViewer() {
                     />
                   </div>
                 )}
-                {content.content_type !== 'Video' && (
-                  <Button asChild className="w-full">
-                    <a href={content.content_url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Open {content.content_type}
-                    </a>
-                  </Button>
+                {content.content_type !== 'Video' && content.content_url && (() => {
+                  const urls = content.content_url.split('\n').filter(url => url.trim());
+                  
+                  if (urls.length === 0) {
+                    return (
+                      <p className="text-muted-foreground text-sm">No resources available</p>
+                    );
+                  }
+                  
+                  if (urls.length === 1) {
+                    return (
+                      <Button asChild className="w-full">
+                        <a href={urls[0]} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Open {content.content_type}
+                        </a>
+                      </Button>
+                    );
+                  }
+                  
+                  return (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-muted-foreground mb-3">
+                        {urls.length} Resources Available
+                      </p>
+                      <div className="grid gap-2">
+                        {urls.map((url, idx) => (
+                          <Button
+                            key={idx}
+                            asChild
+                            variant="outline"
+                            className="w-full justify-start"
+                          >
+                            <a href={url} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              Resource {idx + 1}
+                            </a>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+                {content.content_type !== 'Video' && !content.content_url && (
+                  <p className="text-muted-foreground text-sm">No resources available</p>
                 )}
               </CardContent>
             </Card>
