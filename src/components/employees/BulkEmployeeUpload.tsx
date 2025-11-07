@@ -107,102 +107,26 @@ Jane,Smith,jane.smith@example.com,+91 9876543211,EMP002,HR,HR Manager,2024-02-01
         return;
       }
 
-      // Get trainee role
-      const { data: traineeRole } = await supabase
-        .from('roles')
-        .select('id')
-        .eq('role_name', 'Trainee')
-        .single();
-
-      if (!traineeRole) {
-        throw new Error('Trainee role not found');
-      }
-
-      let successCount = 0;
-      let failCount = 0;
-      const uploadErrors: string[] = [];
-
-      // Save current session
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-
-      // Process employees
-      for (let i = 0; i < employees.length; i++) {
-        const emp = employees[i];
-        setProgress(((i + 1) / employees.length) * 100);
-
-        try {
-          // Check if employee code already exists
-          if (emp.employee_code) {
-            const { data: existing } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('employee_code', emp.employee_code)
-              .single();
-
-            if (existing) {
-              uploadErrors.push(`Row ${i + 2}: Employee code ${emp.employee_code} already exists`);
-              failCount++;
-              continue;
-            }
-          }
-
-          // Create user in auth using signUp with common password
-          const { data: authData, error: authError } = await supabase.auth.signUp({
-            email: emp.email,
-            password: 'Wellcome@123',
-            options: {
-              data: {
-                first_name: emp.first_name,
-                last_name: emp.last_name
-              },
-              emailRedirectTo: `${window.location.origin}/`
-            }
-          });
-
-          if (authError) throw authError;
-
-          if (authData.user) {
-            // Update profile with additional data
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .update({
-                employee_code: emp.employee_code,
-                phone: emp.phone,
-                department: emp.department,
-                designation: emp.designation,
-                date_of_joining: emp.date_of_joining || new Date().toISOString().split('T')[0],
-                current_status: 'Pre-Joining',
-                role_id: traineeRole.id
-              })
-              .eq('id', authData.user.id);
-
-            if (profileError) throw profileError;
-          }
-
-          successCount++;
-        } catch (error) {
-          console.error(`Error creating employee at row ${i + 2}:`, error);
-          uploadErrors.push(`Row ${i + 2}: ${(error as Error).message}`);
-          failCount++;
-        }
-      }
-
-      // Restore original session
-      if (currentSession) {
-        await supabase.auth.setSession({
-          access_token: currentSession.access_token,
-          refresh_token: currentSession.refresh_token,
-        });
-      }
-
-      setResult({
-        success: successCount,
-        failed: failCount,
-        errors: uploadErrors
+      // Invoke edge function to create employees with admin privileges (no session swap)
+      setProgress(10);
+      const { data: bulkResult, error: bulkError } = await supabase.functions.invoke('bulk-create-employees', {
+        body: { employees }
       });
 
-      if (successCount > 0) {
-        toast.success(`Successfully added ${successCount} employee(s)`);
+      if (bulkError) throw bulkError as unknown as Error;
+
+      const { success, failed, errors: uploadErrors } = (bulkResult as any) || { success: 0, failed: employees.length, errors: ['Unknown error'] };
+
+      setProgress(100);
+
+      setResult({
+        success,
+        failed,
+        errors: uploadErrors || []
+      });
+
+      if (success > 0) {
+        toast.success(`Successfully added ${success} employee(s)`);
         onSuccess();
       }
 
