@@ -10,15 +10,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Save, Plus, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Edit, Trash2, FileSpreadsheet } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/auth-utils';
 import { useToast } from '@/hooks/use-toast';
 import { ModuleDialog } from '@/components/courses/ModuleDialog';
 import { EnhancedModuleCreator } from '@/components/courses/EnhancedModuleCreator';
 import { AssessmentDialog } from '@/components/courses/AssessmentDialog';
+import { SheetImportDialog } from '@/components/courses/SheetImportDialog';
+import { SheetPreviewEditor } from '@/components/courses/SheetPreviewEditor';
 import { MASTER_DATA } from '@/lib/masterData';
 import { RequiredLabel } from '@/components/forms/RequiredLabel';
+import { ParsedCourseData } from '@/lib/sheetParser';
+import { AccessDenied } from '@/components/common/AccessDenied';
 
 export default function CreateCourse() {
   const navigate = useNavigate();
@@ -27,7 +31,7 @@ export default function CreateCourse() {
 
   const [loading, setLoading] = useState(false);
   const [courseId, setCourseId] = useState<string | null>(null);
-  const [creationMode, setCreationMode] = useState<'select' | 'manual' | 'auto'>('select');
+  const [creationMode, setCreationMode] = useState<'select' | 'manual' | 'auto' | 'sheet'>('select');
   const [activeTab, setActiveTab] = useState('details');
   const [modules, setModules] = useState([]);
   const [assessments, setAssessments] = useState([]);
@@ -36,6 +40,10 @@ export default function CreateCourse() {
   const [extractionUrl, setExtractionUrl] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
+
+  // Sheet import states
+  const [sheetParsedData, setSheetParsedData] = useState<ParsedCourseData | null>(null);
+  const [isSavingSheet, setIsSavingSheet] = useState(false);
 
   // Dialog states
   const [showModuleDialog, setShowModuleDialog] = useState(false);
@@ -212,6 +220,84 @@ export default function CreateCourse() {
     navigate(`/courses/${courseId}`);
   };
 
+  const handleSheetSave = async (editedData: ParsedCourseData) => {
+    setIsSavingSheet(true);
+    try {
+      const { data: course, error: courseError } = await supabase
+        .from('courses')
+        .insert({
+          course_name: editedData.course.course_name,
+          course_description: editedData.course.course_description,
+          course_type: formData.course_type || 'Technical',
+          difficulty_level: formData.difficulty_level || 'Beginner',
+          target_role: formData.target_role || '',
+          learning_objectives: formData.learning_objectives || '',
+          is_mandatory: formData.is_mandatory,
+          created_by: profile?.id
+        })
+        .select()
+        .single();
+
+      if (courseError) throw courseError;
+
+      const modulesToInsert = editedData.modules.map((mod, idx) => ({
+        course_id: course.id,
+        module_name: mod.module_name,
+        module_description: mod.module_description,
+        module_order: idx + 1,
+        estimated_duration_minutes: mod.estimated_duration_minutes,
+        content_type: 'Text'
+      }));
+
+      const { data: insertedModules, error: modulesError } = await supabase
+        .from('course_modules')
+        .insert(modulesToInsert)
+        .select();
+
+      if (modulesError) throw modulesError;
+
+      const contentsToInsert: any[] = [];
+      editedData.modules.forEach((mod, modIdx) => {
+        const moduleId = insertedModules[modIdx].id;
+        mod.contents.forEach((content) => {
+          contentsToInsert.push({
+            module_id: moduleId,
+            content_title: content.content_title,
+            content_description: content.content_description,
+            content_url: content.content_url,
+            content_type: content.content_type,
+            content_order: content.content_order,
+            estimated_duration_minutes: content.estimated_duration_minutes
+          });
+        });
+      });
+
+      if (contentsToInsert.length > 0) {
+        const { error: contentsError } = await supabase
+          .from('module_contents')
+          .insert(contentsToInsert);
+
+        if (contentsError) throw contentsError;
+      }
+
+      toast({
+        title: "Success!",
+        description: `Course "${course.course_name}" created with ${insertedModules.length} modules and ${contentsToInsert.length} content items`
+      });
+
+      navigate(`/courses/${course.id}`);
+    } catch (error) {
+      console.error('Error saving course from sheet:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save course. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSavingSheet(false);
+    }
+  };
+
   if (!canCreateCourse) {
     return (
       <div className="container mx-auto py-10">
@@ -243,7 +329,7 @@ export default function CreateCourse() {
         </CardHeader>
         <CardContent>
           {creationMode === 'select' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCreationMode('manual')}>
                 <CardContent className="p-6 text-center space-y-4">
                   <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
@@ -252,6 +338,18 @@ export default function CreateCourse() {
                   <h3 className="text-xl font-semibold">Manual Creation</h3>
                   <p className="text-muted-foreground">
                     Create your course from scratch by entering details, adding modules, and assessments manually.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCreationMode('sheet')}>
+                <CardContent className="p-6 text-center space-y-4">
+                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                    <FileSpreadsheet className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold">Import from Sheets</h3>
+                  <p className="text-muted-foreground">
+                    Import course structure from Google Sheets with modules and content items automatically extracted.
                   </p>
                 </CardContent>
               </Card>
@@ -479,6 +577,30 @@ export default function CreateCourse() {
             </TabsContent>
               </Tabs>
             </>
+          )}
+
+          {creationMode === 'sheet' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Import from Google Sheets</h3>
+                <Button variant="outline" onClick={() => {
+                  setCreationMode('select');
+                  setSheetParsedData(null);
+                }}>
+                  Back to Options
+                </Button>
+              </div>
+
+              {!sheetParsedData ? (
+                <SheetImportDialog onDataParsed={setSheetParsedData} />
+              ) : (
+                <SheetPreviewEditor
+                  data={sheetParsedData}
+                  onSave={handleSheetSave}
+                  onBack={() => setSheetParsedData(null)}
+                />
+              )}
+            </div>
           )}
 
           {creationMode === 'auto' && (
