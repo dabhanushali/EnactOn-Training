@@ -108,100 +108,29 @@ function getCsvExportUrl(googleSheetUrl: string): string | null {
   }
 }
 
-// Parse modules column into content items
-function parseModulesIntoContents(modulesText: string): ParsedContentItem[] {
-  if (!modulesText) return [];
+// Extract all URLs from resources column and combine with newlines
+function combineResourceUrls(resourcesText: string): string {
+  if (!resourcesText) return '';
   
-  const contents: ParsedContentItem[] = [];
-  const lines = modulesText.split('\n').filter(line => line.trim());
-  
-  for (const line of lines) {
-    const trimmedLine = line.trim();
-    
-    // Skip empty lines
-    if (!trimmedLine) continue;
-    
-    // Check if line has a title pattern like "HTML5: description"
-    const colonMatch = trimmedLine.match(/^([^:]+):\s*(.+)$/);
-    if (colonMatch) {
-      contents.push({
-        content_title: colonMatch[1].trim().substring(0, 100),
-        content_description: colonMatch[2].trim(),
-        content_url: '',
-        content_type: 'Text',
-        content_order: 0, // Will be set later
-        estimated_duration_minutes: 15
-      });
-    } else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('• ')) {
-      // Bullet point
-      const text = trimmedLine.replace(/^[-•]\s*/, '').trim();
-      contents.push({
-        content_title: text.substring(0, 50),
-        content_description: text,
-        content_url: '',
-        content_type: 'Text',
-        content_order: 0,
-        estimated_duration_minutes: 10
-      });
-    } else if (trimmedLine.length > 10) {
-      // Regular text content
-      contents.push({
-        content_title: trimmedLine.substring(0, 50),
-        content_description: trimmedLine,
-        content_url: '',
-        content_type: 'Text',
-        content_order: 0,
-        estimated_duration_minutes: 15
-      });
-    }
-  }
-  
-  return contents;
-}
-
-// Parse resources column into content items
-function parseResourcesIntoContents(resourcesText: string): ParsedContentItem[] {
-  if (!resourcesText) return [];
-  
-  const contents: ParsedContentItem[] = [];
+  const allUrls: string[] = [];
   
   // Extract markdown-style links
   const markdownLinks = extractMarkdownLinks(resourcesText);
-  for (const link of markdownLinks) {
-    contents.push({
-      content_title: link.title,
-      content_description: '',
-      content_url: link.url,
-      content_type: detectContentType(link.url),
-      content_order: 0,
-      estimated_duration_minutes: 20
-    });
-  }
+  allUrls.push(...markdownLinks.map(link => link.url));
   
-  // Extract plain URLs that weren't in markdown format
+  // Extract plain URLs
   const plainUrls = extractUrls(resourcesText);
   const markdownUrls = markdownLinks.map(l => l.url);
   
+  // Add plain URLs that weren't already in markdown format
   for (const url of plainUrls) {
     if (!markdownUrls.includes(url)) {
-      // Try to find a label near the URL
-      const urlIndex = resourcesText.indexOf(url);
-      const beforeUrl = resourcesText.substring(Math.max(0, urlIndex - 50), urlIndex).trim();
-      const labelMatch = beforeUrl.match(/([A-Za-z0-9\s]+)$/);
-      const label = labelMatch ? labelMatch[1].trim() : 'Resource';
-      
-      contents.push({
-        content_title: label.substring(0, 50) || 'Resource',
-        content_description: '',
-        content_url: url,
-        content_type: detectContentType(url),
-        content_order: 0,
-        estimated_duration_minutes: 20
-      });
+      allUrls.push(url);
     }
   }
   
-  return contents;
+  // Remove duplicates and join with newlines
+  return [...new Set(allUrls)].join('\n');
 }
 
 // Main parser function
@@ -260,7 +189,6 @@ export async function parseGoogleSheet(sheetUrl: string): Promise<ParsedCourseDa
 
           const records = results.data as Record<string, string>[];
           const modules: ParsedModule[] = [];
-          let currentModule: ParsedModule | null = null;
           let courseTitle = '';
 
           for (let i = 0; i < records.length; i++) {
@@ -272,58 +200,46 @@ export async function parseGoogleSheet(sheetUrl: string): Promise<ParsedCourseDa
             const modulesColumn = record['Modules'] || record['Module'] || record['modules'] || '';
             const resourcesColumn = record['Column 4'] || record['Resources'] || record['resources'] || '';
 
-            // Check if this starts a new module
-            if (trainingTopicColumn || weekColumn.toLowerCase().includes('week')) {
-              // Save previous module
-              if (currentModule && currentModule.module_name) {
-                modules.push(currentModule);
-              }
-
-              // Start new module
-              const moduleName = trainingTopicColumn || weekColumn.replace(/example/i, '').trim();
-              if (!courseTitle && moduleName) {
+            // Check if this row has a training topic (creates a new module)
+            if (trainingTopicColumn && trainingTopicColumn.trim()) {
+              const moduleName = trainingTopicColumn.trim();
+              
+              // Set course title from first module name if not set
+              if (!courseTitle) {
                 courseTitle = moduleName;
               }
 
-              currentModule = {
-                module_name: moduleName.substring(0, 100),
-                module_description: '',
-                module_order: modules.length + 1,
-                estimated_duration_minutes: 0,
-                contents: []
-              };
-            }
-
-            // Add module description and parse contents
-            if (modulesColumn && currentModule) {
-              currentModule.module_description += (currentModule.module_description ? '\n' : '') + modulesColumn;
+              // Combine all URLs from resources column
+              const combinedUrls = combineResourceUrls(resourcesColumn);
               
-              // Parse modules column into content items
-              const contentItems = parseModulesIntoContents(modulesColumn);
-              currentModule.contents.push(...contentItems);
-            }
+              // Detect content type from first URL or default to Text
+              const firstUrl = combinedUrls.split('\n')[0];
+              const contentType = firstUrl ? detectContentType(firstUrl) : 'Text';
+              
+              // Extract all URLs for duration estimation
+              const allUrls = combinedUrls ? combinedUrls.split('\n') : [];
+              const estimatedDuration = estimateDuration(modulesColumn, allUrls);
 
-            // Parse resources into content items
-            if (resourcesColumn && currentModule) {
-              const resourceItems = parseResourcesIntoContents(resourcesColumn);
-              currentModule.contents.push(...resourceItems);
+              // Create one content item for this module
+              const contentItem: ParsedContentItem = {
+                content_title: moduleName.substring(0, 100),
+                content_description: modulesColumn || '',
+                content_url: combinedUrls,
+                content_type: contentType,
+                content_order: 1,
+                estimated_duration_minutes: estimatedDuration
+              };
+
+              // Create module with single content item
+              modules.push({
+                module_name: moduleName.substring(0, 100),
+                module_description: modulesColumn || '',
+                module_order: modules.length + 1,
+                estimated_duration_minutes: estimatedDuration,
+                contents: [contentItem]
+              });
             }
           }
-
-          // Add last module
-          if (currentModule && currentModule.module_name) {
-            modules.push(currentModule);
-          }
-
-          // Process modules: set content order and estimate durations
-          modules.forEach(module => {
-            module.contents.forEach((content, idx) => {
-              content.content_order = idx + 1;
-            });
-            
-            const allUrls = module.contents.map(c => c.content_url).filter(Boolean);
-            module.estimated_duration_minutes = estimateDuration(module.module_description, allUrls);
-          });
 
           if (modules.length === 0) {
             resolve({
