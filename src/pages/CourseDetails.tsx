@@ -36,6 +36,7 @@ export default function CourseDetails() {
   
   const [course, setCourse] = useState(null);
   const [modules, setModules] = useState([]);
+  const [moduleContentCounts, setModuleContentCounts] = useState({});
   const [enrollment, setEnrollment] = useState(null);
   const [assessments, setAssessments] = useState([]);
   const [assessmentTemplates, setAssessmentTemplates] = useState([]);
@@ -60,6 +61,19 @@ export default function CourseDetails() {
         .select('*')
         .eq('course_id', courseId)
         .order('module_order');
+
+      // Fetch content counts for each module
+      if (modulesData && modulesData.length > 0) {
+        const counts = {};
+        for (const module of modulesData) {
+          const { count } = await supabase
+            .from('module_contents')
+            .select('*', { count: 'exact', head: true })
+            .eq('module_id', module.id);
+          counts[module.id] = count || 0;
+        }
+        setModuleContentCounts(counts);
+      }
 
       // Fetch enrollment status
       const { data: enrollmentData, error: enrollmentError } = await supabase
@@ -436,6 +450,7 @@ export default function CourseDetails() {
                         contentUrl={module.content_url}
                         contentPath={module.content_path}
                         estimatedDuration={module.estimated_duration_minutes}
+                        contentCount={moduleContentCounts[module.id] || 0}
                         onStartModule={isTrainee ? handleStartModule : handleViewContent}
                         onViewContent={handleViewContent}
                       />

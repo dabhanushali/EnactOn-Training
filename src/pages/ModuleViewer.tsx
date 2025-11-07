@@ -4,7 +4,7 @@ import { MainNav } from '@/components/navigation/MainNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Clock, FileText, Video, Link as LinkIcon, Download } from 'lucide-react';
+import { ArrowLeft, Clock, FileText, Video, Link as LinkIcon, Download, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/auth-utils';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +17,7 @@ export default function ModuleViewer() {
   
   const [module, setModule] = useState(null);
   const [course, setCourse] = useState(null);
+  const [moduleContents, setModuleContents] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchModuleData = useCallback(async () => {
@@ -31,6 +32,17 @@ export default function ModuleViewer() {
           .single();
 
         if (moduleError) throw moduleError;
+
+        // Fetch module contents
+        const { data: contentsData, error: contentsError } = await supabase
+          .from('module_contents')
+          .select('*')
+          .eq('module_id', moduleId)
+          .order('content_order');
+
+        if (!contentsError && contentsData) {
+          setModuleContents(contentsData);
+        }
 
         // Fetch course details
         const { data: courseData, error: courseError } = await supabase
@@ -96,6 +108,63 @@ export default function ModuleViewer() {
 
   const renderContent = () => {
     if (!module) return null;
+
+    // If module has multiple contents, show them
+    if (moduleContents && moduleContents.length > 0) {
+      return (
+        <div className="space-y-4">
+          {moduleContents.map((content, index) => (
+            <Card key={content.id}>
+              <CardHeader>
+                 <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const Icon = getContentIcon(content.content_type);
+                        return <Icon className="h-5 w-5" />;
+                      })()}
+                      <CardTitle className="text-xl">{content.content_title}</CardTitle>
+                    </div>
+                    {content.content_description && (
+                      <p className="text-sm text-muted-foreground">{content.content_description}</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Badge variant="outline">{content.content_type}</Badge>
+                    {content.estimated_duration_minutes && (
+                      <Badge variant="secondary">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {content.estimated_duration_minutes} min
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {content.content_type === 'Video' && content.content_url && (
+                  <div className="aspect-video">
+                    <iframe
+                      src={getEmbedUrl(content.content_url)}
+                      className="w-full h-full rounded-lg"
+                      allowFullScreen
+                      title={content.content_title}
+                    />
+                  </div>
+                )}
+                {content.content_type !== 'Video' && (
+                  <Button asChild className="w-full">
+                    <a href={content.content_url} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Open {content.content_type}
+                    </a>
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      );
+    }
 
     const { content_type, content_url, content_path } = module;
 

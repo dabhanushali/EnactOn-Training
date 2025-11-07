@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { ModuleContentManager } from './ModuleContentManager';
 
 interface Module {
   id: string;
@@ -119,9 +121,15 @@ export function ModuleDialog({ courseId, module, moduleOrder, onSave, onClose }:
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <Label htmlFor="module_name">Module Name *</Label>
+    <Tabs defaultValue="basic" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="basic">Basic Info</TabsTrigger>
+        <TabsTrigger value="contents" disabled={!module}>Content Items</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="basic" className="space-y-4">
+        <div>
+          <Label htmlFor="module_name">Module Name *</Label>
         <Input
           id="module_name"
           value={form.module_name}
@@ -192,14 +200,24 @@ export function ModuleDialog({ courseId, module, moduleOrder, onSave, onClose }:
         />
       </div>
 
-      <div className="flex justify-end space-x-2">
-        <Button variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving...' : module ? 'Update Module' : 'Add Module'}
-        </Button>
-      </div>
-    </div>
+        <div className="flex justify-end space-x-2">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : module ? 'Update Module' : 'Add Module'}
+          </Button>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="contents">
+        {module && (
+          <ModuleContentManager 
+            moduleId={module.id} 
+            onContentsChange={() => {}}
+          />
+        )}
+      </TabsContent>
+    </Tabs>
   );
 }

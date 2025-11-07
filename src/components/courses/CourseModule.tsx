@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, FileText, Video, Link as LinkIcon, Download } from 'lucide-react';
+import { Clock, FileText, Video, Link as LinkIcon, Download, FolderOpen } from 'lucide-react';
 
 interface CourseModuleProps {
   id: string;
@@ -12,6 +12,7 @@ interface CourseModuleProps {
   contentUrl?: string;
   contentPath?: string;
   estimatedDuration?: number;
+  contentCount?: number;
   onStartModule?: (moduleId: string) => void;
   onViewContent?: (moduleId: string) => void;
 }
@@ -25,6 +26,7 @@ export const CourseModule = ({
   contentUrl,
   contentPath,
   estimatedDuration,
+  contentCount = 0,
   onStartModule,
   onViewContent,
 }: CourseModuleProps) => {
@@ -53,6 +55,12 @@ export const CourseModule = ({
                 <Badge variant="secondary" className="text-xs gap-1">
                   <Clock className="w-3 h-3" />
                   {estimatedDuration} min
+                </Badge>
+              )}
+              {contentCount > 0 && (
+                <Badge variant="outline" className="text-xs gap-1">
+                  <FolderOpen className="w-3 h-3" />
+                  {contentCount} content {contentCount === 1 ? 'item' : 'items'}
                 </Badge>
               )}
             </div>
