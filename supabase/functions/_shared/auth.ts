@@ -24,17 +24,19 @@ export async function authenticateUser(req: Request): Promise<AuthResult> {
       };
     }
 
-    // Create Supabase client
+    // Create Supabase client with the user's JWT token for auth context
+    const token = authHeader.replace('Bearer ', '');
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { auth: { persistSession: false } }
+      { 
+        auth: { persistSession: false },
+        global: { headers: { Authorization: authHeader } }
+      }
     );
 
     // Validate JWT token
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
     if (userError || !user) {
       return {
@@ -44,7 +46,7 @@ export async function authenticateUser(req: Request): Promise<AuthResult> {
       };
     }
 
-    // Verify user profile exists
+    // Verify user profile exists (uses user's JWT token, so RLS will work)
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('id')
