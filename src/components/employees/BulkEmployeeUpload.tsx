@@ -122,6 +122,9 @@ Jane,Smith,jane.smith@example.com,+91 9876543211,EMP002,HR,HR Manager,2024-02-01
       let failCount = 0;
       const uploadErrors: string[] = [];
 
+      // Save current session
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+
       // Process employees
       for (let i = 0; i < employees.length; i++) {
         const emp = employees[i];
@@ -143,33 +146,38 @@ Jane,Smith,jane.smith@example.com,+91 9876543211,EMP002,HR,HR Manager,2024-02-01
             }
           }
 
-          // Create user in auth
-          const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+          // Create user in auth using signUp
+          const { data: authData, error: authError } = await supabase.auth.signUp({
             email: emp.email,
-            email_confirm: true,
-            user_metadata: {
-              first_name: emp.first_name,
-              last_name: emp.last_name
+            password: Math.random().toString(36).slice(-12) + 'A1!', // Generate random password
+            options: {
+              data: {
+                first_name: emp.first_name,
+                last_name: emp.last_name
+              },
+              emailRedirectTo: `${window.location.origin}/`
             }
           });
 
           if (authError) throw authError;
 
-          // Update profile with additional data
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .update({
-              employee_code: emp.employee_code,
-              phone: emp.phone,
-              department: emp.department,
-              designation: emp.designation,
-              date_of_joining: emp.date_of_joining || new Date().toISOString().split('T')[0],
-              current_status: 'Pre-Joining',
-              role_id: traineeRole.id
-            })
-            .eq('id', authData.user.id);
+          if (authData.user) {
+            // Update profile with additional data
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .update({
+                employee_code: emp.employee_code,
+                phone: emp.phone,
+                department: emp.department,
+                designation: emp.designation,
+                date_of_joining: emp.date_of_joining || new Date().toISOString().split('T')[0],
+                current_status: 'Pre-Joining',
+                role_id: traineeRole.id
+              })
+              .eq('id', authData.user.id);
 
-          if (profileError) throw profileError;
+            if (profileError) throw profileError;
+          }
 
           successCount++;
         } catch (error) {
@@ -177,6 +185,14 @@ Jane,Smith,jane.smith@example.com,+91 9876543211,EMP002,HR,HR Manager,2024-02-01
           uploadErrors.push(`Row ${i + 2}: ${(error as Error).message}`);
           failCount++;
         }
+      }
+
+      // Restore original session
+      if (currentSession) {
+        await supabase.auth.setSession({
+          access_token: currentSession.access_token,
+          refresh_token: currentSession.refresh_token,
+        });
       }
 
       setResult({
