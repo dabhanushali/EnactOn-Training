@@ -217,6 +217,23 @@ export default function Employees() {
     }
   };
 
+  if (!canManageEmployees) {
+    return (
+      <div className="min-h-screen bg-background">
+        <MainNav />
+        <div className="container mx-auto py-8">
+          <Card className="max-w-md mx-auto">
+            <CardContent className="p-8 text-center">
+              <UserX className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
+              <p className="text-muted-foreground">You don't have permission to view employee information.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <MainNav />
