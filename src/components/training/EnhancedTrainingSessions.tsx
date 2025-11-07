@@ -489,7 +489,7 @@ export const EnhancedTrainingSessions = () => {
 
       {/* Tabbed Interface */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        {isAdmin &&<TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="pre-joining" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Pre-joining ({categorizedSessions.preJoining.length})
@@ -498,7 +498,7 @@ export const EnhancedTrainingSessions = () => {
             <Users className="h-4 w-4" />
             Post-joining ({categorizedSessions.postJoining.length})
           </TabsTrigger>
-        </TabsList>
+        </TabsList>}
 
         <TabsContent value="pre-joining" className="mt-6">
           {loading ? (

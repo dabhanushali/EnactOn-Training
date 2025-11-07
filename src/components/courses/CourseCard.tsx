@@ -151,7 +151,7 @@ export const CourseCard = ({
           {!isEnrolled && !isAdmin ? (
             <Button
               size="sm"
-              className="flex-1 bg-gradient-to-r from-primary to-secondary hover:from-primary-dark hover:to-secondary text-white"
+              className="flex-1 bg-primary hover:from-primary-dark hover:to-secondary text-white"
               onClick={() => onEnroll?.(id)}
             >
               Enroll Now
