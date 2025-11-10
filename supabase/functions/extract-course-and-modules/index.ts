@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 import Firecrawl from "npm:@mendable/firecrawl-js@4.4.1";
 import { authenticateUser } from "../_shared/auth.ts";
 
@@ -8,9 +7,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface ExtractRequest {
+interface GenerateCourseRequest {
   content: string;
   source: string;
+}
+
+interface CourseStructure {
+  course: {
+    course_name: string;
+    course_description: string;
+    course_type: string;
+    difficulty_level: string;
+    target_role: string;
+    learning_objectives: string;
+  };
+  modules: Array<{
+    module_name: string;
+    module_description: string;
+    content_type: string;
+    content_url?: string;
+    estimated_duration_minutes: number;
+    module_order: number;
+  }>;
 }
 
 serve(async (req) => {
@@ -28,7 +46,7 @@ serve(async (req) => {
       );
     }
 
-    const { content, source }: ExtractRequest = await req.json();
+    const { content, source }: GenerateCourseRequest = await req.json();
 
     if (!content || content.trim().length < 20) {
       return new Response(

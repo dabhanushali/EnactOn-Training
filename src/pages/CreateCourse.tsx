@@ -24,6 +24,47 @@ import { RequiredLabel } from '@/components/forms/RequiredLabel';
 import { ParsedCourseData } from '@/lib/sheetParser';
 import { AccessDenied } from '@/components/common/AccessDenied';
 
+interface ExtractedCourseData {
+  course: {
+    course_name: string;
+    course_description: string;
+    course_type: string;
+    difficulty_level: string;
+    target_role: string;
+    learning_objectives: string;
+  };
+  modules: Array<{
+    module_name: string;
+    module_description: string;
+    content_type: string;
+    content_url?: string;
+    estimated_duration_minutes: number;
+    module_order: number;
+  }>;
+  source: string;
+  original_url: string;
+}
+
+interface ModuleData {
+  id: string;
+  module_name: string;
+  module_description: string;
+  content_type: string;
+  content_url?: string;
+  estimated_duration_minutes: number;
+  module_order: number;
+}
+
+interface AssessmentData {
+  id: string;
+  title: string;
+  description: string;
+  assessment_type: string;
+  passing_score: number;
+  time_limit_minutes: number;
+  is_mandatory: boolean;
+}
+
 export default function CreateCourse() {
   const navigate = useNavigate();
   const { profile } = useAuth();
@@ -33,13 +74,13 @@ export default function CreateCourse() {
   const [courseId, setCourseId] = useState<string | null>(null);
   const [creationMode, setCreationMode] = useState<'select' | 'manual' | 'auto' | 'sheet'>('select');
   const [activeTab, setActiveTab] = useState('details');
-  const [modules, setModules] = useState([]);
-  const [assessments, setAssessments] = useState([]);
-  
+  const [modules, setModules] = useState<ModuleData[]>([]);
+  const [assessments, setAssessments] = useState<AssessmentData[]>([]);
+
   // Auto-generation states
   const [extractionUrl, setExtractionUrl] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
-  const [extractedData, setExtractedData] = useState<any>(null);
+  const [extractedData, setExtractedData] = useState<ExtractedCourseData | null>(null);
 
   // Sheet import states
   const [sheetParsedData, setSheetParsedData] = useState<ParsedCourseData | null>(null);
@@ -48,8 +89,8 @@ export default function CreateCourse() {
   // Dialog states
   const [showModuleDialog, setShowModuleDialog] = useState(false);
   const [showAssessmentDialog, setShowAssessmentDialog] = useState(false);
-  const [editingModule, setEditingModule] = useState(null);
-  const [editingAssessment, setEditingAssessment] = useState(null);
+  const [editingModule, setEditingModule] = useState<ModuleData | null>(null);
+  const [editingAssessment, setEditingAssessment] = useState<AssessmentData | null>(null);
 
   const [formData, setFormData] = useState({
     course_name: '',
@@ -65,7 +106,7 @@ export default function CreateCourse() {
 
   const canCreateCourse = profile?.role?.role_name === 'Team Lead' || profile?.role?.role_name === 'HR' || profile?.role?.role_name === 'Management';
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: string | number | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -645,29 +686,29 @@ export default function CreateCourse() {
                       
                       setIsExtracting(true);
                       try {
-                        const { data, error } = await supabase.functions.invoke('extract-course-and-modules', {
-                          body: { 
+                        const { data, error } = await supabase.functions.invoke('generate-course-from-url', {
+                          body: {
                             content: extractionUrl,
                             source: 'URL'
                           }
                         });
-                        
+
                         if (error) throw error;
-                        
+
                         if (!data.success) {
-                          throw new Error(data.error || 'Failed to extract course data');
+                          throw new Error(data.error || 'Failed to generate course data');
                         }
-                        
+
                         setExtractedData(data);
                         toast({
                           title: "Success",
-                          description: `Extracted course with ${data.modules?.length || 0} modules`
+                          description: `Generated course with ${data.modules?.length || 0} modules`
                         });
                       } catch (error) {
-                        console.error('Error extracting course:', error);
+                        console.error('Error generating course:', error);
                         toast({
-                          title: "Extraction Failed",
-                          description: error instanceof Error ? error.message : "Failed to extract course content",
+                          title: "Generation Failed",
+                          description: error instanceof Error ? error.message : "Failed to generate course content",
                           variant: "destructive"
                         });
                       } finally {
