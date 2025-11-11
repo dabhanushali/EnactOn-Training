@@ -217,7 +217,11 @@ export const EnhancedModuleCreator = ({
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openDeleteDialog(module)}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
