@@ -186,14 +186,23 @@ export async function parseGoogleSheet(sheetUrl: string): Promise<ParsedCourseDa
           let currentModule: ParsedModule | null = null;
           let courseTitle = '';
 
+          // Get column headers to map to indices
+          const headers = results.meta.fields || [];
+          const getColumnValue = (record: Record<string, string>, index: number): string => {
+            if (headers.length > index) {
+              return record[headers[index]] || '';
+            }
+            return '';
+          };
+
           for (let i = 0; i < records.length; i++) {
             const record = records[i];
 
-            // Normalize headers
-            const weekColumn = record['Column 1'] || record['Week'] || record['week'] || '';
-            const trainingTopicColumn = record['Training Topic'] || record['Topics'] || record['Topic'] || record['training topic'] || '';
-            const modulesColumn = record['Modules'] || record['Module'] || record['modules'] || '';
-            const resourcesColumn = record['Column 4'] || record['Resources'] || record['resources'] || '';
+            // Use column indices: 0=Week, 1=Training Topic, 2=Modules, 3=Resources (4th column)
+            const weekColumn = getColumnValue(record, 0);
+            const trainingTopicColumn = getColumnValue(record, 1);
+            const modulesColumn = getColumnValue(record, 2);
+            const resourcesColumn = getColumnValue(record, 3); // Always use 4th column regardless of name
 
             // Check if this row starts a new module (has a training topic)
             if (trainingTopicColumn && trainingTopicColumn.trim()) {

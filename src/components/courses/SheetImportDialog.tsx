@@ -94,7 +94,7 @@ export function SheetImportDialog({ onDataParsed }: SheetImportDialogProps) {
           <div className="space-y-2 text-sm">
             <p className="font-semibold">How to use:</p>
             <ol className="list-decimal list-inside space-y-1 ml-2">
-              <li>Create a Google Sheet with columns: <strong>Week</strong>, <strong>Training Topic</strong>, <strong>Modules</strong>, <strong>Resources</strong></li>
+              <li>Create a Google Sheet with 4 columns: <strong>Week</strong>, <strong>Training Topic</strong>, <strong>Modules</strong>, and any 4th column for resources/videos</li>
               <li>Make your sheet publicly accessible (Anyone with link can view)</li>
               <li>Copy the sheet URL and paste it above</li>
               <li>Click "Extract Course Data" to preview</li>
@@ -112,8 +112,8 @@ export function SheetImportDialog({ onDataParsed }: SheetImportDialogProps) {
               </a>
             </p>
             <p className="mt-2 text-muted-foreground">
-              💡 <strong>Tip:</strong> Each row with a "Training Topic" creates a new module. 
-              Content from "Modules" and "Resources" columns are added as content items.
+              💡 <strong>Tip:</strong> Each row with a "Training Topic" creates a new module.
+              Content from "Modules" and the 4th column (resources/videos) are added as content items.
             </p>
           </div>
         </AlertDescription>
