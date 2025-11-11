@@ -74,10 +74,8 @@ targetRoles: [
     'Junior Developer',
     'Senior Developer',
     'Manager',
-    'HR',
     'Executive',
     'Asst. Executive',
-    'Management',
     'CTO',
     'CEO'
   ],
