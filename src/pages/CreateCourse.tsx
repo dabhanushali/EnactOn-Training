@@ -371,7 +371,7 @@ export default function CreateCourse() {
 
   if (!canCreateCourse) {
     return (
-      <div className="container mx-auto py-10">
+      <div className="container mx-auto">
         <Button
           variant="outline"
           onClick={() => navigate("/courses")}
@@ -392,15 +392,17 @@ export default function CreateCourse() {
   }
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="min-h-screen bg-background">
       <MainNav />
-      <Button
-        variant="outline"
-        onClick={() => navigate("/courses")}
-        className="mb-6"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Courses
-      </Button>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Button
+          variant="outline"
+          onClick={() => navigate("/courses")}
+          className="mb-6"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Courses
+        </Button>
 
       <Card className="mb-6">
         <CardHeader>
@@ -1257,6 +1259,7 @@ export default function CreateCourse() {
           )}
         </DialogContent>
       </Dialog>
+      </main>
     </div>
   );
 }

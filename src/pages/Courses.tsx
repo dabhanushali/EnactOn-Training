@@ -55,6 +55,7 @@ export default function Courses() {
       let coursesData: Course[] | null = [];
 
       if (profile?.role?.role_name === 'Trainee') {
+        // For trainees, only show courses they are enrolled in
         const { data: enrolledCourseIds, error: enrolledError } = await supabase
           .from('course_enrollments')
           .select('course_id')
@@ -64,24 +65,27 @@ export default function Courses() {
 
         const enrolledCourseIdsList = enrolledCourseIds?.map(e => e.course_id) || [];
 
-        const { data: optionalCourses, error: optionalError } = await supabase
-          .from('courses')
-          .select('*')
-          .eq('is_mandatory', false);
-
-        if (optionalError) throw optionalError;
-
-        const { data: enrolledCoursesData, error: enrolledCoursesError } = await supabase
+        if (enrolledCourseIdsList.length > 0) {
+          const { data: enrolledCoursesData, error: enrolledCoursesError } = await supabase
             .from('courses')
             .select('*')
             .in('id', enrolledCourseIdsList);
 
-        if (enrolledCoursesError) throw enrolledCoursesError;
+          if (enrolledCoursesError) throw enrolledCoursesError;
+          coursesData = enrolledCoursesData;
+        } else {
+          coursesData = [];
+        }
 
-        const allCourses = [...(enrolledCoursesData || []), ...(optionalCourses || [])];
-        const uniqueCourses = Array.from(new Map(allCourses.map(c => [c.id, c])).values());
-        coursesData = uniqueCourses;
-
+      } else if (profile?.role?.role_name === 'Team Lead') {
+        // For Team Leads, only show courses relevant to their department
+        const { data, error } = await supabase
+          .from('courses')
+          .select('*')
+          .or(`target_role.eq.${profile.department},target_role.is.null`)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        coursesData = data;
       } else {
         const { data, error } = await supabase
           .from('courses')
@@ -296,7 +300,7 @@ export default function Courses() {
           <div className="text-center py-12">
             <p className="text-muted-foreground">
               {profile?.role?.role_name === 'Trainee'
-                ? "No courses assigned to you yet, and no optional courses are available."
+                ? "No courses have been assigned to you yet."
                 : "No courses found matching your search."}
             </p>
           </div>

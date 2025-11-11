@@ -129,19 +129,19 @@ export const MainNav = () => {
             <div className="hidden sm:flex items-center gap-3">
               <div>
                 <h1 className="text-xl font-bold text-foreground">EnactOn LMS</h1>
-                <p className="text-xs text-muted-foreground -mt-1">Where reliability matters</p>
+                <p className="text-xs text-muted-foreground -mt-1 hidden xl:block">Where reliability matters</p>
               </div>
-              {userRole && (
+              {/* {userRole && (
                 <div className="flex items-center gap-2 pl-3 border-l">
                   <User className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium text-foreground">{userRole}</span>
                 </div>
-              )}
+              )} */}
             </div>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
+          <div className="hidden lg:flex items-center space-x-1">
             <NavItems items={filteredNavItems} />
           </div>
 
@@ -185,7 +185,7 @@ export const MainNav = () => {
 
             {/* Mobile Menu */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild className="md:hidden">
+              <SheetTrigger asChild className="lg:hidden">
                 <Button variant="ghost" size="sm">
                   <Menu className="h-5 w-5" />
                 </Button>

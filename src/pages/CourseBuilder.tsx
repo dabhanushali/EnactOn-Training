@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { MainNav } from '@/components/navigation/MainNav';
 import { AssessmentTemplateManager } from '@/components/courses/AssessmentTemplateManager';
 import { EnhancedModuleCreator } from '@/components/courses/EnhancedModuleCreator';
+import { MASTER_DATA } from '@/lib/masterData';
 import { 
   ArrowLeft, 
   Plus, 
@@ -36,6 +37,7 @@ interface Course {
   course_description: string;
   difficulty_level: string;
   course_type: string;
+  target_role?: string;
   is_mandatory: boolean;
   completion_rule: string;
   minimum_passing_percentage: number;
@@ -334,6 +336,29 @@ export default function CourseBuilder() {
                     />
                   </div>
                   <div>
+                    <Label htmlFor="course_type">Course Type</Label>
+                    <Select
+                      value={course.course_type}
+                      onValueChange={(value) => {
+                        setCourse({...course, course_type: value});
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MASTER_DATA.courseTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
                     <Label htmlFor="difficulty_level">Difficulty Level</Label>
                     <Select
                       value={course.difficulty_level}
@@ -348,6 +373,27 @@ export default function CourseBuilder() {
                         <SelectItem value="Beginner">Beginner</SelectItem>
                         <SelectItem value="Intermediate">Intermediate</SelectItem>
                         <SelectItem value="Advanced">Advanced</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="target_role">Target Role</Label>
+                    <Select
+                      value={course.target_role || 'all'}
+                      onValueChange={(value) => {
+                        setCourse({...course, target_role: value === 'all' ? undefined : value});
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Roles" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Roles</SelectItem>
+                        {MASTER_DATA.departments.map((role) => (
+                          <SelectItem key={role} value={role}>
+                            {role}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

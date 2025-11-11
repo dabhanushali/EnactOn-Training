@@ -241,21 +241,21 @@ export default function Employees() {
       <div className="container mx-auto py-8 px-4">
         {/* Header Section */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-3">
                 <div className="p-3 rounded-xl bg-primary/10 text-primary">
-                  <Building2 className="w-8 h-8" />
+                  <Building2 className="w-6 h-6 md:w-8 md:h-8" />
                 </div>
-                Employee Management
+                <span>Employee Management</span>
               </h1>
-              <p className="text-muted-foreground text-lg">
+              <p className="text-muted-foreground text-base md:text-lg">
                 Manage your organization's workforce with ease
               </p>
             </div>
-            <div className="flex gap-3">
-              <Button 
-                variant="outline" 
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                variant="outline"
                 onClick={() => {
                   const csvContent = generateCSV();
                   downloadCSV(csvContent, 'employees.csv');
@@ -265,10 +265,10 @@ export default function Employees() {
                 Export CSV
               </Button>
               <BulkEmployeeUpload onSuccess={fetchEmployees} />
-              <AddEmployeeDialog 
-                open={isAddDialogOpen} 
-                onOpenChange={setIsAddDialogOpen} 
-                onSuccess={fetchEmployees} 
+              <AddEmployeeDialog
+                open={isAddDialogOpen}
+                onOpenChange={setIsAddDialogOpen}
+                onSuccess={fetchEmployees}
               />
             </div>
           </div>

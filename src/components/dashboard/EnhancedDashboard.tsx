@@ -346,7 +346,7 @@ export const EnhancedDashboard = () => {
     title: string;
     value: string | number;
     description: string;
-    icon: any;
+    icon: React.ComponentType<{ className?: string }>;
     trend?: { value: number; isPositive: boolean };
     onClick?: () => void;
   }) => (
@@ -863,7 +863,7 @@ export const EnhancedDashboard = () => {
     <div className="space-y-8">
       {/* Welcome Header */}
       <div className="text-center md:text-left">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-3">
+        <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-3">
           Welcome back, {profile?.first_name}!
         </h1>
         <p className="text-lg text-muted-foreground">

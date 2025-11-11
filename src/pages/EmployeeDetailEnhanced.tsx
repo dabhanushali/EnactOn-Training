@@ -1,5 +1,5 @@
+import React, { useState, useEffect, useCallback } from 'react';
 import { MainNav } from '@/components/navigation/MainNav';
-import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth-utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -206,8 +206,8 @@ export default function EmployeeDetailEnhanced() {
         .maybeSingle();
 
       if (error) throw error;
-      setEmployee(data as any);
-      setEditData(data as any || {});
+      setEmployee(data as Employee);
+      setEditData(data as Employee || {});
       if(showToast) toast.success("Employee details refreshed.");
     } catch (error) {
       console.error('Failed to fetch employee data:', error);
@@ -224,7 +224,7 @@ export default function EmployeeDetailEnhanced() {
         .select(`id, first_name, last_name, role:roles(role_name)`);
 
       if (error) throw error;
-      setAllUsers(data?.filter(user => user.id !== employeeId) as any || []);
+      setAllUsers(data?.filter(user => user.id !== employeeId) as PotentialManager[] || []);
     } catch (error) {
       console.error('Error fetching all users:', error);
       toast.error(`Failed to load users list: ${(error as Error).message}`);
@@ -302,7 +302,7 @@ export default function EmployeeDetailEnhanced() {
       }
     }
     
-    const updatePayload = {
+    const updatePayload: Partial<Employee & { role_id: string | null }> = {
       first_name: editData.first_name?.trim(),
       last_name: editData.last_name?.trim(),
       employee_code: editData.employee_code,
@@ -310,7 +310,7 @@ export default function EmployeeDetailEnhanced() {
       designation: editData.designation,
       phone: editData.phone,
       date_of_joining: editData.date_of_joining,
-      role_id: (editData as any).role_id,
+      role_id: editData.role_id,
     };
 
     try {
@@ -384,8 +384,8 @@ export default function EmployeeDetailEnhanced() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Enhanced Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
               {canManage ? (
                 <Link to="/employees">
                   <Button variant="ghost" className="hover:bg-white/50">
@@ -401,20 +401,20 @@ export default function EmployeeDetailEnhanced() {
                   </Button>
                 </Link>
               )}
-              
+
               <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg">
                   {(employee.first_name?.[0] || '') + (employee.last_name?.[0] || '')}
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-foreground">
+                  <h1 className="text-2xl md:text-3xl font-bold text-foreground">
                     {employee.first_name} {employee.last_name}
                   </h1>
-                  <div className="flex items-center space-x-3 mt-1">
-                    <Badge variant={getStatusBadgeVariant(employee.current_status)} className="font-medium">
+                  <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-3 mt-1">
+                    <Badge variant={getStatusBadgeVariant(employee.current_status)} className="font-medium w-fit">
                       {employee.current_status}
                     </Badge>
-                    <span className="text-muted-foreground">•</span>
+                    <span className="hidden sm:inline text-muted-foreground">•</span>
                     <span className="text-muted-foreground font-medium">
                       {employee.role?.role_name || 'No Role'}
                     </span>
@@ -422,9 +422,9 @@ export default function EmployeeDetailEnhanced() {
                 </div>
               </div>
             </div>
-            
+
             {canManage && (
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 {isEditing ? (
                   <>
                     <Button variant="outline" onClick={() => setIsEditing(false)} className="bg-white/80">
@@ -715,13 +715,15 @@ export default function EmployeeDetailEnhanced() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="unassign">Unassign Team Lead</SelectItem>
-                    {allUsers.map(user => (
-                      user.id && (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.first_name} {user.last_name} ({user.role?.role_name || 'No Role'})
-                        </SelectItem>
-                      )
-                    ))}
+                    {allUsers
+                      .filter(user => user.role?.role_name !== 'Trainee')
+                      .map(user => (
+                        user.id && (
+                          <SelectItem key={user.id} value={user.id}>
+                            {user.first_name} {user.last_name} ({user.role?.role_name || 'No Role'})
+                          </SelectItem>
+                        )
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
