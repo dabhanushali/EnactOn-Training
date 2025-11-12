@@ -34,3 +34,27 @@ export const useAuth = () => {
   }
   return context;
 };
+
+// Auth monitoring utilities for debugging
+export const logAuthEvent = (event: string, details: Record<string, unknown>) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[AUTH ${timestamp}] ${event}:`, details);
+
+  // In production, you might want to send this to a logging service
+  // logToService({ event, details, timestamp });
+};
+
+export const isAuthErrorRecoverable = (error: Error | unknown): boolean => {
+  // Define which errors are recoverable vs require user action
+  const recoverableErrors = [
+    'Network request failed',
+    'Failed to fetch',
+    'timeout',
+    'network',
+  ];
+
+  const errorMessage = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  return recoverableErrors.some(recoverableError =>
+    errorMessage.includes(recoverableError.toLowerCase())
+  );
+};

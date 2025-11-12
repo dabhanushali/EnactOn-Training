@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Bell, X, CheckCircle, AlertCircle, Info, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,13 +50,7 @@ export const NotificationCenter = () => {
     }
   };
 
-  useEffect(() => {
-    if (profile?.id) {
-      fetchNotifications();
-    }
-  }, [profile?.id]);
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!profile?.id) return;
 
     const notifs: Notification[] = [];
@@ -131,12 +125,17 @@ export const NotificationCenter = () => {
         });
       }
 
-      // Training session notifications
+      // Training session notifications - use stable date ranges to prevent repeated requests
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const endOfTomorrow = new Date(startOfToday);
+      endOfTomorrow.setDate(endOfTomorrow.getDate() + 2); // Include tomorrow and day after
+
       const { data: upcomingSessions } = await supabase
         .from('training_sessions')
         .select('*')
-        .gte('start_datetime', new Date().toISOString())
-        .lte('start_datetime', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())
+        .gte('start_datetime', startOfToday.toISOString())
+        .lte('start_datetime', endOfTomorrow.toISOString())
         .filter('attendees', 'cs', `{${profile.id}}`);
 
       upcomingSessions?.forEach((session) => {
@@ -170,7 +169,13 @@ export const NotificationCenter = () => {
     } catch (error) {
       console.error('Error fetching notifications:', error);
     }
-  };
+  }, [profile]);
+
+  useEffect(() => {
+    if (profile?.id) {
+      fetchNotifications();
+    }
+  }, [profile?.id, fetchNotifications]);
 
   const markAsRead = (id: string) => {
     if (!profile?.id) return;

@@ -64,11 +64,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         let role: Profile['role'] = null;
-        if ((base as any).role_id) {
+        if ((base as { role_id?: string }).role_id) {
           const { data: roleRow, error: roleErr } = await supabase
             .from('roles')
             .select('role_name, role_description')
-            .eq('id', (base as any).role_id)
+            .eq('id', (base as { role_id?: string }).role_id!)
             .maybeSingle();
           if (roleErr) console.warn('Role fetch failed:', roleErr);
           else if (roleRow) role = { role_name: roleRow.role_name as UserRoleType, role_description: roleRow.role_description ?? null };
@@ -106,14 +106,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event, session?.user?.id);
-      const newUserId = session?.user?.id;
+      console.log(`Auth Event: ${event}`, {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        timestamp: new Date().toISOString()
+      });
 
-      if (newUserId !== user?.id) {
+      // Only clear profile on actual sign out, not during token refresh
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
         setProfile(null);
         sessionStorage.removeItem('userProfile');
+        return;
       }
 
+      // Handle token refresh - don't clear profile unnecessarily
+      if (event === 'TOKEN_REFRESHED' && session?.user) {
+        setUser(session.user);
+        // Only refresh profile if we don't have one or if user changed
+        if (!profile || profile.id !== session.user.id) {
+          refreshProfile(session.user.id);
+        }
+        return;
+      }
+
+      // Handle sign in and other events
       setUser(session?.user ?? null);
 
       if (session?.user) {
@@ -126,32 +143,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const initializeAuth = async () => {
       setLoading(true);
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('Error getting session:', error);
-          setLoading(false);
-          return;
-        }
+      let retries = 3;
 
-        setUser(session?.user ?? null);
+      while (retries > 0) {
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error) throw error;
 
-        if (session?.user) {
-          if (!profile || profile.id !== session.user.id) {
-            console.log('Fetching profile for user:', session.user.id);
-            const profileData = await fetchProfile(session.user.id);
-            setProfile(profileData);
-            if (!profileData) console.warn('No profile found for user:', session.user.id);
+          setUser(session?.user ?? null);
+
+          if (session?.user) {
+            if (!profile || profile.id !== session.user.id) {
+              console.log('Fetching profile for user:', session.user.id);
+              const profileData = await fetchProfile(session.user.id);
+              setProfile(profileData);
+              if (!profileData) console.warn('No profile found for user:', session.user.id);
+            }
+          } else {
+            setProfile(null);
+            sessionStorage.removeItem('userProfile');
           }
-        } else {
-          setProfile(null);
-          sessionStorage.removeItem('userProfile');
+          break; // Success, exit retry loop
+        } catch (error) {
+          retries--;
+          console.error(`Auth initialization failed (attempt ${4 - retries}/3):`, error);
+
+          if (retries === 0) {
+            console.error('Failed to initialize auth after all retries');
+            // Clear any potentially corrupted state
+            setUser(null);
+            setProfile(null);
+            sessionStorage.removeItem('userProfile');
+          } else {
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries)));
+          }
         }
-      } catch (error) {
-        console.error('Error in auth initialization:', error);
-      } finally {
-        setLoading(false);
       }
+
+      setLoading(false);
     };
 
     initializeAuth();
