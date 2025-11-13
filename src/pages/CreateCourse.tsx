@@ -58,6 +58,12 @@ interface ExtractedCourseData {
     content_url?: string;
     estimated_duration_minutes: number;
     module_order: number;
+    contents?: Array<{
+      content_title: string;
+      content_type: string;
+      content_url: string;
+      estimated_duration_minutes: number;
+    }>;
   }>;
   source: string;
   original_url: string;
@@ -81,6 +87,9 @@ interface AssessmentData {
   passing_score: number;
   time_limit_minutes: number;
   is_mandatory: boolean;
+  course_id?: string;
+  instructions?: string;
+  created_by?: string;
 }
 
 export default function CreateCourse() {
@@ -1176,17 +1185,19 @@ export default function CreateCourse() {
                             const moduleId = insertedModules[modIdx].id;
 
                             // Note: We are using `mod.contents` from our updated Deno function
-                            mod.contents.forEach((content, contentIdx) => {
-                              contentsToInsert.push({
-                                module_id: moduleId,
-                                content_title: content.content_title,
-                               content_url: content.content_url || '',
-                                content_type: content.content_type,
-                                content_order: contentIdx + 1,
-                                estimated_duration_minutes:
-                                  content.estimated_duration_minutes,
+                            if (mod.contents && mod.contents.length > 0) {
+                              mod.contents.forEach((content, contentIdx) => {
+                                contentsToInsert.push({
+                                  module_id: moduleId,
+                                  content_title: content.content_title,
+                                  content_url: content.content_url || '',
+                                  content_type: content.content_type,
+                                  content_order: contentIdx + 1,
+                                  estimated_duration_minutes:
+                                    content.estimated_duration_minutes,
+                                });
                               });
-                            });
+                            }
                           });
 
                           if (contentsToInsert.length > 0) {
@@ -1241,7 +1252,12 @@ export default function CreateCourse() {
           {courseId && (
             <AssessmentDialog
               courseId={courseId}
-              assessment={editingAssessment}
+              assessment={editingAssessment ? {
+                ...editingAssessment,
+                course_id: courseId,
+                instructions: editingAssessment.instructions || '',
+                created_by: profile?.id || ''
+              } : null}
               onAssessmentSave={(newAssessment) => {
                 if (editingAssessment) {
                   setAssessments((prev) =>

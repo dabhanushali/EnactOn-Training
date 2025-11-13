@@ -25,11 +25,11 @@ interface CourseModuleData {
   id: string;
   module_name: string;
   module_description: string;
-  content_type: string;
+  content_type?: string;
   content_url?: string;
   content_path?: string;
   course_id?: string;
-  estimated_duration_minutes: number;
+  estimated_duration_minutes?: number;
   module_order: number;
 }
 interface ModuleContentData {
@@ -46,6 +46,8 @@ interface ModuleWithContents {
   module_name: string;
   module_description: string;
   module_order: number;
+  content_type?: string;
+  estimated_duration_minutes?: number;
   module_contents: ModuleContentData[]; // Array of child content
 }
 
@@ -357,8 +359,10 @@ export const EnhancedModuleCreator = ({
                       module_order: selectedModule.module_order,
                       course_id: courseId,
                       // Provide default values for fields that exist on the old type
-                      content_type: "",
-                      estimated_duration_minutes: 0,
+                      content_type: selectedModule.content_type || "",
+                      content_url: "",
+                      content_path: "",
+                      estimated_duration_minutes: selectedModule.estimated_duration_minutes || 0,
                     }
                   : null
               }
