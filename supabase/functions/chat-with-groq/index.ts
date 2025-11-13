@@ -36,7 +36,7 @@ serve(async (req) => {
     }
 
     // Fetch user context: profile, manager, courses, projects
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select(`
         *,
@@ -45,6 +45,11 @@ serve(async (req) => {
       `)
       .eq('id', user.id)
       .single()
+
+    if (profileError) {
+      console.error('Error fetching profile:', profileError)
+    }
+    console.log('Profile data:', JSON.stringify(profile, null, 2))
 
     const { data: enrollments } = await supabase
       .from('course_enrollments')
