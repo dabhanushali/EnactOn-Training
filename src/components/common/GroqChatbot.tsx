@@ -215,73 +215,8 @@ export const GroqChatbot: React.FC = () => {
     setMessages(prev => [...prev, newMessage]);
   };
 
-  // Get Team Lead information from database
-  const getTeamLeadInfo = async () => {
-    try {
-      const { data: userProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('manager_id')
-        .eq('id', profile?.id)
-        .single();
-
-      console.log('User Profile:', userProfile, 'Error:', profileError);
-
-      if (profileError || !userProfile?.manager_id) {
-        return {
-          name: 'Momin Kaalo',
-          email: 'momin@enacton.com',
-          department: 'HR Department',
-          phone: undefined
-        };
-      }
-
-      // Get the Team Lead's details
-      const { data: teamLeadProfile, error: teamLeadError } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, phone, department')
-        .eq('id', userProfile.manager_id)
-        .single();
-
-      if (teamLeadError || !teamLeadProfile) {
-        return {
-          name: 'Momin Kaalo',
-          email: 'momin@enacton.com',
-          department: 'HR Department',
-          phone: undefined
-        };
-      }
-
-      // Create Team Lead object with full details
-      return {
-        name: `${teamLeadProfile.first_name} ${teamLeadProfile.last_name}`,
-        email: `${teamLeadProfile.first_name.toLowerCase()}.${teamLeadProfile.last_name.toLowerCase()}@enacton.com`,
-        department: teamLeadProfile.department || 'Engineering',
-        phone: teamLeadProfile.phone
-      };
-    } catch (error) {
-      console.error('Error fetching Team Lead info:', error);
-      return {
-        name: 'Momin Kaalo',
-        email: 'momin@enacton.com',
-        department: 'HR Department',
-        phone: undefined
-      };
-    }
-  };
-
   const callGroqAPI = async (userMessage: string): Promise<string> => {
     try {
-      // Check if user is asking for Team Lead information
-      const tlKeywords = ['team lead', 'tl', 'manager', 'supervisor', 'who do i contact', 'who should i ask'];
-      const needsTLHelp = tlKeywords.some(keyword =>
-        userMessage.toLowerCase().includes(keyword)
-      );
-
-      if (needsTLHelp) {
-        const tlInfo = await getTeamLeadInfo();
-        return `For complex questions or advanced support, please reach out to your Team Lead:\n\n**${tlInfo.name}**\n📧 ${tlInfo.email}\n🏢 ${tlInfo.department} Department${tlInfo.phone ? `\n📞 ${tlInfo.phone}` : ''}\n\nThey're available to help with any detailed questions about your role, projects, or company policies.`;
-      }
-
       // Create personalized system prompt with user's courses and assignments
       const personalizedPrompt = SYSTEM_PROMPT(userCourses, userAssignments);
 
@@ -291,6 +226,7 @@ export const GroqChatbot: React.FC = () => {
           systemPrompt: personalizedPrompt
         }
       });
+      
       if (error) {
         console.error('Supabase function error:', error);
         return 'I\'m having trouble connecting right now. Please try again later.';
