@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { useAuth } from "@/hooks/auth-utils";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { GroqChatbot } from "@/components/common/GroqChatbot";
 import { Dashboard } from "./pages/Dashboard";
 import Index from "./pages/Index";
 import AuthPage from "./pages/Auth";
@@ -58,27 +59,30 @@ const AuthenticatedApp = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Dashboard />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/employees" element={<Employees />} />
-      <Route path="/my-team" element={<MyTeam />} />
-      <Route path="/employees/:employeeId" element={<EmployeeDetailEnhanced />} />
-      <Route path="/courses" element={<Courses />} />
-      <Route path="/courses/create" element={<CreateCourse />} />
-      <Route path="/courses/:courseId" element={<CourseDetails />} />
-      <Route path="/courses/:courseId/edit" element={<CourseBuilder />} />
-      <Route path="/courses/:courseId/modules/:moduleId" element={<ModuleViewer />} />
-      <Route path="/courses/:courseId/assessments/:assessmentId" element={<AssessmentTaker />} />
-      <Route path="/projects" element={<Projects />} />
-      <Route path="/projects/:projectId" element={<ProjectDetails />} />
-      <Route path="/assignments/:assignmentId" element={<AssignmentDetails />} />
-      <Route path="/assignments/:assignmentId/evaluate" element={<EvaluateAssignment />} />
-      <Route path="/training-sessions" element={<TrainingSessions />} />
-      <Route path="/reports/readiness" element={<TraineeReadinessReport />} />
-      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/employees" element={<Employees />} />
+        <Route path="/my-team" element={<MyTeam />} />
+        <Route path="/employees/:employeeId" element={<EmployeeDetailEnhanced />} />
+        <Route path="/courses" element={<Courses />} />
+        <Route path="/courses/create" element={<CreateCourse />} />
+        <Route path="/courses/:courseId" element={<CourseDetails />} />
+        <Route path="/courses/:courseId/edit" element={<CourseBuilder />} />
+        <Route path="/courses/:courseId/modules/:moduleId" element={<ModuleViewer />} />
+        <Route path="/courses/:courseId/assessments/:assessmentId" element={<AssessmentTaker />} />
+        <Route path="/projects" element={<Projects />} />
+        <Route path="/projects/:projectId" element={<ProjectDetails />} />
+        <Route path="/assignments/:assignmentId" element={<AssignmentDetails />} />
+        <Route path="/assignments/:assignmentId/evaluate" element={<EvaluateAssignment />} />
+        <Route path="/training-sessions" element={<TrainingSessions />} />
+        <Route path="/reports/readiness" element={<TraineeReadinessReport />} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <GroqChatbot />
+    </>
   );
 };
 const App = () => (
