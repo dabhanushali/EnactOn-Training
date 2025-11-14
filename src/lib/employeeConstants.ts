@@ -31,6 +31,5 @@ export const DESIGNATIONS = [
   'UI/UX Designer',
   'Business Analyst',
   'Consultant',
-  'Intern',
   'Trainee'
 ];

@@ -13,9 +13,17 @@ export type EmployeeStatusType = typeof EmployeeStatus[keyof typeof EmployeeStat
 
 export const UserRoles = {
   MANAGEMENT: 'Management',
-  HR: 'HR', 
+  HR: 'HR',
   TEAM_LEAD: 'Team Lead',
   TRAINEE: 'Trainee'
+} as const;
+
+// Display names for user roles (for UI only)
+export const UserRoleDisplayNames: Record<UserRoleType, string> = {
+  [UserRoles.MANAGEMENT]: 'Management',
+  [UserRoles.HR]: 'Human Resources',
+  [UserRoles.TEAM_LEAD]: 'Team Lead',
+  [UserRoles.TRAINEE]: 'Intern'
 } as const;
 
 export type UserRoleType = typeof UserRoles[keyof typeof UserRoles];
@@ -179,7 +187,7 @@ export const Grade = {
 
 export type GradeType = typeof Grade[keyof typeof Grade];
 
-// Helper functions for validation
+// Helper functions for validation and display
 export const isValidEmployeeStatus = (status: string): status is EmployeeStatusType => {
   return Object.values(EmployeeStatus).includes(status as EmployeeStatusType);
 };
@@ -190,6 +198,11 @@ export const isValidUserRole = (role: string): role is UserRoleType => {
 
 export const isValidProgressStatus = (status: string): status is ProgressStatusType => {
   return Object.values(ProgressStatus).includes(status as ProgressStatusType);
+};
+
+// Get display name for user role
+export const getUserRoleDisplayName = (role: UserRoleType): string => {
+  return UserRoleDisplayNames[role] || role;
 };
 
 // Export all enum values as arrays for dropdowns

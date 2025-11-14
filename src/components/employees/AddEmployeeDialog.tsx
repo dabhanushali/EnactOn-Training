@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
-import { UserRoleType } from '@/lib/enums';
-import { MASTER_DATA } from '@/lib/masterData';
+import { UserRoleType, getUserRoleDisplayName } from '@/lib/enums';
+import { MASTER_DATA, getDesignationDisplayName } from '@/lib/masterData';
 
 interface AddEmployeeDialogProps {
   open: boolean;
@@ -279,7 +279,7 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
                 <SelectContent>
                   {MASTER_DATA.designations.map((designation) => (
                     <SelectItem key={designation} value={designation}>
-                      {designation}
+                      {getDesignationDisplayName(designation)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -296,7 +296,7 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
               <SelectContent>
                 {roles.map((role) => (
                   <SelectItem key={role.id} value={role.id}>
-                    {role.role_name}
+                    {getUserRoleDisplayName(role.role_name)}
                   </SelectItem>
                 ))}
               </SelectContent>

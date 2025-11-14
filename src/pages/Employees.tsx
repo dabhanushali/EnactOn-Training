@@ -13,7 +13,7 @@ import {
   Building2, Mail, Phone, Calendar, User, Briefcase 
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { UserRoleType } from '@/lib/enums';
+import { UserRoleType, getUserRoleDisplayName } from '@/lib/enums';
 import { AddEmployeeDialog } from '@/components/employees/AddEmployeeDialog';
 import { BulkEmployeeUpload } from '@/components/employees/BulkEmployeeUpload';
 import { EmailManagement } from '@/components/employees/EmailManagement';
@@ -377,7 +377,7 @@ export default function Employees() {
                   <SelectItem value="all">All Roles</SelectItem>
                   {roles.map(role => (
                     <SelectItem key={role.id} value={role.role_name}>
-                      {role.role_name}
+                      {getUserRoleDisplayName(role.role_name as UserRoleType)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -463,7 +463,7 @@ export default function Employees() {
                         <div className="flex items-center space-x-2 text-sm">
                           {getRoleIcon(employee.role?.role_name || '')}
                           <span className="font-medium text-foreground">
-                            {employee.role?.role_name || 'No Role'}
+                            {employee.role?.role_name ? getUserRoleDisplayName(employee.role.role_name as UserRoleType) : 'No Role'}
                           </span>
                         </div>
 

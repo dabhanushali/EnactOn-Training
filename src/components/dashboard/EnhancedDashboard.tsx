@@ -1,5 +1,5 @@
 import { useAuth } from '@/hooks/auth-utils';
-import { UserRoles } from '@/lib/enums';
+import { UserRoles, getUserRoleDisplayName } from '@/lib/enums';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -871,6 +871,9 @@ export const EnhancedDashboard = () => {
           {userRole === UserRoles.HR && "Manage employee development and training programs."}
           {userRole === UserRoles.TEAM_LEAD && "Guide your team's learning journey and track progress."}
           {userRole === UserRoles.TRAINEE && "Continue your learning journey and unlock your potential."}
+        </p>
+        <p className="text-sm text-muted-foreground mt-2">
+          Role: {getUserRoleDisplayName(userRole)}
         </p>
       </div>
 

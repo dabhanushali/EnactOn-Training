@@ -70,7 +70,7 @@ targetRoles: [
 // ],
 
   designations: [
-    'Intern',
+    'Trainee',
     'Junior Developer',
     'Senior Developer',
     'Manager',
@@ -188,10 +188,10 @@ export const getDropdownOptions = (dataKey: keyof typeof MASTER_DATA) => {
   return MASTER_DATA[dataKey];
 };
 
-// Utility function to get nested dropdown options
+  // Utility function to get nested dropdown options
 export const getNestedDropdownOptions = (dataKey: string, subKey?: string) => {
   const keys = dataKey.split('.');
-  let data: any = MASTER_DATA;
+  let data: typeof MASTER_DATA = MASTER_DATA;
   
   for (const key of keys) {
     data = data[key];
@@ -203,6 +203,23 @@ export const getNestedDropdownOptions = (dataKey: string, subKey?: string) => {
   }
   
   return data || [];
+};
+
+// Display names for designations (for UI only)
+export const DESIGNATION_DISPLAY_NAMES: Record<string, string> = {
+  'Trainee': 'Intern',
+  'Junior Developer': 'Junior Developer',
+  'Senior Developer': 'Senior Developer',
+  'Manager': 'Manager',
+  'Executive': 'Executive',
+  'Asst. Executive': 'Asst. Executive',
+  'CTO': 'CTO',
+  'CEO': 'CEO'
+};
+
+// Get display name for designation
+export const getDesignationDisplayName = (designation: string): string => {
+  return DESIGNATION_DISPLAY_NAMES[designation] || designation;
 };
 
 // Named exports for compatibility

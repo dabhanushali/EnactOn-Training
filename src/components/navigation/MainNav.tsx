@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/auth-utils';
-import { UserRoles } from '@/lib/enums';
+import { UserRoles, getUserRoleDisplayName } from '@/lib/enums';
 import {
   BarChart3,
   BookOpen,
@@ -167,7 +167,7 @@ export const MainNav = () => {
                     {profile?.first_name} {profile?.last_name}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    {profile?.role?.role_name} • {profile?.department}
+                    {getUserRoleDisplayName(profile?.role?.role_name)} • {profile?.department}
                   </p>
                 </div>
                 <DropdownMenuSeparator />
