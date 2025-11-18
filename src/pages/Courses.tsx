@@ -54,7 +54,7 @@ export default function Courses() {
       setLoading(true);
       let coursesData: Course[] | null = [];
 
-      if (profile?.role?.role_name === 'Trainee') {
+      if (profile?.role?.role_name === 'Intern') {
         // For trainees, only show courses they are enrolled in
         const { data: enrolledCourseIds, error: enrolledError } = await supabase
           .from('course_enrollments')
@@ -218,7 +218,7 @@ export default function Courses() {
     });
   };
 
-  const canManageCourses = profile?.role?.role_name === 'Team Lead' || profile?.role?.role_name === 'HR' || profile?.role?.role_name === 'Management';
+  const canManageCourses = profile?.role?.role_name === 'Team Lead' || profile?.role?.role_name === 'Human Resources' || profile?.role?.role_name === 'Management';
 
   return (
     <div className="min-h-screen bg-background">
@@ -299,7 +299,7 @@ export default function Courses() {
         {!loading && filteredCourses.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground">
-              {profile?.role?.role_name === 'Trainee'
+              {profile?.role?.role_name === 'Intern'
                 ? "No courses have been assigned to you yet."
                 : "No courses found matching your search."}
             </p>

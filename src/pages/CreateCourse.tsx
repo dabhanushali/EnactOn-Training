@@ -138,7 +138,7 @@ export default function CreateCourse() {
 
   const canCreateCourse =
     profile?.role?.role_name === "Team Lead" ||
-    profile?.role?.role_name === "HR" ||
+    profile?.role?.role_name === "Human Resources" ||
     profile?.role?.role_name === "Management";
 
   const handleInputChange = (

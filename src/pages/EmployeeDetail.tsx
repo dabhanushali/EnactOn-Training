@@ -67,7 +67,7 @@ export default function EmployeeDetail() {
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
 
-  const canManage = profile?.role?.role_name === 'HR' || profile?.role?.role_name === 'Management';
+  const canManage = profile?.role?.role_name === 'Human Resources' || profile?.role?.role_name === 'Management';
 
   const fetchEmployeeDetails = useCallback(async (showToast = false) => {
     if (!employeeId) return;
@@ -134,7 +134,7 @@ export default function EmployeeDetail() {
     const selectedUser = allUsers.find(u => u.id === selectedUserId);
     if (!selectedUser) return;
     try {
-      const isPrivilegedRole = selectedUser.role?.role_name === 'HR' || selectedUser.role?.role_name === 'Management';
+      const isPrivilegedRole = selectedUser.role?.role_name === 'Human Resources' || selectedUser.role?.role_name === 'Management';
       if (!isPrivilegedRole && selectedUser.role?.role_name !== 'Team Lead') {
         const { data: roleData, error: roleError } = await supabase.from('roles').select('id').eq('role_name', 'Team Lead').single();
         if (roleError || !roleData) throw new Error("Could not find 'Team Lead' role to promote user.");
@@ -457,7 +457,7 @@ export default function EmployeeDetail() {
         </div>
 
         {/* Team Lead Assignment */}
-        {canManage && employee.role?.role_name !== 'HR' && employee.role?.role_name !== 'Management' && (
+        {canManage && employee.role?.role_name !== 'Human Resources' && employee.role?.role_name !== 'Management' && (
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Team Lead Assignment</CardTitle>

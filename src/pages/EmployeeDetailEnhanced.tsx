@@ -186,9 +186,9 @@ export default function EmployeeDetailEnhanced() {
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
 
-  const canManage = profile?.role?.role_name === 'HR' || profile?.role?.role_name === 'Management';
+  const canManage = profile?.role?.role_name === 'Human Resources' || profile?.role?.role_name === 'Management';
   const isOwnProfile = profile?.id === employeeId;
-  const isTrainee = profile?.role?.role_name === 'Trainee';
+  const isTrainee = profile?.role?.role_name === 'Intern';
   const canChangeOwnStatus = isOwnProfile && isTrainee;
 
   const fetchEmployeeDetails = useCallback(async (showToast = false) => {
@@ -257,7 +257,7 @@ export default function EmployeeDetailEnhanced() {
     const selectedUser = allUsers.find(u => u.id === selectedUserId);
     if (!selectedUser) return;
     try {
-      const isPrivilegedRole = selectedUser.role?.role_name === 'HR' || selectedUser.role?.role_name === 'Management';
+      const isPrivilegedRole = selectedUser.role?.role_name === 'Human Resources' || selectedUser.role?.role_name === 'Management';
       if (!isPrivilegedRole && selectedUser.role?.role_name !== 'Team Lead') {
         const { data: roleData, error: roleError } = await supabase.from('roles').select('id').eq('role_name', 'Team Lead').single();
         if (roleError || !roleData) throw new Error("Could not find 'Team Lead' role to promote user.");
@@ -693,7 +693,7 @@ export default function EmployeeDetailEnhanced() {
         </div>
 
         {/* Team Lead Assignment */}
-        {canManage && employee.role?.role_name !== 'HR' && employee.role?.role_name !== 'Management' && (
+        {canManage && employee.role?.role_name !== 'Human Resources' && employee.role?.role_name !== 'Management' && (
           <Card className="mb-8 border-0 shadow-lg bg-white/80 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2 text-xl">
@@ -716,7 +716,7 @@ export default function EmployeeDetailEnhanced() {
                   <SelectContent>
                     <SelectItem value="unassign">Unassign Team Lead</SelectItem>
                     {allUsers
-                      .filter(user => user.role?.role_name !== 'Trainee')
+                      .filter(user => user.role?.role_name !== 'Intern')
                       .map(user => (
                         user.id && (
                           <SelectItem key={user.id} value={user.id}>

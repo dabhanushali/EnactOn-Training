@@ -38,19 +38,19 @@ const navigationItems: NavItem[] = [
     label: 'Dashboard',
     icon: BarChart3,
     href: '/dashboard',
-    roles: [UserRoles.MANAGEMENT, UserRoles.HR, UserRoles.TEAM_LEAD, UserRoles.TRAINEE],
+    roles: [UserRoles.MANAGEMENT, UserRoles.HUMAN_RESOURCES, UserRoles.TEAM_LEAD, UserRoles.INTERN],
   },
   {
     label: 'Courses',
     icon: BookOpen,
     href: '/courses',
-    roles: [UserRoles.MANAGEMENT, UserRoles.HR, UserRoles.TEAM_LEAD, UserRoles.TRAINEE],
+    roles: [UserRoles.MANAGEMENT, UserRoles.HUMAN_RESOURCES, UserRoles.TEAM_LEAD, UserRoles.INTERN],
   },
   {
     label: 'Employees',
     icon: Users,
     href: '/employees',
-    roles: [UserRoles.MANAGEMENT, UserRoles.HR],
+    roles: [UserRoles.MANAGEMENT, UserRoles.HUMAN_RESOURCES],
   },
   {
     label: 'My Team',
@@ -62,19 +62,19 @@ const navigationItems: NavItem[] = [
     label: 'Projects',
     icon: FolderOpen,
     href: '/projects',
-    roles: [UserRoles.MANAGEMENT, UserRoles.HR, UserRoles.TEAM_LEAD, UserRoles.TRAINEE],
+    roles: [UserRoles.MANAGEMENT, UserRoles.HUMAN_RESOURCES, UserRoles.TEAM_LEAD, UserRoles.INTERN],
   },
   {
     label: 'Review Sessions',
     icon: Calendar,
     href: '/training-sessions',
-    roles: [UserRoles.MANAGEMENT, UserRoles.HR, UserRoles.TEAM_LEAD, UserRoles.TRAINEE],
+    roles: [UserRoles.MANAGEMENT, UserRoles.HUMAN_RESOURCES, UserRoles.TEAM_LEAD, UserRoles.INTERN],
   },
   {
     label: 'Readiness Report',
     icon: BarChart3,
     href: '/reports/readiness',
-    roles: [UserRoles.MANAGEMENT, UserRoles.HR, UserRoles.TEAM_LEAD],
+    roles: [UserRoles.MANAGEMENT, UserRoles.HUMAN_RESOURCES, UserRoles.TEAM_LEAD],
   },
 ];
 
