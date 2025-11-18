@@ -382,7 +382,7 @@ export const EnhancedTrainingSessions = () => {
 
         {showActions && (
           <div className="pt-4 border-t border-border">
-            {profile?.role?.role_name === 'Trainee' ? (
+            {profile?.role?.role_name === 'Intern' ? (
               // Trainee actions
               <div className="space-y-2">
                 {showRecordingAndNotes ? (
@@ -478,7 +478,7 @@ export const EnhancedTrainingSessions = () => {
         <div>
           <h2 className="text-2xl font-bold">Review Sessions</h2>
           <p className="text-muted-foreground">
-            {profile?.role?.role_name === 'Trainee' 
+            {profile?.role?.role_name === 'Intern' 
               ? "Join live sessions and access recordings"
               : "Manage and schedule review sessions"
             }

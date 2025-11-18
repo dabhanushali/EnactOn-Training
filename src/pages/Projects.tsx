@@ -61,7 +61,7 @@ export default function Projects() {
 
     setLoading(true);
     try {
-      if (profile.role?.role_name === 'Trainee') {
+      if (profile.role?.role_name === 'Intern') {
         // Fetch assignments for trainees
         const { data, error } = await supabase
           .from('project_assignments')
@@ -408,7 +408,7 @@ export default function Projects() {
                         </div>
 
                         <div className="space-y-3 mb-4">
-                          {profile.role?.role_name === 'Trainee' && <div className="flex items-center justify-between">
+                          {profile.role?.role_name === 'Intern' && <div className="flex items-center justify-between">
                             <Badge className={`${statusConfig.color} font-medium flex items-center gap-1`}>
                               <StatusIcon className="w-3 h-3" />
                               {statusConfig.label}

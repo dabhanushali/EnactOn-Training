@@ -84,7 +84,7 @@ export const EnhancedDashboard = () => {
 
       let data: Partial<DashboardStats> = { loading: false };
 
-      if (userRoleName === UserRoles.MANAGEMENT || userRoleName === UserRoles.HR) {
+      if (userRoleName === UserRoles.MANAGEMENT || userRoleName === UserRoles.HUMAN_RESOURCES) {
         // Management/HR Dashboard
         const [employeesResult, coursesResult, projectsResult, enrollmentsResult] = await Promise.all([
           supabase.from('profiles').select('*', { count: 'exact', head: true }),
@@ -311,7 +311,7 @@ export const EnhancedDashboard = () => {
           };
         }
 
-      } else if (userRoleName === UserRoles.TRAINEE) {
+      } else if (userRoleName === UserRoles.INTERN) {
         // Trainee Dashboard
         const { data: enrollments } = await supabase
           .from('course_enrollments')
@@ -868,9 +868,9 @@ export const EnhancedDashboard = () => {
         </h1>
         <p className="text-lg text-muted-foreground">
           {userRole === UserRoles.MANAGEMENT && "Monitor your organization's training performance and growth."}
-          {userRole === UserRoles.HR && "Manage employee development and training programs."}
+          {userRole === UserRoles.HUMAN_RESOURCES && "Manage employee development and training programs."}
           {userRole === UserRoles.TEAM_LEAD && "Guide your team's learning journey and track progress."}
-          {userRole === UserRoles.TRAINEE && "Continue your learning journey and unlock your potential."}
+          {userRole === UserRoles.INTERN && "Continue your learning journey and unlock your potential."}
         </p>
         <p className="text-sm text-muted-foreground mt-2">
           Role: {getUserRoleDisplayName(userRole)}
@@ -879,9 +879,9 @@ export const EnhancedDashboard = () => {
 
       {/* Role-specific Dashboard Content */}
       {userRole === UserRoles.MANAGEMENT && renderManagementDashboard()}
-      {userRole === UserRoles.HR && renderManagementDashboard()}
+      {userRole === UserRoles.HUMAN_RESOURCES && renderManagementDashboard()}
       {userRole === UserRoles.TEAM_LEAD && renderTeamLeadDashboard()}
-      {userRole === UserRoles.TRAINEE && renderTraineeDashboard()}
+      {userRole === UserRoles.INTERN && renderTraineeDashboard()}
 
       {/* Quick Actions */}
       <Card className="bg-gradient-to-r from-primary/5 to-secondary/5">
@@ -905,7 +905,7 @@ export const EnhancedDashboard = () => {
                 </Button>
               </>
             )}
-            {userRole === UserRoles.HR && (
+            {userRole === UserRoles.HUMAN_RESOURCES && (
               <>
                 <Button variant="outline" className="justify-start" onClick={() => navigate('/employees')}>
                   <Users className="h-4 w-4 mr-2" />
@@ -929,7 +929,7 @@ export const EnhancedDashboard = () => {
                 </Button>
               </>
             )}
-            {userRole === UserRoles.TRAINEE && (
+            {userRole === UserRoles.INTERN && (
               <>
                 <Button className="justify-start" onClick={() => navigate('/courses')}>
                   <BookOpen className="h-4 w-4 mr-2" />

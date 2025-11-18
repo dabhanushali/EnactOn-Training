@@ -59,7 +59,7 @@ export const NotificationCenter = () => {
 
     try {
       // Course-related notifications for trainees
-      if (userRole === 'Trainee') {
+      if (userRole === 'Intern') {
         const { data: enrollments } = await supabase
           .from('course_enrollments')
           .select('*, courses(*)')

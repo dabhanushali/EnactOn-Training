@@ -13,17 +13,17 @@ export type EmployeeStatusType = typeof EmployeeStatus[keyof typeof EmployeeStat
 
 export const UserRoles = {
   MANAGEMENT: 'Management',
-  HR: 'HR',
+  HUMAN_RESOURCES: 'Human Resources',
   TEAM_LEAD: 'Team Lead',
-  TRAINEE: 'Trainee'
+  INTERN: 'Intern'
 } as const;
 
 // Display names for user roles (for UI only)
 export const UserRoleDisplayNames: Record<UserRoleType, string> = {
   [UserRoles.MANAGEMENT]: 'Management',
-  [UserRoles.HR]: 'Human Resources',
+  [UserRoles.HUMAN_RESOURCES]: 'Human Resources',
   [UserRoles.TEAM_LEAD]: 'Team Lead',
-  [UserRoles.TRAINEE]: 'Intern'
+  [UserRoles.INTERN]: 'Intern'
 } as const;
 
 export type UserRoleType = typeof UserRoles[keyof typeof UserRoles];

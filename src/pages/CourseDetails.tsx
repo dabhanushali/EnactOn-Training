@@ -226,11 +226,11 @@ export default function CourseDetails() {
 
   // Check if user can manage courses
   const canManageCourses = profile?.role?.role_name === 'Team Lead' || 
-                          profile?.role?.role_name === 'HR' ||
+                          profile?.role?.role_name === 'Human Resources' ||
                           profile?.role?.role_name === 'Management';
 
   // Check if user is a trainee
-  const isTrainee = profile?.role?.role_name === 'Trainee';
+  const isTrainee = profile?.role?.role_name === 'Intern';
 
   if (loading) {
     return (

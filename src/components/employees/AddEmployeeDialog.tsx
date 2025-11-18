@@ -55,8 +55,8 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
       const rolesData = data as Role[];
       setRoles(rolesData);
 
-      // Set default role to Trainee
-      const traineeRole = rolesData.find(role => role.role_name === 'Trainee');
+      // Set default role to Intern
+      const traineeRole = rolesData.find(role => role.role_name === 'Intern');
       if (traineeRole) {
         setFormData(prev => ({ ...prev, roleId: traineeRole.id }));
       }

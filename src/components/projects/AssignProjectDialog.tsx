@@ -77,9 +77,9 @@ export function AssignProjectDialog({ projectId, open, onOpenChange, onProjectAs
           console.error("Error fetching trainees:", error);
           toast.error("Could not fetch list of trainees.");
         } else {
-          // Filter out admin users, only show trainees, and exclude already assigned ones
+          // Filter out admin users, only show interns, and exclude already assigned ones
           const filteredTrainees = (data as any[])?.filter(trainee => 
-            trainee.role?.role_name === 'Trainee' && !assignedIds.includes(trainee.id)
+            trainee.role?.role_name === 'Intern' && !assignedIds.includes(trainee.id)
           ) || [];
           setTrainees(filteredTrainees);
         }
