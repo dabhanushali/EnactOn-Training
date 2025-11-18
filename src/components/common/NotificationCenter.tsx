@@ -136,7 +136,7 @@ export const NotificationCenter = () => {
         .select('*')
         .gte('start_datetime', startOfToday.toISOString())
         .lte('start_datetime', endOfTomorrow.toISOString())
-        .filter('attendees', 'cs', `{${profile.id}}`);
+        .contains('attendees', [profile.id]);
 
       upcomingSessions?.forEach((session) => {
         const startTime = new Date(session.start_datetime);

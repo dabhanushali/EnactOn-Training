@@ -108,7 +108,7 @@ targetRoles: [
   'Web designer',
   'Business Analyst',
   'Block-chain Developer',
-   'AI Prompt Engineer'
+  'AI/ML Engineer'
 ],
 
   // Session Types

@@ -109,8 +109,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log(`Auth Event: ${event}`, {
         hasSession: !!session,
         userId: session?.user?.id,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        url: window.location.href,
+        userAgent: navigator.userAgent
       });
+
+      // Enhanced error logging for debugging session issues
+      if (event === 'SIGNED_OUT') {
+        console.warn('User signed out - investigating cause:', {
+          lastActivity: localStorage.getItem('lastActivity'),
+          storageAvailable: (() => {
+            try {
+              localStorage.setItem('test', 'test');
+              localStorage.removeItem('test');
+              return true;
+            } catch {
+              return false;
+            }
+          })(),
+          sessionEnd: new Date().toISOString()
+        });
+      }
 
       // Only clear profile on actual sign out, not during token refresh
       if (event === 'SIGNED_OUT') {
@@ -139,6 +158,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setProfile(null);
         sessionStorage.removeItem('userProfile');
       }
+    });
+
+    // Track user activity to help debug session issues
+    const trackActivity = () => {
+      try {
+        localStorage.setItem('lastActivity', new Date().toISOString());
+      } catch (error) {
+        console.warn('Failed to track activity:', error);
+      }
+    };
+
+    // Track activity on user interactions
+    const activityEvents = ['mousedown', 'keypress', 'scroll', 'touchstart'];
+    activityEvents.forEach(event => {
+      document.addEventListener(event, trackActivity, { passive: true });
     });
 
     const initializeAuth = async () => {
@@ -186,17 +220,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initializeAuth();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      // Clean up activity tracking
+      activityEvents.forEach(event => {
+        document.removeEventListener(event, trackActivity);
+      });
+    };
   }, [user?.id, refreshProfile, fetchProfile]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       console.log('Signing out...');
       setUser(null);
       setProfile(null);
       sessionStorage.removeItem('userProfile');
       setLoading(false);
-      
+
       const { error } = await supabase.auth.signOut({ scope: 'global' });
       if (error && error.message !== 'Session from session_id claim in JWT does not exist') {
         console.warn('Sign out error (non-critical):', error);
@@ -205,7 +245,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.warn('Sign out error (handled):', error);
     }
-  };
+  }, []);
 
   const value = useMemo(() => ({
     user,

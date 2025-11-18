@@ -360,7 +360,7 @@ export default function InternReadinessReport() {
                                         }}>
                                         <CommandInput placeholder="Search trainee..." />
                                         <CommandEmpty>No trainee found.</CommandEmpty>
-                                        <CommandGroup>
+                                        <CommandGroup className="max-h-80 overflow-y-auto">
                                             {filteredEmployees.map((employee) => (
                                                 <CommandItem
                                                     key={employee.id}
