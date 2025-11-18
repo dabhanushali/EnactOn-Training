@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_function_backups: {
+        Row: {
+          argument_types: string | null
+          backup_at: string
+          definition: string
+          function_name: string
+        }
+        Insert: {
+          argument_types?: string | null
+          backup_at?: string
+          definition: string
+          function_name: string
+        }
+        Update: {
+          argument_types?: string | null
+          backup_at?: string
+          definition?: string
+          function_name?: string
+        }
+        Relationships: []
+      }
       assessment_questions: {
         Row: {
           assessment_template_id: string
@@ -1005,10 +1026,10 @@ export type Database = {
         Args: { p_project_id: string }
         Returns: {
           id: string
+          intern_first_name: string
+          intern_id: string
+          intern_last_name: string
           status: string
-          trainee_first_name: string
-          trainee_id: string
-          trainee_last_name: string
         }[]
       }
       get_trainee_readiness_data: { Args: { p_user_id: string }; Returns: Json }
