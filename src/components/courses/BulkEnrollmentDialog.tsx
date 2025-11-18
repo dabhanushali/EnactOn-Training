@@ -57,7 +57,7 @@ export const BulkEnrollmentDialog = ({
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, department, designation, role:roles!inner(role_name)')
-        .eq('role.role_name', 'Trainee')
+        .eq('role.role_name', 'Intern')
         .order('first_name');
 
       if (profilesError) throw profilesError;

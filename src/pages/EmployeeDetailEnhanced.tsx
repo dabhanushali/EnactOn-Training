@@ -23,8 +23,8 @@ import { MASTER_DATA } from '@/lib/masterData';
 import { CourseEnrollmentDialog } from '@/components/employees/CourseEnrollmentDialog';
 import { RequiredLabel } from '@/components/forms/RequiredLabel';
 
-// Trainee Status Change Dialog Component
-function TraineeStatusChangeDialog({
+// Intern Status Change Dialog Component
+function InternStatusChangeDialog({
   open,
   onOpenChange,
   employeeId,
@@ -780,9 +780,9 @@ export default function EmployeeDetailEnhanced() {
           </>
         )}
 
-        {/* Trainee Status Change Dialog */}
+        {/* Intern Status Change Dialog */}
         {canChangeOwnStatus && (
-          <TraineeStatusChangeDialog
+          <InternStatusChangeDialog
             open={showStatusDialog}
             onOpenChange={setShowStatusDialog}
             employeeId={employeeId!}

@@ -57,7 +57,7 @@ export function CreateSessionDialog({ onSessionCreated }: CreateSessionDialogPro
             const { data: rolesData, error: rolesError } = await supabase
                 .from('roles')
                 .select('id')
-                .in('role_name', ['Management', 'HR', 'Team Lead']);
+                .in('role_name', ['Management', 'Human Resources', 'Team Lead']);
             
             if (rolesError || !rolesData) {
                 return toast.error("Could not fetch trainer roles.");

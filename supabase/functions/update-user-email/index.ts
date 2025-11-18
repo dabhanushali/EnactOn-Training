@@ -60,8 +60,8 @@ serve(async (req) => {
     }
 
     const userRole = (profile as { roles?: { role_name?: string } })?.roles?.role_name;
-    if (!userRole || !['HR', 'Management'].includes(userRole)) {
-      throw new Error('Insufficient privileges. Only HR and Management can update user emails.');
+    if (!userRole || !['Human Resources', 'Management'].includes(userRole)) {
+      throw new Error('Insufficient privileges. Only Human Resources and Management can update user emails.');
     }
 
     // Get request body

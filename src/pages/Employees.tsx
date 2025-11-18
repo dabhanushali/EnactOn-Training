@@ -68,7 +68,7 @@ export default function Employees() {
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  const canManageEmployees = ['Management', 'HR'].includes(profile?.role?.role_name || '');
+  const canManageEmployees = ['Management', 'Human Resources'].includes(profile?.role?.role_name || '');
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -211,7 +211,7 @@ export default function Employees() {
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'Management': return <Crown className="w-4 h-4" />;
-      case 'HR': return <Users className="w-4 h-4" />;
+      case 'Human Resources': return <Users className="w-4 h-4" />;
       case 'Team Lead': return <UserCheck className="w-4 h-4" />;
       default: return <User className="w-4 h-4" />;
     }

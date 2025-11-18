@@ -57,7 +57,7 @@ interface ProjectDetail {
     evaluation: ProjectEvaluation[];
 }
 
-interface TraineeProfile {
+interface InternProfile {
     user_id: string;
     first_name: string;
     last_name: string;
@@ -67,7 +67,7 @@ interface TraineeProfile {
 }
 
 interface ReadinessData {
-    profile: TraineeProfile;
+    profile: InternProfile;
     readiness_summary: ReadinessSummary;
     completed_courses: Course[];
     pending_courses: Course[];
@@ -88,14 +88,14 @@ interface Employee {
 
 const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-export default function TraineeReadinessReport() {
+export default function InternReadinessReport() {
     const { profile } = useAuth();
-    const [selectedTraineeId, setSelectedTraineeId] = useState<string>('');
+    const [selectedInternId, setSelectedInternId] = useState<string>('');
     const [open, setOpen] = useState(false);
     const [selectedDepartment, setSelectedDepartment] = useState<string>('All Departments');
     const [selectedRole, setSelectedRole] = useState<string>('All Roles');
 
-    const canViewReports = ['Management', 'HR', 'Team Lead'].includes(profile?.role?.role_name || '');
+    const canViewReports = ['Management', 'Human Resources', 'Team Lead'].includes(profile?.role?.role_name || '');
 
     // Fetch all employees for selection
     const { data: employees = [], isLoading: employeesLoading } = useQuery({
@@ -138,21 +138,21 @@ export default function TraineeReadinessReport() {
     const handleClearFilters = () => {
         setSelectedDepartment('All Departments');
         setSelectedRole('All Roles');
-        setSelectedTraineeId('');
+        setSelectedInternId('');
     };
 
-    // Fetch readiness data for selected trainee
+    // Fetch readiness data for selected intern
     const { data: readinessData, isLoading: readinessLoading, error } = useQuery({
-        queryKey: ['trainee_readiness', selectedTraineeId],
+        queryKey: ['intern_readiness', selectedInternId],
         queryFn: async () => {
-            if (!selectedTraineeId) return null;
+            if (!selectedInternId) return null;
             const { data, error } = await supabase.rpc('get_trainee_readiness_data', {
-                p_user_id: selectedTraineeId
+                p_user_id: selectedInternId
             });
             if (error) throw error;
             return data as unknown as ReadinessData;
         },
-        enabled: !!selectedTraineeId && canViewReports,
+        enabled: !!selectedInternId && canViewReports,
     });
 
     // Prepare chart data
@@ -208,7 +208,7 @@ export default function TraineeReadinessReport() {
                                 <div className="p-3 rounded-xl bg-primary/10 text-primary">
                                     <Brain className="w-8 h-8" />
                                 </div>
-                                Trainee Readiness Report
+                                Intern Readiness Report
                             </h1>
                             <p className="text-muted-foreground text-lg">
                                 Comprehensive assessment of employee training progress and readiness
@@ -216,12 +216,12 @@ export default function TraineeReadinessReport() {
                         </div>
                     </div>
 
-                    {/* Trainee Selector */}
+                    {/* Intern Selector */}
                     <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
                         <CardHeader>
                             <CardTitle className="text-lg font-semibold flex items-center gap-2">
                                 <User className="w-5 h-5" />
-                                Select Trainee
+                                Select Intern
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -340,10 +340,10 @@ export default function TraineeReadinessReport() {
                                         aria-expanded={open}
                                         className="w-full justify-between bg-white/50"
                                     >
-                                        {selectedTraineeId
-                                            ? filteredEmployees.find((emp) => emp.id === selectedTraineeId)?.first_name + ' ' + 
-                                              filteredEmployees.find((emp) => emp.id === selectedTraineeId)?.last_name
-                                            : "Select trainee..."}
+                                        {selectedInternId
+                                            ? filteredEmployees.find((emp) => emp.id === selectedInternId)?.first_name + ' ' +
+                                              filteredEmployees.find((emp) => emp.id === selectedInternId)?.last_name
+                                            : "Select intern..."}
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                 </PopoverTrigger>
@@ -366,14 +366,14 @@ export default function TraineeReadinessReport() {
                                                     key={employee.id}
                                                     value={employee.id}
                                                     onSelect={(currentValue) => {
-                                                        setSelectedTraineeId(currentValue === selectedTraineeId ? "" : currentValue);
+                                                        setSelectedInternId(currentValue === selectedInternId ? "" : currentValue);
                                                         setOpen(false);
                                                     }}
                                                 >
                                                     <Check
                                                         className={cn(
                                                             "mr-2 h-4 w-4",
-                                                            selectedTraineeId === employee.id ? "opacity-100" : "opacity-0"
+                                                            selectedInternId === employee.id ? "opacity-100" : "opacity-0"
                                                         )}
                                                     />
                                                     <div>
@@ -401,12 +401,12 @@ export default function TraineeReadinessReport() {
                             <Card key={i} className="h-48 animate-pulse bg-muted/50" />
                         ))}
                     </div>
-                ) : !selectedTraineeId ? (
+                ) : !selectedInternId ? (
                     <Card className="border-0 shadow-md bg-white/70 backdrop-blur-sm">
                         <CardContent className="py-12 text-center">
                             <GraduationCap className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                            <h3 className="text-lg font-medium mb-2">Select a Trainee</h3>
-                            <p className="text-muted-foreground">Choose a trainee from the dropdown above to view their readiness report.</p>
+                            <h3 className="text-lg font-medium mb-2">Select an Intern</h3>
+                            <p className="text-muted-foreground">Choose an intern from the dropdown above to view their readiness report.</p>
                         </CardContent>
                     </Card>
                 ) : error ? (
@@ -424,7 +424,7 @@ export default function TraineeReadinessReport() {
                             <CardHeader>
                                 <CardTitle className="text-xl font-semibold flex items-center gap-2">
                                     <User className="w-5 h-5" />
-                                    Trainee Profile
+                                    Intern Profile
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>

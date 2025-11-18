@@ -54,7 +54,7 @@ export default function Projects() {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [pendingEvaluations, setPendingEvaluations] = useState(0);
 
-  const isManager = ['Team Lead', 'HR', 'Management'].includes(profile?.role?.role_name || '');
+  const isManager = ['Team Lead', 'Human Resources', 'Management'].includes(profile?.role?.role_name || '');
 
   const fetchProjects = useCallback(async () => {
     if (!user || !profile) return;
@@ -301,7 +301,7 @@ export default function Projects() {
             activeProjects={isManager ? activeProjects : inProgress}
             completedProjects={isManager ? completedProjects : submitted}
             pendingEvaluations={pendingEvaluations}
-            userRole={profile?.role?.role_name || 'Trainee'}
+            userRole={profile?.role?.role_name || 'Intern'}
             onProjectCreated={fetchProjects}
           />
         </div>

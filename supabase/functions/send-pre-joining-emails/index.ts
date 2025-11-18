@@ -65,7 +65,7 @@ const handler = async (req: Request): Promise<Response> => {
         .select("id, first_name, last_name, date_of_joining")
         .eq("date_of_joining", checkDate.date)
         .eq("current_status", "Pre-Joining")
-        .eq("role_id", (await supabase.from("roles").select("id").eq("role_name", "Trainee").single()).data?.id);
+        .eq("role_id", (await supabase.from("roles").select("id").eq("role_name", "Intern").single()).data?.id);
 
       if (employeeError) {
         console.error(`Error fetching pre-joining employees for ${checkDate.days} days:`, employeeError);

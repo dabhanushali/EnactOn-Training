@@ -246,7 +246,7 @@ export default function Courses() {
             totalCourses={courses.length}
             activeCourses={Array.from(enrollments.values()).filter(s => s === 'enrolled').length}
             completedCourses={Array.from(enrollments.values()).filter(s => s === 'completed').length}
-            userRole={profile?.role?.role_name || 'Trainee'}
+            userRole={profile?.role?.role_name || 'Intern'}
           /> */}
           
           <div className="relative mb-6">

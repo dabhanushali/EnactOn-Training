@@ -60,7 +60,7 @@ export const EnhancedTrainingSessions = () => {
   const [sessionToEdit, setSessionToEdit] = useState<Session | null>(null);
   const [editData, setEditData] = useState<SessionEditData>({ notes: '', recording_url: '' });
 
-  const isAdmin = ['Team Lead', 'HR', 'Management'].includes(profile?.role?.role_name || '');
+  const isAdmin = ['Team Lead', 'Human Resources', 'Management'].includes(profile?.role?.role_name || '');
 
   const fetchSessions = useCallback(async () => {
     if (!user || !profile) return;

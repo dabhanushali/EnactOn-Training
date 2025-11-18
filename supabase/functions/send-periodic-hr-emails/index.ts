@@ -72,7 +72,7 @@ const handler = async (req: Request): Promise<Response> => {
         .from("profiles")
         .select("id, first_name, last_name, date_of_joining")
         .eq("date_of_joining", checkDate.date)
-        .eq("role_id", (await supabase.from("roles").select("id").eq("role_name", "Trainee").single()).data?.id);
+        .eq("role_id", (await supabase.from("roles").select("id").eq("role_name", "Intern").single()).data?.id);
 
       if (traineeError) {
         console.error(`Error fetching trainees for ${checkDate.days} days:`, traineeError);

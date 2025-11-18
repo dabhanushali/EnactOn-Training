@@ -70,7 +70,7 @@ targetRoles: [
 // ],
 
   designations: [
-    'Trainee',
+    'Intern',
     'Junior Developer',
     'Senior Developer',
     'Manager',

@@ -63,7 +63,7 @@ serve(async (req) => {
 
     const userContext = {
       name: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim(),
-      role: profile?.role?.role_name || 'Trainee',
+      role: profile?.role?.role_name || 'Intern',
       department: profile?.department,
       manager: profile?.manager ? `${profile.manager.first_name} ${profile.manager.last_name} (${profile.manager.designation})` : 'Not assigned',
       courses: enrollments?.map(e => `${e.courses?.course_name} (${e.status})`) || [],

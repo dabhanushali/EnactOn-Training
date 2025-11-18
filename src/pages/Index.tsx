@@ -140,9 +140,9 @@ const Index = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { role: "Management", description: "System-wide analytics, ROI tracking, and strategic oversight", color: "primary" },
-              { role: "HR", description: "Employee lifecycle, onboarding workflows, and compliance management", color: "secondary" },
+              { role: "Human Resources", description: "Employee lifecycle, onboarding workflows, and compliance management", color: "secondary" },
               { role: "Team Lead", description: "Course creation, progress monitoring, and team evaluation", color: "success" },
-              { role: "Trainee", description: "Learning paths, skill development, and progress tracking", color: "warning" }
+              { role: "Intern", description: "Learning paths, skill development, and progress tracking", color: "warning" }
             ].map((item, index) => (
               <Card key={index} className="hover:shadow-lg transition-shadow">
                 <CardHeader className="text-center">

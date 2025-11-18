@@ -18,8 +18,8 @@ export const DESIGNATIONS = [
   'Team Lead',
   'Project Manager',
   'Product Manager',
-  'HR Manager',
-  'HR Executive',
+  'Human Resources Manager',
+  'Human Resources Executive',
   'Marketing Manager',
   'Sales Executive',
   'Sales Manager',
@@ -31,5 +31,5 @@ export const DESIGNATIONS = [
   'UI/UX Designer',
   'Business Analyst',
   'Consultant',
-  'Trainee'
+  'Intern'
 ];

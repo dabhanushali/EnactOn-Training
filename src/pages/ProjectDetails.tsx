@@ -100,7 +100,7 @@ export default function ProjectDetails() {
                 <h1 className="text-3xl font-bold text-foreground mb-1">{project.project_name}</h1>
                 <p className="text-muted-foreground">Project Dashboard</p>
             </div>
-            <Button onClick={() => setAssignDialogOpen(true)}>Assign More Trainees</Button>
+            <Button onClick={() => setAssignDialogOpen(true)}>Assign More Interns</Button>
         </div>
 
         <Card className="mb-8">
@@ -124,14 +124,14 @@ export default function ProjectDetails() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Assigned Trainees</CardTitle>
-            <CardDescription>The following trainees have been assigned to this project.</CardDescription>
+            <CardTitle>Assigned Interns</CardTitle>
+            <CardDescription>The following interns have been assigned to this project.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Trainee Name</TableHead>
+                  <TableHead>Intern Name</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>

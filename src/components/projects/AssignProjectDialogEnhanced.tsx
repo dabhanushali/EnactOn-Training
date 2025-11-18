@@ -59,7 +59,7 @@ export function AssignProjectDialogEnhanced({
       const { data: traineeRole } = await supabase
         .from('roles')
         .select('id')
-        .eq('role_name', 'Trainee')
+        .eq('role_name', 'Intern')
         .single();
 
       // Filter to only trainees

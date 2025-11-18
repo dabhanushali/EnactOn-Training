@@ -139,7 +139,7 @@ export default function CourseBuilder() {
     try {
       const { data, error } = await supabase.rpc('get_user_role', { user_id: user.id });
       if (error) throw error;
-      return ['Team Lead', 'HR', 'Management'].includes(data);
+      return ['Team Lead', 'Human Resources', 'Management'].includes(data);
     } catch (error) {
       console.error('Error checking user role:', error);
       return false;

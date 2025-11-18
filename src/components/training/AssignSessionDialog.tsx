@@ -45,7 +45,7 @@ export function AssignSessionDialog({ sessionId, open, onOpenChange, onSessionAs
         const { data: roleData, error: roleError } = await supabase
           .from('roles')
           .select('id')
-          .eq('role_name', 'Trainee')
+          .eq('role_name', 'Intern')
           .single();
 
         if (roleError || !roleData) {

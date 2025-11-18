@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     const { data: callerRoleData, error: roleErr } = await admin.rpc("get_user_role", { user_id: auth.user.id });
     if (roleErr) throw roleErr;
     const callerRole = (callerRoleData as string) || "";
-    if (!(["HR", "Management"].includes(callerRole))) {
+    if (!(["Human Resources", "Management"].includes(callerRole))) {
       return new Response(JSON.stringify({ error: "Forbidden: insufficient role" }), {
         status: 403,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -71,9 +71,9 @@ Deno.serve(async (req) => {
     const { data: traineeRole, error: traineeErr } = await admin
       .from("roles")
       .select("id")
-      .eq("role_name", "Trainee")
+      .eq("role_name", "Intern")
       .single();
-    if (traineeErr || !traineeRole) throw new Error("Trainee role not found");
+    if (traineeErr || !traineeRole) throw new Error("Intern role not found");
 
     let success = 0;
     let failed = 0;

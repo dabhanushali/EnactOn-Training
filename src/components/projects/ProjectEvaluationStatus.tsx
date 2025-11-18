@@ -20,7 +20,7 @@ export const ProjectEvaluationStatus = ({ assignmentId, status, userRole }: Proj
 
   useEffect(() => {
     const fetchEvaluationInfo = async () => {
-      if (status !== 'Submitted' || !['Management', 'HR', 'Team Lead'].includes(userRole || '')) {
+      if (status !== 'Submitted' || !['Management', 'Human Resources', 'Team Lead'].includes(userRole || '')) {
         setLoading(false);
         return;
       }

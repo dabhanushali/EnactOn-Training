@@ -26,7 +26,7 @@
 //   onProjectCreated
 // }: ProjectQuickActionsProps) => {
 //   const navigate = useNavigate();
-//   const canManage = ['Management', 'HR', 'Team Lead'].includes(userRole);
+//   const canManage = ['Management', 'Human Resources', 'Team Lead'].includes(userRole);
   
 //   const completionRate = totalProjects > 0 
 //     ? (completedProjects / totalProjects) * 100 
@@ -183,7 +183,7 @@ export const ProjectQuickActions = ({
   onProjectCreated
 }: ProjectQuickActionsProps) => {
   const navigate = useNavigate();
-  const canManage = ['Management', 'HR', 'Team Lead'].includes(userRole);
+  const canManage = ['Management', 'Human Resources', 'Team Lead'].includes(userRole);
   
   const completionRate = totalProjects > 0 
     ? (completedProjects / totalProjects) * 100 

@@ -52,7 +52,7 @@ export function CourseAssignmentDialog({ courseId, courseName, onClose }: Course
           employee_code,
           role:roles!inner(role_name)
         `)
-        .eq('role.role_name', 'Trainee')
+        .eq('role.role_name', 'Intern')
         .neq('id', user?.id); // Don't include current user
 
       if (error) throw error;
@@ -266,7 +266,7 @@ export function CourseAssignmentDialog({ courseId, courseName, onClose }: Course
                           {employee.first_name} {employee.last_name}
                         </h4>
                         {isEnrolled && (
-                          userProfile && userProfile.role && ['Management', 'HR', 'Team Lead'].includes(userProfile.role.role_name) ? (
+                          userProfile && userProfile.role && ['Management', 'Human Resources', 'Team Lead'].includes(userProfile.role.role_name) ? (
                             <Button
                               variant="destructive"
                               size="sm"
