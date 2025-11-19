@@ -146,11 +146,12 @@ export default function InternReadinessReport() {
         queryKey: ['intern_readiness', selectedInternId],
         queryFn: async () => {
             if (!selectedInternId) return null;
-            const { data, error } = await supabase.rpc('get_trainee_readiness_data', {
-                p_user_id: selectedInternId
+            const { data, error } = await supabase.functions.invoke('get-readiness-data', {
+                body: { userId: selectedInternId }
             });
             if (error) throw error;
-            return data as unknown as ReadinessData;
+            if (!data.success) throw new Error(data.error);
+            return data.data as unknown as ReadinessData;
         },
         enabled: !!selectedInternId && canViewReports,
     });
