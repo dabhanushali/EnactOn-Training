@@ -1032,7 +1032,6 @@ export type Database = {
           status: string
         }[]
       }
-      get_trainee_readiness_data: { Args: { p_user_id: string }; Returns: Json }
       get_user_email: { Args: { user_id: string }; Returns: string }
       get_user_role: { Args: { user_id: string }; Returns: string }
     }
