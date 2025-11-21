@@ -50,7 +50,7 @@ serve(async (req) => {
     // This aligns with RLS policies that grant HR/Management elevated privileges
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('id, roles(role_name)')
+      .select('id, role:roles!role_id(role_name)')
       .eq('id', user.id)
       .single();
 
@@ -59,7 +59,7 @@ serve(async (req) => {
       throw new Error('Unable to verify user role');
     }
 
-    const userRole = (profile as { roles?: { role_name?: string } })?.roles?.role_name;
+    const userRole = (profile as { role?: { role_name?: string } })?.role?.role_name;
     if (!userRole || !['Human Resources', 'Management'].includes(userRole)) {
       throw new Error('Insufficient privileges. Only Human Resources and Management can update user emails.');
     }

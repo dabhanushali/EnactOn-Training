@@ -54,7 +54,7 @@ serve(async (req) => {
     // Get user role for authorization
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('id, roles(role_name), manager_id')
+      .select('id, role:roles!role_id(role_name), manager_id')
       .eq('id', user.id)
       .single();
 
@@ -63,7 +63,7 @@ serve(async (req) => {
       throw new Error(`Unable to verify user role: ${profileError?.message || 'Profile not found'}`);
     }
 
-    const userRole = (profile as any)?.roles?.role_name;
+    const userRole = (profile as any)?.role?.role_name;
 
     // Authorization check
     const isOwner = user.id === userId;
@@ -77,7 +77,7 @@ serve(async (req) => {
         .select('id')
         .eq('id', userId)
         .eq('manager_id', user.id);
-      isTeamLead = teamLeadCheck && teamLeadCheck.length > 0;
+      isTeamLead = !!(teamLeadCheck && teamLeadCheck.length > 0);
     }
 
     if (!isOwner && !isHRorManagement && !isTeamLead) {
