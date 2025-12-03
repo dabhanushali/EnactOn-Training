@@ -179,10 +179,17 @@ export default function Courses() {
 
   const handleDeleteCourse = async () => {
     if (!courseToDelete) return;
-    const { error } = await supabase.from('courses').delete().eq('id', courseToDelete.id);
+    
+    const { data, error } = await supabase
+      .from('courses')
+      .delete()
+      .eq('id', courseToDelete.id)
+      .select();
 
     if (error) {
         toast.error(`Failed to delete course: ${error.message}`);
+    } else if (!data || data.length === 0) {
+        toast.error("Unable to delete course. You may not have permission.");
     } else {
         toast.success(`Course "${courseToDelete.course_name}" deleted.`);
         fetchCourses();
