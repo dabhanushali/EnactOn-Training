@@ -78,11 +78,11 @@ export default function Courses() {
         }
 
       } else if (profile?.role?.role_name === 'Team Lead') {
-        // For Team Leads, only show courses relevant to their department
+        // For Team Leads, show courses relevant to their department OR created by them
         const { data, error } = await supabase
           .from('courses')
           .select('*')
-          .or(`target_role.eq.${profile.department},target_role.is.null`)
+          .or(`target_role.eq.${profile.department},target_role.is.null,created_by.eq.${profile.id}`)
           .order('created_at', { ascending: false });
         if (error) throw error;
         coursesData = data;
