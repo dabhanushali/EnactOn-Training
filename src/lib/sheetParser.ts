@@ -253,38 +253,70 @@ export async function parseGoogleSheet(sheetUrl: string): Promise<ParsedCourseDa
               };
             }
 
-            // Create content item for this row if we have a current module and content
+            // Create content items for this row if we have a current module
             if (currentModule && (modulesColumn || resourcesColumn)) {
-              // Combine all URLs from resources column
-              const combinedUrls = combineResourceUrls(resourcesColumn);
+              // Extract all URLs from resources column
+              const markdownLinks = extractMarkdownLinks(resourcesColumn);
+              const plainUrls = extractUrls(resourcesColumn);
+              const markdownUrls = markdownLinks.map(l => l.url);
               
-              // Set content type to External Link if there are any URLs
-              const contentType = combinedUrls.trim() ? 'External Link' : 'Text';
+              // Build list of all unique URLs with their titles
+              const urlsWithTitles: Array<{ url: string; title: string }> = [];
               
-              // Extract all URLs for duration estimation
-              const allUrls = combinedUrls ? combinedUrls.split('\n') : [];
-              const estimatedDuration = estimateDuration(modulesColumn, allUrls);
-
-              // Use module name as title if this is the first content, otherwise use a generic title
-              const contentTitle = currentModule.contents.length === 0 
-                ? currentModule.module_name 
-                : `${currentModule.module_name} - Part ${currentModule.contents.length + 1}`;
-
-              // Create one content item for this row
-              const contentItem: ParsedContentItem = {
-                content_title: contentTitle.substring(0, 100),
-                content_description: modulesColumn || '',
-                content_url: combinedUrls,
-                content_type: contentType,
-                content_order: currentModule.contents.length + 1,
-                estimated_duration_minutes: estimatedDuration
-              };
-
-              currentModule.contents.push(contentItem);
+              // Add markdown links first (they have explicit titles)
+              for (const link of markdownLinks) {
+                urlsWithTitles.push({ url: link.url, title: link.title });
+              }
+              
+              // Add plain URLs that weren't in markdown format
+              for (const url of plainUrls) {
+                if (!markdownUrls.includes(url)) {
+                  // Generate title from URL
+                  const urlTitle = url.replace(/^https?:\/\//, '').split('/')[0];
+                  urlsWithTitles.push({ url, title: urlTitle });
+                }
+              }
               
               // Append to module description
               if (modulesColumn) {
                 currentModule.module_description += (currentModule.module_description ? '\n' : '') + modulesColumn;
+              }
+
+              // If there are URLs, create a separate content item for each
+              if (urlsWithTitles.length > 0) {
+                for (const { url, title } of urlsWithTitles) {
+                  const contentType = detectContentType(url);
+                  const estimatedDuration = estimateDuration('', [url]);
+                  
+                  const contentTitle = `${currentModule.module_name} - ${title}`.substring(0, 100);
+
+                  const contentItem: ParsedContentItem = {
+                    content_title: contentTitle,
+                    content_description: modulesColumn || '',
+                    content_url: url,
+                    content_type: contentType,
+                    content_order: currentModule.contents.length + 1,
+                    estimated_duration_minutes: estimatedDuration
+                  };
+
+                  currentModule.contents.push(contentItem);
+                }
+              } else if (modulesColumn) {
+                // No URLs, but there's content - create a text content item
+                const contentTitle = currentModule.contents.length === 0 
+                  ? currentModule.module_name 
+                  : `${currentModule.module_name} - Part ${currentModule.contents.length + 1}`;
+
+                const contentItem: ParsedContentItem = {
+                  content_title: contentTitle.substring(0, 100),
+                  content_description: modulesColumn,
+                  content_url: '',
+                  content_type: 'Text',
+                  content_order: currentModule.contents.length + 1,
+                  estimated_duration_minutes: 15
+                };
+
+                currentModule.contents.push(contentItem);
               }
             }
           }
