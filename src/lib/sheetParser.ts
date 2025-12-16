@@ -27,12 +27,37 @@ export interface ParsedCourseData {
   modules: ParsedModule[];
 }
 
-// Extract URLs from text
+// Extract URLs from text - supports URLs with or without protocol
 function extractUrls(text: string): string[] {
   if (!text) return [];
-  const urlRegex = /(https?:\/\/[^\s\)]+)/g;
-  const matches = text.match(urlRegex);
-  return matches ? [...new Set(matches)] : [];
+  
+  // Match URLs with protocol (http:// or https://)
+  const protocolUrlRegex = /(https?:\/\/[^\s\)\]<>"]+)/gi;
+  
+  // Match URLs without protocol (www.example.com, domain.com/path, etc.)
+  // Matches: word.tld or word.tld/path where tld is 2-6 chars
+  const noProtocolUrlRegex = /(?<![https?:\/\/])((?:www\.)?[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,6}(?:\/[^\s\)\]<>"]*)?)/gi;
+  
+  const urls: string[] = [];
+  
+  // Extract URLs with protocol
+  const protocolMatches = text.match(protocolUrlRegex);
+  if (protocolMatches) {
+    urls.push(...protocolMatches);
+  }
+  
+  // Extract URLs without protocol and add https:// prefix
+  let match;
+  while ((match = noProtocolUrlRegex.exec(text)) !== null) {
+    const url = match[1];
+    // Check if this URL wasn't already captured with a protocol
+    const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+    if (!urls.some(existing => existing.includes(url))) {
+      urls.push(fullUrl);
+    }
+  }
+  
+  return [...new Set(urls)];
 }
 
 // Detect content type from URL
