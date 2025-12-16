@@ -78,26 +78,30 @@ export function ModuleDialog({ courseId, module, moduleOrder, onSave, onClose }:
 
       let result;
       if (module) {
-        // Update existing module
+        // Update existing module - use maybeSingle to handle RLS edge cases
         const { data, error } = await supabase
           .from('course_modules')
           .update(moduleData)
           .eq('id', module.id)
-          .select()
-          .single();
+          .select();
         
         if (error) throw error;
-        result = data;
+        if (!data || data.length === 0) {
+          throw new Error('Update failed - you may not have permission to modify this module');
+        }
+        result = data[0];
       } else {
         // Create new module
         const { data, error } = await supabase
           .from('course_modules')
           .insert(moduleData)
-          .select()
-          .single();
+          .select();
         
         if (error) throw error;
-        result = data;
+        if (!data || data.length === 0) {
+          throw new Error('Insert failed - you may not have permission to create modules');
+        }
+        result = data[0];
       }
 
       toast({
