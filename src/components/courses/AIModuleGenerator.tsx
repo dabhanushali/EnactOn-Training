@@ -32,7 +32,7 @@ interface AIModuleGeneratorProps {
 }
 
 const DIFFICULTY_LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
-const CONTENT_TYPES = ['text', 'video', 'pdf', 'external_link', 'mixed_content'];
+const CONTENT_TYPES = ['External Link', 'Video', 'PDF', 'Text', 'Document', 'Presentation', 'Assignment'];
 
 export const AIModuleGenerator = ({ 
   courseId, 
