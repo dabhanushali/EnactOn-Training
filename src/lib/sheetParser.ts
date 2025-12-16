@@ -233,9 +233,8 @@ export async function parseGoogleSheet(sheetUrl: string): Promise<ParsedCourseDa
               // Combine all URLs from resources column
               const combinedUrls = combineResourceUrls(resourcesColumn);
               
-              // Detect content type from first URL or default to Text
-              const firstUrl = combinedUrls.split('\n')[0];
-              const contentType = firstUrl ? detectContentType(firstUrl) : 'Text';
+              // Set content type to External Link if there are any URLs
+              const contentType = combinedUrls.trim() ? 'External Link' : 'Text';
               
               // Extract all URLs for duration estimation
               const allUrls = combinedUrls ? combinedUrls.split('\n') : [];
