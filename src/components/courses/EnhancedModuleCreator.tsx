@@ -47,6 +47,8 @@ interface ModuleWithContents {
   module_description: string;
   module_order: number;
   content_type?: string;
+  content_url?: string;
+  content_path?: string;
   estimated_duration_minutes?: number;
   module_contents: ModuleContentData[]; // Array of child content
 }
@@ -72,7 +74,6 @@ export const EnhancedModuleCreator = ({
   const fetchModules = useCallback(async () => {
     try {
       setLoading(true);
-      // (Around line 51)
       const { data, error } = await supabase
         .from("course_modules")
         .select(
@@ -81,6 +82,10 @@ export const EnhancedModuleCreator = ({
           module_name,
           module_description,
           module_order,
+          content_type,
+          content_url,
+          content_path,
+          estimated_duration_minutes,
           module_contents ( * )
           `
         )
@@ -372,11 +377,11 @@ export const EnhancedModuleCreator = ({
                       module_description: selectedModule.module_description,
                       module_order: selectedModule.module_order,
                       course_id: courseId,
-                      // Provide default values for fields that exist on the old type
-                      content_type: selectedModule.content_type || "",
-                      content_url: "",
-                      content_path: "",
-                      estimated_duration_minutes: selectedModule.estimated_duration_minutes || 0,
+                      // Include all fields from the database
+                      content_type: selectedModule.content_type || "mixed_content",
+                      content_url: selectedModule.content_url || "",
+                      content_path: selectedModule.content_path || "",
+                      estimated_duration_minutes: selectedModule.estimated_duration_minutes || 60,
                     }
                   : null
               }
