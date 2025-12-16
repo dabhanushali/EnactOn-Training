@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, GripVertical, ExternalLink, Video, FileText, File } from 'lucide-react';
+import { Plus, Trash2, GripVertical, ExternalLink, Video, FileText, File, X } from 'lucide-react';
 
 interface ModuleContent {
   id?: string;
@@ -206,10 +206,26 @@ export function ModuleContentManager({ moduleId, onContentsChange }: ModuleConte
                     </CardTitle>
                   </div>
                   <div className="flex gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => deleteContent(index)}
+                      title="Delete content"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                     {editingIndex === index ? (
                       <>
                         <Button 
-                          onClick={() => setEditingIndex(null)} 
+                          onClick={() => {
+                            // If new content (no id), just remove it from array
+                            if (!content.id) {
+                              const updated = contents.filter((_, i) => i !== index);
+                              setContents(updated);
+                            }
+                            setEditingIndex(null);
+                          }} 
                           variant="ghost" 
                           size="sm"
                         >
@@ -283,6 +299,8 @@ export function ModuleContentManager({ moduleId, onContentsChange }: ModuleConte
                           <SelectItem value="PDF">PDF</SelectItem>
                           <SelectItem value="Text">Text</SelectItem>
                           <SelectItem value="Document">Document</SelectItem>
+                          <SelectItem value="Presentation">Presentation</SelectItem>
+                          <SelectItem value="Assignment">Assignment</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

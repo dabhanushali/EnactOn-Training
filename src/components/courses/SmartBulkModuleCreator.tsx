@@ -27,7 +27,7 @@ interface SmartBulkModuleCreatorProps {
   onCourseGenerated?: (courseData: any, modulesData: any[]) => void;
 }
 
-const CONTENT_TYPES = ['mixed', 'link', 'video', 'pdf', 'text'];
+const CONTENT_TYPES = ['External Link', 'Video', 'PDF', 'Text', 'Document', 'Presentation', 'Assignment'];
 
 export const SmartBulkModuleCreator = ({ courseId, onModulesCreated, isAutoGeneration, onCourseGenerated }: SmartBulkModuleCreatorProps) => {
   const [modules, setModules] = useState<ModuleData[]>([]);

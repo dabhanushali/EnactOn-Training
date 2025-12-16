@@ -160,10 +160,13 @@ export function ModuleDialog({ courseId, module, moduleOrder, onSave, onClose }:
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="mixed_content">Mixed Content</SelectItem>
               <SelectItem value="text">Text</SelectItem>
               <SelectItem value="video">Video</SelectItem>
               <SelectItem value="pdf">PDF</SelectItem>
+              <SelectItem value="document">Document</SelectItem>
               <SelectItem value="link">External Link</SelectItem>
+              <SelectItem value="presentation">Presentation</SelectItem>
             </SelectContent>
           </Select>
         </div>

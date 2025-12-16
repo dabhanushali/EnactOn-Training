@@ -8,7 +8,7 @@ import { ModuleDialog } from "./ModuleDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, BookOpen, Sparkles, Upload, Edit, Trash2 } from "lucide-react";
+import { Plus, BookOpen, Sparkles, Upload, Edit, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -346,7 +346,21 @@ export const EnhancedModuleCreator = ({
       {/* Module Dialog - Use traditional dialog pattern */}
       {isModuleDialogOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background p-6 rounded-lg max-w-2xl w-full mx-4">
+          <div className="bg-background rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">{selectedModule ? 'Edit Module' : 'Create Module'}</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setIsModuleDialogOpen(false);
+                  setSelectedModule(null);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1">
             <ModuleDialog
               courseId={courseId}
               module={
@@ -373,6 +387,7 @@ export const EnhancedModuleCreator = ({
                 setSelectedModule(null);
               }}
             />
+            </div>
           </div>
         </div>
       )}

@@ -203,6 +203,10 @@ export function AssessmentDialog({ courseId, assessment, onAssessmentSave, onClo
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="quiz">Quiz</SelectItem>
+                  <SelectItem value="assignment">Assignment</SelectItem>
+                  <SelectItem value="project">Project</SelectItem>
+                  <SelectItem value="practical">Practical</SelectItem>
+                  <SelectItem value="presentation">Presentation</SelectItem>
                 </SelectContent>
               </Select>
             </div>
