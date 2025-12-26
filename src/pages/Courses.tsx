@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { MainNav } from '@/components/navigation/MainNav';
 import { CourseCard } from '@/components/courses/CourseCard';
-import { CourseFiltersComponent, type CourseFilters } from '@/components/courses/CourseFilters';
-import { CourseQuickActions } from '@/components/courses/CourseQuickActions';
+import { type CourseFilters } from '@/components/courses/CourseFilters';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/auth-utils';
@@ -20,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { DEPARTMENTS } from '@/lib/masterData';
 
 interface Course {
     id: string;
@@ -248,31 +250,93 @@ export default function Courses() {
             )}
           </div>
           
-          {/* Course Quick Actions Stats */}
-          {/* <CourseQuickActions
-            totalCourses={courses.length}
-            activeCourses={Array.from(enrollments.values()).filter(s => s === 'enrolled').length}
-            completedCourses={Array.from(enrollments.values()).filter(s => s === 'completed').length}
-            userRole={profile?.role?.role_name || 'Intern'}
-          /> */}
-          
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search courses..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
         </div>
 
-        {/* Enhanced Filters */}
-        <CourseFiltersComponent 
-          filters={filters}
-          onFiltersChange={setFilters}
-          onReset={resetFilters}
-        />
+        {/* Search & Filter Section */}
+        <Card className="mb-8 border-0 shadow-md bg-white/70 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Search className="w-5 h-5" />
+              Search & Filter
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search courses..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-white/50"
+                />
+              </div>
+
+              <Select value={filters.courseType} onValueChange={(value) => setFilters({...filters, courseType: value})}>
+                <SelectTrigger className="bg-white/50">
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {['Technical', 'Soft skills', 'Informative', 'AI'].map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filters.targetRole} onValueChange={(value) => setFilters({...filters, targetRole: value})}>
+                <SelectTrigger className="bg-white/50">
+                  <SelectValue placeholder="All Roles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  {DEPARTMENTS.map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filters.isMandatory} onValueChange={(value) => setFilters({...filters, isMandatory: value})}>
+                <SelectTrigger className="bg-white/50">
+                  <SelectValue placeholder="All Courses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Courses</SelectItem>
+                  <SelectItem value="true">Mandatory Only</SelectItem>
+                  <SelectItem value="false">Optional Only</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filters.difficultyLevel} onValueChange={(value) => setFilters({...filters, difficultyLevel: value})}>
+                <SelectTrigger className="bg-white/50">
+                  <SelectValue placeholder="All Levels" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Levels</SelectItem>
+                  <SelectItem value="Beginner">Beginner</SelectItem>
+                  <SelectItem value="Intermediate">Intermediate</SelectItem>
+                  <SelectItem value="Advanced">Advanced</SelectItem>
+                  <SelectItem value="Expert">Expert</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm('');
+                  resetFilters();
+                }}
+                className="bg-white/50"
+              >
+                Clear Filters
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {loading ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X, Filter, RotateCcw } from 'lucide-react';
-import { COURSE_TYPES, TARGET_ROLES } from '@/lib/masterData';
+import { COURSE_TYPES, DEPARTMENTS } from '@/lib/masterData';
 
 export interface CourseFilters {
   courseType: string;
@@ -143,7 +143,7 @@ export const CourseFiltersComponent = ({ filters, onFiltersChange, onReset }: Co
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
-                  {TARGET_ROLES.map((role) => (
+                  {DEPARTMENTS.map((role) => (
                     <SelectItem key={role} value={role}>
                       {role}
                     </SelectItem>

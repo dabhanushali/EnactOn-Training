@@ -620,10 +620,10 @@ export const EnhancedDashboard = () => {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {stats.departmentStats.map((dept, index) => (
-                <div 
-                  key={index} 
+                <div
+                  key={index}
                   className="p-4 rounded-lg border bg-card hover:shadow-md transition-all cursor-pointer"
-                  onClick={() => navigate('/employees')}
+                  onClick={() => navigate(`/employees?department=${encodeURIComponent(dept.name)}`)}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <Briefcase className="h-4 w-4 text-primary" />

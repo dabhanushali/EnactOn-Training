@@ -187,18 +187,24 @@ export default function Projects() {
     if (!projectToDelete) return;
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('projects')
         .delete()
-        .eq('id', projectToDelete.id);
+        .eq('id', projectToDelete.id)
+        .select();
 
       if (error) throw error;
+
+      // Check if the project was actually deleted
+      if (!data || data.length === 0) {
+        throw new Error('Project could not be deleted. It may have dependent records or you may not have permission.');
+      }
 
       toast.success('Project deleted successfully');
       fetchProjects();
     } catch (error) {
       console.error('Error deleting project:', error);
-      toast.error('Failed to delete project');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete project');
     } finally {
       setDeleteDialogOpen(false);
       setProjectToDelete(null);

@@ -597,7 +597,7 @@ export default function CreateCourse() {
                             <SelectValue placeholder="Select target role" />
                           </SelectTrigger>
                           <SelectContent>
-                            {MASTER_DATA.targetRoles.map((role) => (
+                            {MASTER_DATA.departments.map((role) => (
                               <SelectItem key={role} value={role}>
                                 {role}
                               </SelectItem>

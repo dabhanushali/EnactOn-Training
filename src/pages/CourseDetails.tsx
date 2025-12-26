@@ -469,7 +469,7 @@ export default function CourseDetails() {
           <>
             {/* Modules Section */}
             <Card className="mb-8 border-l-4 border-l-primary">
-              <CardHeader className="bg-primary/5">
+              <Card className="bg-primary/5">
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <div className="p-2 rounded-lg bg-primary/10">
                     <BookOpen className="h-5 w-5 text-primary" />
@@ -477,7 +477,7 @@ export default function CourseDetails() {
                   Course Modules
                   <Badge variant="secondary" className="ml-2">{modules.length}</Badge>
                 </CardTitle>
-              </CardHeader>
+              </Card>
               <CardContent className="pt-6">
                 {modules.length === 0 ? (
                   <div className="text-center text-muted-foreground py-12 bg-muted/30 rounded-lg">
@@ -574,7 +574,7 @@ export default function CourseDetails() {
                     This course is configured and ready for employee assignments.
                   </p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto mb-8">
                   <div className="text-center p-4 rounded-lg bg-background border">
                     <Clock className="h-8 w-8 text-primary mx-auto mb-2" />
                     <h4 className="font-medium mb-1">Modules</h4>
@@ -591,6 +591,35 @@ export default function CourseDetails() {
                     <p className="text-sm text-muted-foreground">Ready for assignment</p>
                   </div>
                 </div>
+
+                {/* Module List for Management */}
+                {modules.length > 0 && (
+                  <div className="max-w-2xl mx-auto">
+                    <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 text-primary" />
+                      Course Modules
+                    </h4>
+                    <div className="space-y-2">
+                      {modules.map((module, index) => (
+                        <div
+                          key={module.id}
+                          className="flex items-center gap-3 p-3 rounded-lg bg-background border hover:bg-muted/50 transition-colors"
+                        >
+                          <Badge variant="outline" className="min-w-fit">
+                            {index + 1}
+                          </Badge>
+                          <span className="font-medium">{module.module_name}</span>
+                          {module.estimated_duration_minutes && (
+                            <Badge variant="secondary" className="ml-auto text-xs">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {module.estimated_duration_minutes} min
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -1,5 +1,6 @@
 import { MainNav } from '@/components/navigation/MainNav';
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,6 +57,7 @@ interface Role {
 
 export default function Employees() {
   const { profile } = useAuth();
+  const [searchParams] = useSearchParams();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
@@ -116,6 +118,14 @@ export default function Employees() {
     fetchEmployees();
     fetchRoles();
   }, [fetchEmployees, fetchRoles]);
+
+  // Read department filter from URL params
+  useEffect(() => {
+    const departmentParam = searchParams.get('department');
+    if (departmentParam) {
+      setDepartmentFilter(departmentParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     let filtered = employees;
