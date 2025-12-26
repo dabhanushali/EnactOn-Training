@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { BookOpen, Calendar, CheckCircle, Clock, Award } from 'lucide-react';
+import { BookOpen, Calendar, CheckCircle, Clock, Award, FileText, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CourseEnrollment {
@@ -24,6 +23,23 @@ interface CourseAssessment {
   passing_score: number;
   status: string;
   course_id: string;
+  assessment_template_id: string;
+}
+
+interface ModuleProgress {
+  module_id: string;
+  course_id: string;
+  completed: boolean;
+}
+
+interface CourseModule {
+  id: string;
+  course_id: string;
+}
+
+interface AssessmentTemplate {
+  id: string;
+  course_id: string;
 }
 
 interface EmployeeCourseEnrollmentsProps {
@@ -33,6 +49,9 @@ interface EmployeeCourseEnrollmentsProps {
 export function EmployeeCourseEnrollments({ employeeId }: EmployeeCourseEnrollmentsProps) {
   const [enrollments, setEnrollments] = useState<CourseEnrollment[]>([]);
   const [assessments, setAssessments] = useState<CourseAssessment[]>([]);
+  const [moduleProgress, setModuleProgress] = useState<ModuleProgress[]>([]);
+  const [modules, setModules] = useState<CourseModule[]>([]);
+  const [assessmentTemplates, setAssessmentTemplates] = useState<AssessmentTemplate[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -64,16 +83,48 @@ export function EmployeeCourseEnrollments({ employeeId }: EmployeeCourseEnrollme
 
       if (enrollmentError) throw enrollmentError;
 
-      // Fetch course assessments for progress calculation
-      const { data: assessmentData, error: assessmentError } = await supabase
-        .from('course_assessments')
-        .select('id, percentage, passing_score, status, course_id')
-        .eq('employee_id', employeeId);
+      const courseIds = enrollmentData?.map(e => e.course.id) || [];
 
-      if (assessmentError) throw assessmentError;
+      if (courseIds.length === 0) {
+        setEnrollments([]);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch all data in parallel
+      const [assessmentRes, moduleProgressRes, modulesRes, templatesRes] = await Promise.all([
+        // Fetch course assessments
+        supabase
+          .from('course_assessments')
+          .select('id, percentage, passing_score, status, course_id, assessment_template_id')
+          .eq('employee_id', employeeId),
+        // Fetch module progress
+        supabase
+          .from('module_progress')
+          .select('module_id, course_id, completed')
+          .eq('employee_id', employeeId),
+        // Fetch all modules for enrolled courses
+        supabase
+          .from('course_modules')
+          .select('id, course_id')
+          .in('course_id', courseIds),
+        // Fetch assessment templates for enrolled courses
+        supabase
+          .from('assessment_templates')
+          .select('id, course_id')
+          .in('course_id', courseIds)
+      ]);
+
+      if (assessmentRes.error) throw assessmentRes.error;
+      if (moduleProgressRes.error) throw moduleProgressRes.error;
+      if (modulesRes.error) throw modulesRes.error;
+      if (templatesRes.error) throw templatesRes.error;
 
       setEnrollments(enrollmentData || []);
-      setAssessments(assessmentData || []);
+      setAssessments(assessmentRes.data || []);
+      setModuleProgress(moduleProgressRes.data || []);
+      setModules(modulesRes.data || []);
+      setAssessmentTemplates(templatesRes.data || []);
     } catch (error) {
       console.error('Error fetching course enrollments:', error);
       toast.error('Failed to load course enrollments');
@@ -95,12 +146,51 @@ export function EmployeeCourseEnrollments({ employeeId }: EmployeeCourseEnrollme
     }
   };
 
-  const getCourseProgress = (courseId: string) => {
+  const getCourseModuleProgress = (courseId: string) => {
+    const courseModules = modules.filter(m => m.course_id === courseId);
+    const completedModules = moduleProgress.filter(
+      mp => mp.course_id === courseId && mp.completed
+    );
+    return {
+      completed: completedModules.length,
+      total: courseModules.length,
+      percentage: courseModules.length > 0 
+        ? Math.round((completedModules.length / courseModules.length) * 100) 
+        : 0
+    };
+  };
+
+  const getCourseAssessmentProgress = (courseId: string) => {
+    const courseTemplates = assessmentTemplates.filter(t => t.course_id === courseId);
     const courseAssessments = assessments.filter(a => a.course_id === courseId);
-    if (courseAssessments.length === 0) return 0;
     
-    const passedAssessments = courseAssessments.filter(a => a.percentage >= a.passing_score).length;
-    return Math.round((passedAssessments / courseAssessments.length) * 100);
+    // Count unique passed assessments (one per template)
+    const passedTemplates = new Set(
+      courseAssessments
+        .filter(a => 
+          (a.status?.toLowerCase() === 'completed' || a.status?.toLowerCase() === 'passed') &&
+          a.percentage >= a.passing_score
+        )
+        .map(a => a.assessment_template_id)
+    );
+
+    return {
+      completed: passedTemplates.size,
+      total: courseTemplates.length,
+      percentage: courseTemplates.length > 0 
+        ? Math.round((passedTemplates.size / courseTemplates.length) * 100) 
+        : 0
+    };
+  };
+
+  const getOverallProgress = (courseId: string) => {
+    const moduleStats = getCourseModuleProgress(courseId);
+    const assessmentStats = getCourseAssessmentProgress(courseId);
+    
+    const totalItems = moduleStats.total + assessmentStats.total;
+    const completedItems = moduleStats.completed + assessmentStats.completed;
+    
+    return totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
   };
 
   if (loading) {
@@ -129,8 +219,9 @@ export function EmployeeCourseEnrollments({ employeeId }: EmployeeCourseEnrollme
   return (
     <div className="space-y-4 max-h-96 overflow-y-auto">
       {enrollments.map((enrollment) => {
-        const progress = getCourseProgress(enrollment.course.id);
-        const courseAssessments = assessments.filter(a => a.course_id === enrollment.course.id);
+        const moduleStats = getCourseModuleProgress(enrollment.course.id);
+        const assessmentStats = getCourseAssessmentProgress(enrollment.course.id);
+        const overallProgress = getOverallProgress(enrollment.course.id);
         
         return (
           <div key={enrollment.id} className="p-4 border rounded-lg bg-card/50 hover:bg-card/80 transition-colors">
@@ -146,18 +237,47 @@ export function EmployeeCourseEnrollments({ employeeId }: EmployeeCourseEnrollme
               </div>
             </div>
             
-            {courseAssessments.length > 0 && (
-              <div className="mb-3">
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-muted-foreground">Assessment Progress</span>
-                  <span className="font-medium">{progress}%</span>
-                </div>
-                <Progress value={progress} className="h-2" />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {assessments.filter(a => a.course_id === enrollment.course.id && a.percentage >= a.passing_score).length} of {courseAssessments.length} assessments passed
-                </p>
+            {/* Overall Progress */}
+            <div className="mb-3">
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-muted-foreground">Overall Progress</span>
+                <span className="font-medium">{overallProgress}%</span>
               </div>
-            )}
+              <Progress value={overallProgress} className="h-2" />
+            </div>
+
+            {/* Module and Assessment Progress */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              {/* Module Progress */}
+              <div className="bg-muted/30 rounded-md p-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Layers className="w-3 h-3 text-blue-500" />
+                  <span className="text-xs font-medium">Modules</span>
+                </div>
+                <p className="text-sm font-semibold">
+                  {moduleStats.completed} / {moduleStats.total}
+                  <span className="text-xs font-normal text-muted-foreground ml-1">completed</span>
+                </p>
+                {moduleStats.total > 0 && (
+                  <Progress value={moduleStats.percentage} className="h-1 mt-1" />
+                )}
+              </div>
+
+              {/* Assessment Progress */}
+              <div className="bg-muted/30 rounded-md p-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <FileText className="w-3 h-3 text-green-500" />
+                  <span className="text-xs font-medium">Assessments</span>
+                </div>
+                <p className="text-sm font-semibold">
+                  {assessmentStats.completed} / {assessmentStats.total}
+                  <span className="text-xs font-normal text-muted-foreground ml-1">passed</span>
+                </p>
+                {assessmentStats.total > 0 && (
+                  <Progress value={assessmentStats.percentage} className="h-1 mt-1" />
+                )}
+              </div>
+            </div>
             
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <div className="flex items-center">
