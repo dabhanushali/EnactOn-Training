@@ -17,6 +17,7 @@ export async function authenticateUser(req: Request): Promise<AuthResult> {
     // Check Authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.log('No authorization header found');
       return {
         success: false,
         error: 'Authentication required',
@@ -52,7 +53,8 @@ export async function authenticateUser(req: Request): Promise<AuthResult> {
     // Validate JWT token
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
-    if (userError || !user) {
+    if (userError) {
+      console.error('User auth error:', userError.message);
       return {
         success: false,
         error: 'Invalid authentication',
@@ -60,21 +62,18 @@ export async function authenticateUser(req: Request): Promise<AuthResult> {
       };
     }
 
-    // Verify user profile exists (uses user's JWT token, so RLS will work)
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('profiles')
-      .select('id')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile) {
+    if (!user) {
+      console.log('No user found from token');
       return {
         success: false,
-        error: 'User profile not found',
-        status: 403
+        error: 'Invalid authentication',
+        status: 401
       };
     }
 
+    console.log('User authenticated:', user.id);
+
+    // Return success without checking profile - profile check can be done by calling function if needed
     return {
       success: true,
       user,
