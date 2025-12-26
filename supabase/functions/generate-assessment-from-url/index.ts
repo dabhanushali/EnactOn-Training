@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 import Firecrawl from "npm:@mendable/firecrawl-js@4.4.1";
-import { authenticateUser } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,18 +42,36 @@ serve(async (req) => {
   }
 
   try {
-    // Authenticate user
-    const authResult = await authenticateUser(req);
-    if (!authResult.success) {
+    // Validate user authentication via JWT (verify_jwt is enabled in config.toml)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ success: false, error: authResult.error }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: authResult.status }
+        JSON.stringify({ success: false, error: 'Authentication required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
       );
     }
 
-    const { url, assessmentType, courseId, courseName }: GenerateAssessmentRequest = await req.json();
+    // Create Supabase client to get user info
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
 
-    if (!url || !url.startsWith('http')) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error('User auth error:', userError?.message);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid authentication' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
+    console.log('Authenticated user:', user.id);
+
+    const { url: sourceUrl, assessmentType, courseId, courseName }: GenerateAssessmentRequest = await req.json();
+
+    if (!sourceUrl || !sourceUrl.startsWith('http')) {
       return new Response(
         JSON.stringify({ success: false, error: 'Please provide a valid URL' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -82,10 +100,10 @@ serve(async (req) => {
     
     if (FIRECRAWL_API_KEY) {
       try {
-        console.log('Crawling content with Firecrawl from URL:', url);
+        console.log('Crawling content with Firecrawl from URL:', sourceUrl);
         
         const firecrawl = new Firecrawl({ apiKey: FIRECRAWL_API_KEY });
-        const crawlResponse = await firecrawl.crawl(url, { 
+        const crawlResponse = await firecrawl.crawl(sourceUrl, {
           limit: 5,
           scrapeOptions: {
             formats: ['markdown']
@@ -103,7 +121,7 @@ serve(async (req) => {
       } catch (error) {
         console.log('Firecrawl failed, attempting basic fetch:', error);
         try {
-          const urlResponse = await fetch(url);
+          const urlResponse = await fetch(sourceUrl);
           if (urlResponse.ok) {
             contentToProcess = await urlResponse.text();
             console.log('Successfully fetched content with basic fetch');
@@ -115,8 +133,8 @@ serve(async (req) => {
     } else {
       // No Firecrawl key, use basic fetch
       try {
-        console.log('Fetching content from URL (no Firecrawl key):', url);
-        const urlResponse = await fetch(url);
+        console.log('Fetching content from URL (no Firecrawl key):', sourceUrl);
+        const urlResponse = await fetch(sourceUrl);
         if (urlResponse.ok) {
           contentToProcess = await urlResponse.text();
         }
@@ -203,7 +221,7 @@ Create a project that demonstrates mastery of the content. Include 3-5 major del
     }
 
     const userPrompt = `Course: ${courseName || 'Course Assessment'}
-Source URL: ${url}
+Source URL: ${sourceUrl}
 
 Content to analyze:
 ${contentToProcess.slice(0, 10000)}
@@ -294,7 +312,7 @@ Create a ${assessmentType} assessment based on this content.`;
       })) : undefined,
       deliverables: result.deliverables || undefined,
       milestones: result.milestones || undefined,
-      source_url: url
+      source_url: sourceUrl
     };
 
     console.log(`Successfully generated ${assessmentType} assessment with ${cleanedResult.questions?.length || 0} questions`);
