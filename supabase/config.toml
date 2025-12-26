@@ -19,3 +19,6 @@ verify_jwt = true
 verify_jwt = true
 [functions.get-readiness-data]
 verify_jwt = true
+
+[functions.generate-assessment-from-url]
+verify_jwt = true
