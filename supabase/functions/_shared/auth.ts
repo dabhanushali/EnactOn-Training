@@ -26,9 +26,23 @@ export async function authenticateUser(req: Request): Promise<AuthResult> {
 
     // Create Supabase client with the user's JWT token for auth context
     const token = authHeader.replace('Bearer ', '');
+    
+    // Check for anon key - support both naming conventions
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? '';
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    
+    if (!anonKey || !supabaseUrl) {
+      console.error('Missing Supabase configuration:', { hasUrl: !!supabaseUrl, hasKey: !!anonKey });
+      return {
+        success: false,
+        error: 'Server configuration error',
+        status: 500
+      };
+    }
+    
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      supabaseUrl,
+      anonKey,
       { 
         auth: { persistSession: false },
         global: { headers: { Authorization: authHeader } }
