@@ -1,10 +1,10 @@
-import { useState, useEffect,useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MainNav } from '@/components/navigation/MainNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Clock, FileText, Video, Link as LinkIcon, Download, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Clock, FileText, Video, Link as LinkIcon, Download, ExternalLink, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/auth-utils';
 import { useToast } from '@/hooks/use-toast';
@@ -12,13 +12,15 @@ import { useToast } from '@/hooks/use-toast';
 export default function ModuleViewer() {
   const { courseId, moduleId } = useParams();
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { toast } = useToast();
   
   const [module, setModule] = useState(null);
   const [course, setCourse] = useState(null);
   const [moduleContents, setModuleContents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [markingComplete, setMarkingComplete] = useState(false);
 
   const fetchModuleData = useCallback(async () => {
     if (courseId && moduleId && profile?.id) {
@@ -53,6 +55,15 @@ export default function ModuleViewer() {
 
         if (courseError) throw courseError;
 
+        // Fetch module progress
+        const { data: progressData } = await supabase
+          .from('module_progress')
+          .select('completed')
+          .eq('module_id', moduleId)
+          .eq('employee_id', profile.id)
+          .maybeSingle();
+
+        setIsCompleted(progressData?.completed || false);
         setModule(moduleData);
         setCourse(courseData);
       } catch (error: any) {
@@ -67,6 +78,63 @@ export default function ModuleViewer() {
       }
     }
   }, [courseId, moduleId, profile?.id, toast]);
+
+  const handleMarkComplete = async () => {
+    if (!user || !moduleId || !courseId) return;
+    
+    try {
+      setMarkingComplete(true);
+      
+      // Check if progress record exists
+      const { data: existing } = await supabase
+        .from('module_progress')
+        .select('id')
+        .eq('module_id', moduleId)
+        .eq('employee_id', user.id)
+        .maybeSingle();
+
+      if (existing) {
+        // Update existing record
+        const { error } = await supabase
+          .from('module_progress')
+          .update({
+            completed: true,
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', existing.id);
+        
+        if (error) throw error;
+      } else {
+        // Insert new record
+        const { error } = await supabase
+          .from('module_progress')
+          .insert({
+            employee_id: user.id,
+            module_id: moduleId,
+            course_id: courseId,
+            completed: true,
+            completed_at: new Date().toISOString()
+          });
+        
+        if (error) throw error;
+      }
+
+      setIsCompleted(true);
+      toast({
+        title: "Module Completed!",
+        description: "Your progress has been saved.",
+      });
+    } catch (error: any) {
+      console.error('Error marking module complete:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark module as complete",
+        variant: "destructive"
+      });
+    } finally {
+      setMarkingComplete(false);
+    }
+  };
 
   useEffect(() => {
     fetchModuleData();
@@ -409,6 +477,37 @@ export default function ModuleViewer() {
           </CardHeader>
           <CardContent className="p-8">
             {renderContent()}
+          </CardContent>
+        </Card>
+
+        {/* Mark as Complete Button */}
+        <Card className="shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {isCompleted ? (
+                  <>
+                    <CheckCircle className="h-6 w-6 text-green-500" />
+                    <span className="text-lg font-medium text-green-600">Module Completed</span>
+                  </>
+                ) : (
+                  <span className="text-lg font-medium text-muted-foreground">
+                    Finished reviewing this module?
+                  </span>
+                )}
+              </div>
+              {!isCompleted && (
+                <Button 
+                  onClick={handleMarkComplete}
+                  disabled={markingComplete}
+                  size="lg"
+                  className="gap-2"
+                >
+                  <CheckCircle className="h-5 w-5" />
+                  {markingComplete ? 'Saving...' : 'Mark as Complete'}
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       </main>

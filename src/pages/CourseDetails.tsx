@@ -37,6 +37,7 @@ export default function CourseDetails() {
   const [course, setCourse] = useState(null);
   const [modules, setModules] = useState([]);
   const [moduleContentCounts, setModuleContentCounts] = useState({});
+  const [moduleProgress, setModuleProgress] = useState<Record<string, boolean>>({});
   const [enrollment, setEnrollment] = useState(null);
   const [assessments, setAssessments] = useState([]);
   const [assessmentTemplates, setAssessmentTemplates] = useState([]);
@@ -102,6 +103,22 @@ export default function CourseDetails() {
         .from('assessment_templates')
         .select('*')
         .eq('course_id', courseId);
+
+      // Fetch module progress for current user
+      const { data: progressData } = await supabase
+        .from('module_progress')
+        .select('module_id, completed')
+        .eq('course_id', courseId)
+        .eq('employee_id', profile?.id);
+
+      // Create a map of module_id -> completed status
+      const progressMap: Record<string, boolean> = {};
+      if (progressData) {
+        progressData.forEach(p => {
+          progressMap[p.module_id] = p.completed;
+        });
+      }
+      setModuleProgress(progressMap);
 
       setCourse(courseData);
       setModules(modulesData || []);
@@ -392,9 +409,9 @@ export default function CourseDetails() {
             ) : enrollment && isTrainee && (
               <div className="space-y-4">
                   <CourseProgressTracker
-                    completedModules={modules.filter(m => m.completed).length}
+                    completedModules={modules.filter(m => moduleProgress[m.id]).length}
                     totalModules={modules.length}
-                    completedAssessments={assessments.filter(a => a.status === 'completed').length}
+                    completedAssessments={assessments.filter(a => a.status?.toLowerCase() === 'completed').length}
                     totalAssessments={assessmentTemplates.length}
                     averageScore={assessments.length > 0 ? assessments.reduce((acc, a) => acc + (a.percentage || 0), 0) / assessments.length : undefined}
                     status={enrollment[0]?.status === 'completed' ? 'completed' : 'in_progress'}
@@ -403,8 +420,8 @@ export default function CourseDetails() {
                   />
                   <CourseEnrollment
                     course={course}
-                    completedAssessments={assessments.filter(a => a.status === 'completed').length}
-                    totalAssessments={assessments.length}
+                    completedAssessments={assessments.filter(a => a.status?.toLowerCase() === 'completed').length}
+                    totalAssessments={assessmentTemplates.length}
                     isCompleted={enrollment[0]?.status === 'completed'}
                     isEnrolled={true}
                     onViewModules={() => {}} // Scroll to modules section
