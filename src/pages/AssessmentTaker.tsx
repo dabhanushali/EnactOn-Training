@@ -139,13 +139,12 @@ export default function AssessmentTaker() {
       const { totalPoints, earnedPoints, percentage } = calculateScore();
       const isPassed = percentage >= assessment.passing_score;
 
-      // Check if there's an existing assessment record for this user and assessment
-      const { data: existingAssessment } = await supabase
+      // Check if there are existing assessment records for this user and assessment
+      const { data: existingAssessments } = await supabase
         .from('course_assessments')
         .select('id')
         .eq('employee_id', user.id)
-        .eq('assessment_template_id', assessment.id)
-        .maybeSingle();
+        .eq('assessment_template_id', assessment.id);
 
       const assessmentData = {
         employee_id: user.id,
@@ -162,12 +161,13 @@ export default function AssessmentTaker() {
       };
 
       let error;
-      if (existingAssessment) {
-        // Update existing record with latest score
+      if (existingAssessments && existingAssessments.length > 0) {
+        // Update all existing records for this user/assessment with latest score
         const result = await supabase
           .from('course_assessments')
           .update(assessmentData)
-          .eq('id', existingAssessment.id);
+          .eq('employee_id', user.id)
+          .eq('assessment_template_id', assessment.id);
         error = result.error;
       } else {
         // Create new record
