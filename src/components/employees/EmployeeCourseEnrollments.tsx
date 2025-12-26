@@ -19,11 +19,11 @@ interface CourseEnrollment {
 
 interface CourseAssessment {
   id: string;
-  percentage: number;
-  passing_score: number;
-  status: string;
+  percentage: number | null;
+  passing_score: number | null;
+  status: string | null;
   course_id: string;
-  assessment_template_id: string;
+  assessment_template_id: string | null;
 }
 
 interface ModuleProgress {
@@ -165,14 +165,18 @@ export function EmployeeCourseEnrollments({ employeeId }: EmployeeCourseEnrollme
     const courseAssessments = assessments.filter(a => a.course_id === courseId);
     
     // Count unique passed assessments (one per template)
-    const passedTemplates = new Set(
-      courseAssessments
-        .filter(a => 
-          (a.status?.toLowerCase() === 'completed' || a.status?.toLowerCase() === 'passed') &&
-          a.percentage >= a.passing_score
-        )
-        .map(a => a.assessment_template_id)
-    );
+    const passedTemplates = new Set<string>();
+    
+    courseAssessments.forEach(a => {
+      const status = a.status?.toLowerCase();
+      const percentage = a.percentage ?? 0;
+      const passingScore = a.passing_score ?? 70;
+      const isPassed = (status === 'completed' || status === 'passed') && percentage >= passingScore;
+      
+      if (isPassed && a.assessment_template_id) {
+        passedTemplates.add(a.assessment_template_id);
+      }
+    });
 
     return {
       completed: passedTemplates.size,
