@@ -17,7 +17,6 @@ export async function authenticateUser(req: Request): Promise<AuthResult> {
     // Check Authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.log('No authorization header found');
       return {
         success: false,
         error: 'Authentication required',
@@ -27,23 +26,9 @@ export async function authenticateUser(req: Request): Promise<AuthResult> {
 
     // Create Supabase client with the user's JWT token for auth context
     const token = authHeader.replace('Bearer ', '');
-    
-    // Check for anon key - support both naming conventions
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? '';
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    
-    if (!anonKey || !supabaseUrl) {
-      console.error('Missing Supabase configuration:', { hasUrl: !!supabaseUrl, hasKey: !!anonKey });
-      return {
-        success: false,
-        error: 'Server configuration error',
-        status: 500
-      };
-    }
-    
     const supabaseClient = createClient(
-      supabaseUrl,
-      anonKey,
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { 
         auth: { persistSession: false },
         global: { headers: { Authorization: authHeader } }
@@ -53,8 +38,7 @@ export async function authenticateUser(req: Request): Promise<AuthResult> {
     // Validate JWT token
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
-    if (userError) {
-      console.error('User auth error:', userError.message);
+    if (userError || !user) {
       return {
         success: false,
         error: 'Invalid authentication',
@@ -62,18 +46,21 @@ export async function authenticateUser(req: Request): Promise<AuthResult> {
       };
     }
 
-    if (!user) {
-      console.log('No user found from token');
+    // Verify user profile exists (uses user's JWT token, so RLS will work)
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
       return {
         success: false,
-        error: 'Invalid authentication',
-        status: 401
+        error: 'User profile not found',
+        status: 403
       };
     }
 
-    console.log('User authenticated:', user.id);
-
-    // Return success without checking profile - profile check can be done by calling function if needed
     return {
       success: true,
       user,

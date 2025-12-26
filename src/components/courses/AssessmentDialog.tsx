@@ -180,26 +180,13 @@ export function AssessmentDialog({ courseId, assessment, onAssessmentSave, onClo
     onClose();
   };
 
-  const getSecondTabLabel = () => {
-    switch (form.assessment_type) {
-      case 'quiz':
-        return 'Questions';
-      case 'assignment':
-        return 'Deliverables';
-      case 'project':
-        return 'Project Details';
-      default:
-        return 'Requirements';
-    }
-  };
-
   return (
     <div className="space-y-6">
       <Tabs defaultValue="details" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="details">Assessment Details</TabsTrigger>
           <TabsTrigger value="questions" disabled={!currentAssessmentId}>
-            {getSecondTabLabel()} {currentAssessmentId ? '' : '(Save first)'}
+            Questions {currentAssessmentId ? '' : '(Save first)'}
           </TabsTrigger>
         </TabsList>
 
@@ -234,9 +221,7 @@ export function AssessmentDialog({ courseId, assessment, onAssessmentSave, onClo
               <Input id="passing_score" type="number" min="0" max="100" value={form.passing_score} onChange={(e) => setForm({ ...form, passing_score: parseInt(e.target.value) || 70 })} />
             </div>
             <div>
-              <Label htmlFor="time_limit">
-                {form.assessment_type === 'project' ? 'Duration (days)' : 'Time Limit (minutes)'}
-              </Label>
+              <Label htmlFor="time_limit">Time Limit (minutes)</Label>
               <Input id="time_limit" type="number" min="1" value={form.time_limit_minutes} onChange={(e) => setForm({ ...form, time_limit_minutes: parseInt(e.target.value) || 60 })} />
             </div>
           </div>
@@ -258,7 +243,6 @@ export function AssessmentDialog({ courseId, assessment, onAssessmentSave, onClo
           {currentAssessmentId && (
             <QuestionManager 
               assessmentId={currentAssessmentId} 
-              assessmentType={form.assessment_type}
               questions={questions}
               onQuestionsChange={fetchQuestions}
               loading={loadingQuestions}

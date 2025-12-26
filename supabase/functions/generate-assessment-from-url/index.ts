@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Firecrawl from "npm:@mendable/firecrawl-js@4.4.1";
+import { authenticateUser } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -41,9 +42,14 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Generate assessment from URL called');
-    
-    const { url, assessmentType, courseId, courseName }: GenerateAssessmentRequest = await req.json();
+    // Authenticate user
+    const authResult = await authenticateUser(req);
+    if (!authResult.success) {
+      return new Response(
+        JSON.stringify({ success: false, error: authResult.error }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: authResult.status }
+      );
+    }
 
     const { url, assessmentType, courseId, courseName }: GenerateAssessmentRequest = await req.json();
 
