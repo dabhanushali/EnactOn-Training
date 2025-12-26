@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 import Firecrawl from "npm:@mendable/firecrawl-js@4.4.1";
 
 const corsHeaders = {
@@ -42,7 +41,8 @@ serve(async (req) => {
   }
 
   try {
-    // Validate user authentication via JWT (verify_jwt is enabled in config.toml)
+    // JWT is already verified by Supabase (verify_jwt = true in config.toml)
+    // Extract user info from the JWT token
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -51,23 +51,19 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client to get user info
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      console.error('User auth error:', userError?.message);
+    // Decode JWT to get user ID (JWT is already verified by Supabase)
+    const token = authHeader.replace('Bearer ', '');
+    const tokenParts = token.split('.');
+    if (tokenParts.length !== 3) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Invalid authentication' }),
+        JSON.stringify({ success: false, error: 'Invalid token format' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
       );
     }
-
-    console.log('Authenticated user:', user.id);
+    
+    const payload = JSON.parse(atob(tokenParts[1]));
+    const userId = payload.sub;
+    console.log('Authenticated user:', userId);
 
     const { url: sourceUrl, assessmentType, courseId, courseName }: GenerateAssessmentRequest = await req.json();
 
