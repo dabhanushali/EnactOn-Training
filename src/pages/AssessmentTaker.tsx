@@ -139,22 +139,43 @@ export default function AssessmentTaker() {
       const { totalPoints, earnedPoints, percentage } = calculateScore();
       const isPassed = percentage >= assessment.passing_score;
 
-      // Create course assessment record
-      const { error } = await supabase
+      // Check if there's an existing assessment record for this user and assessment
+      const { data: existingAssessment } = await supabase
         .from('course_assessments')
-        .insert({
-          employee_id: user.id,
-          course_id: assessment.course_id,
-          assessment_template_id: assessment.id,
-          assessment_type: assessment.assessment_type,
-          total_score: earnedPoints,
-          percentage: percentage,
-          passing_score: assessment.passing_score,
-          is_mandatory: assessment.is_mandatory,
-          status: 'Completed',
-          grade: percentage >= 90 ? 'A' : percentage >= 80 ? 'B' : percentage >= 70 ? 'C' : 'F',
-          completion_date: new Date().toISOString()
-        });
+        .select('id')
+        .eq('employee_id', user.id)
+        .eq('assessment_template_id', assessment.id)
+        .maybeSingle();
+
+      const assessmentData = {
+        employee_id: user.id,
+        course_id: assessment.course_id,
+        assessment_template_id: assessment.id,
+        assessment_type: assessment.assessment_type,
+        total_score: earnedPoints,
+        percentage: percentage,
+        passing_score: assessment.passing_score,
+        is_mandatory: assessment.is_mandatory,
+        status: 'Completed',
+        grade: percentage >= 90 ? 'A' : percentage >= 80 ? 'B' : percentage >= 70 ? 'C' : 'F',
+        completion_date: new Date().toISOString()
+      };
+
+      let error;
+      if (existingAssessment) {
+        // Update existing record with latest score
+        const result = await supabase
+          .from('course_assessments')
+          .update(assessmentData)
+          .eq('id', existingAssessment.id);
+        error = result.error;
+      } else {
+        // Create new record
+        const result = await supabase
+          .from('course_assessments')
+          .insert(assessmentData);
+        error = result.error;
+      }
 
       if (error) throw error;
 
