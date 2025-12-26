@@ -411,16 +411,47 @@ export default function CourseDetails() {
                   <CourseProgressTracker
                     completedModules={modules.filter(m => moduleProgress[m.id]).length}
                     totalModules={modules.length}
-                    completedAssessments={assessments.filter(a => a.status?.toLowerCase() === 'completed').length}
+                    completedAssessments={
+                      // Count unique completed assessments (one per template)
+                      new Set(
+                        assessments
+                          .filter(a => a.status?.toLowerCase() === 'completed' || a.status?.toLowerCase() === 'passed')
+                          .map(a => a.assessment_template_id)
+                      ).size
+                    }
                     totalAssessments={assessmentTemplates.length}
-                    averageScore={assessments.length > 0 ? assessments.reduce((acc, a) => acc + (a.percentage || 0), 0) / assessments.length : undefined}
+                    averageScore={
+                      // Calculate average from best score per template
+                      (() => {
+                        const completedAssessments = assessments.filter(a => 
+                          a.status?.toLowerCase() === 'completed' || a.status?.toLowerCase() === 'passed'
+                        );
+                        if (completedAssessments.length === 0) return undefined;
+                        // Get best score per template
+                        const bestScores = new Map<string, number>();
+                        completedAssessments.forEach(a => {
+                          const current = bestScores.get(a.assessment_template_id) || 0;
+                          if ((a.percentage || 0) > current) {
+                            bestScores.set(a.assessment_template_id, a.percentage || 0);
+                          }
+                        });
+                        const scores = Array.from(bestScores.values());
+                        return scores.length > 0 ? scores.reduce((acc, s) => acc + s, 0) / scores.length : undefined;
+                      })()
+                    }
                     status={enrollment[0]?.status === 'completed' ? 'completed' : 'in_progress'}
                     enrollmentDate={enrollment[0]?.enrolled_date}
                     completionDate={enrollment[0]?.completion_date}
                   />
                   <CourseEnrollment
                     course={course}
-                    completedAssessments={assessments.filter(a => a.status?.toLowerCase() === 'completed').length}
+                    completedAssessments={
+                      new Set(
+                        assessments
+                          .filter(a => a.status?.toLowerCase() === 'completed' || a.status?.toLowerCase() === 'passed')
+                          .map(a => a.assessment_template_id)
+                      ).size
+                    }
                     totalAssessments={assessmentTemplates.length}
                     isCompleted={enrollment[0]?.status === 'completed'}
                     isEnrolled={true}
