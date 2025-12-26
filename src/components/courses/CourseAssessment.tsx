@@ -51,7 +51,7 @@ export const CourseAssessment = ({
 }: CourseAssessmentProps) => {
   const isPassed = percentage >= passingScore;
   const isCompleted = status === 'Completed';
-  const canRetake = isCompleted;
+  const canRetake = isCompleted && !isPassed;
 
   const getStatusColor = (status: string, passed: boolean) => {
     if (status === 'Pending') return 'bg-warning/10 text-warning border-warning/20';
