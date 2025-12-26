@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Clock, Target, BookOpen, FileQuestion } from 'lucide-react';
+import { Plus, Edit, Trash2, Clock, Target, BookOpen, FileQuestion, Sparkles } from 'lucide-react';
 import { AssessmentDialog } from './AssessmentDialog';
+import { AIAssessmentGenerator } from './AIAssessmentGenerator';
 
 interface AssessmentTemplate {
   id: string;
@@ -32,6 +33,7 @@ export function AssessmentTemplateManager({ courseId, onQuestionManagement }: As
   const [assessments, setAssessments] = useState<AssessmentTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [editingAssessment, setEditingAssessment] = useState<AssessmentTemplate | null>(null);
   const { toast } = useToast();
 
@@ -139,40 +141,66 @@ export function AssessmentTemplateManager({ courseId, onQuestionManagement }: As
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Assessment Templates</h3>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setEditingAssessment(null)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Assessment
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingAssessment ? 'Edit Assessment' : 'Create New Assessment'}
-              </DialogTitle>
-            </DialogHeader>
-            <AssessmentDialog
-              courseId={courseId}
-              assessment={editingAssessment}
-              onAssessmentSave={(assessment: AssessmentTemplate) => {
-                setDialogOpen(false);
-                setEditingAssessment(null);
-                fetchAssessments();
-                
-                // Auto-redirect to questions tab for new assessments
-                if (!editingAssessment && onQuestionManagement) {
-                  onQuestionManagement(assessment.id);
-                }
-              }}
-              onClose={() => {
-                setDialogOpen(false);
-                setEditingAssessment(null);
-                fetchAssessments();
-              }}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          {/* AI Generator Button */}
+          <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Generate with AI
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Generate Assessment from URL</DialogTitle>
+              </DialogHeader>
+              <AIAssessmentGenerator
+                courseId={courseId}
+                onAssessmentCreated={() => {
+                  setAiDialogOpen(false);
+                  fetchAssessments();
+                }}
+                onClose={() => setAiDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+
+          {/* Manual Create Button */}
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditingAssessment(null)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Assessment
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingAssessment ? 'Edit Assessment' : 'Create New Assessment'}
+                </DialogTitle>
+              </DialogHeader>
+              <AssessmentDialog
+                courseId={courseId}
+                assessment={editingAssessment}
+                onAssessmentSave={(assessment: AssessmentTemplate) => {
+                  setDialogOpen(false);
+                  setEditingAssessment(null);
+                  fetchAssessments();
+                  
+                  // Auto-redirect to questions tab for new assessments
+                  if (!editingAssessment && onQuestionManagement) {
+                    onQuestionManagement(assessment.id);
+                  }
+                }}
+                onClose={() => {
+                  setDialogOpen(false);
+                  setEditingAssessment(null);
+                  fetchAssessments();
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {assessments.length === 0 ? (
