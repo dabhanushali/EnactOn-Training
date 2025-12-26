@@ -99,10 +99,23 @@ export function AIAssessmentGenerator({ courseId, courseName, onAssessmentCreate
         }
       });
 
-      if (error) throw error;
+      // Handle edge function invocation errors
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Edge function failed');
+      }
+
+      // Handle application-level errors from the response
+      if (!data) {
+        throw new Error('No response from server');
+      }
 
       if (!data.success) {
         throw new Error(data.error || 'Failed to generate assessment');
+      }
+
+      if (!data.assessment) {
+        throw new Error('No assessment data in response');
       }
 
       setGeneratedAssessment(data.assessment);
@@ -111,9 +124,12 @@ export function AIAssessmentGenerator({ courseId, courseName, onAssessmentCreate
 
     } catch (error) {
       console.error('Error generating assessment:', error);
+      const message = error instanceof Error ? error.message : 'Failed to generate assessment';
       toast({ 
-        title: 'Error', 
-        description: error instanceof Error ? error.message : 'Failed to generate assessment', 
+        title: 'Generation Failed', 
+        description: message.includes('non-2xx') 
+          ? 'Server error. Please check if the URL is accessible and try again.' 
+          : message, 
         variant: 'destructive' 
       });
     } finally {
